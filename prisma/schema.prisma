@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProjectStatus {
+  PRE_LAUNCH
+  PRE_CONSTRUCTION
+  UNDER_CONSTRUCTION
+  NEAR_COMPLETION
+  COMPLETED
+}
+
+enum ProjectCategory {
+  ULTRA_LUXURY
+  LUXURY_BRANDED
+  LUXURY
+  PREMIUM
+  AFFORDABLE_LUXURY
+}
+
+model Project {
+  id               String          @id @default(cuid())
+  name             String
+  slug             String          @unique
+  address          String?
+  neighborhoodId   String?
+  developerId      String?
+  architect        String?
+  status           ProjectStatus   @default(PRE_CONSTRUCTION)
+  estCompletion    String?
+  totalUnits       Int?
+  floors           Int?
+  priceMin         Int?
+  priceMax         Int?
+  pricePerSqft     Int?
+  sizeRangeMin     Int?
+  sizeRangeMax     Int?
+  depositStructure String?
+  description      String?         @db.Text
+  amenities        Json?
+  images           Json?
+  footprint        Json?
+  modelUrl         String?
+  mainImageUrl     String?
+  category         ProjectCategory @default(PREMIUM)
+  websiteUrl       String?
+  featured         Boolean         @default(false)
+  unitTypes        String?
+  latitude         Float?
+  longitude        Float?
+  longDescription  String?         @db.Text
+  metaTitle        String?
+  metaDescription  String?
+  faqJson          Json?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  neighborhood     Neighborhood?   @relation(fields: [neighborhoodId], references: [id])
+  developer        Developer?      @relation(fields: [developerId], references: [id])
+  leads            Lead[]
+
+  @@index([neighborhoodId])
+  @@index([developerId])
+  @@index([status])
+  @@index([category])
+  @@index([featured])
+  @@map("projects")
+}
+
+model Neighborhood {
+  id                String    @id @default(cuid())
+  name              String
+  slug              String    @unique
+  region            String?
+  description       String?   @db.Text
+  avgPriceStudio    Int?
+  avgPrice1br       Int?
+  avgPrice2br       Int?
+  avgPrice3br       Int?
+  avgPricePenthouse Int?
+  lifestyleDescription String? @db.Text
+  imageUrl          String?
+  metaTitle         String?
+  metaDescription   String?
+  displayOrder      Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  projects          Project[]
+  leads             Lead[]
+
+  @@map("neighborhoods")
+}
+
+model Developer {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  description   String?   @db.Text
+  headquarters  String?
+  foundedYear   Int?
+  logoUrl       String?
+  websiteUrl    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  projects      Project[]
+
+  @@map("developers")
+}
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String    @db.Text
+  excerpt         String?   @db.Text
+  metaTitle       String?
+  metaDescription String?
+  targetKeyword   String?
+  featuredImage   String?
+  publishedAt     DateTime?
+  author          String    @default("CondoWizard.ca")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([publishedAt])
+  @@map("blog_posts")
+}
+
+model Agent {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  phone          String?
+  passwordHash   String
+  avatarUrl      String?
+  bio            String?   @db.Text
+  licenseNumber  String?
+  brokerage      String?
+  neighborhoods  String[]  @default([])
+  role           String    @default("agent")
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  lastLoginAt    DateTime?
+
+  leads          Lead[]
+  activities     DealActivity[]
+
+  @@map("agents")
+}
+
+model Lead {
+  id               String    @id @default(cuid())
+  name             String
+  email            String
+  phone            String?
+  projectId        String?
+  neighborhoodId   String?
+  message          String?   @db.Text
+  source           String    @default("inquiry")
+  assignedAgentId  String?
+  status           String    @default("new")
+  notes            String?   @db.Text
+  priority         String    @default("warm")
+  updatedAt        DateTime  @default(now())
+  contactedAt      DateTime?
+  closedAt         DateTime?
+  dealValue        Int?
+  twilioProxyNumber String?
+  createdAt        DateTime  @default(now())
+
+  project          Project?       @relation(fields: [projectId], references: [id])
+  neighborhood     Neighborhood?  @relation(fields: [neighborhoodId], references: [id])
+  assignedAgent    Agent?         @relation(fields: [assignedAgentId], references: [id])
+  activities       DealActivity[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([assignedAgentId])
+  @@index([status])
+  @@map("leads")
+}
+
+model DealActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  agentId   String?
+  type      String
+  content   String?  @db.Text
+  duration  Int?
+  createdAt DateTime @default(now())
+
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent     Agent?   @relation(fields: [agentId], references: [id])
+
+  @@index([leadId])
+  @@index([agentId])
+  @@map("deal_activities")
+}

@@ -1,0 +1,53 @@
+{
+  "name": "condowizard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "@deck.gl/core": "^9.2.11",
+    "@deck.gl/layers": "^9.2.11",
+    "@deck.gl/mapbox": "^9.2.11",
+    "@deck.gl/react": "^9.2.11",
+    "@mendable/firecrawl-js": "^1.21.1",
+    "@prisma/client": "^5.22.0",
+    "@supabase/supabase-js": "^2.100.1",
+    "@types/node": "^25.5.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@types/three": "^0.183.1",
+    "autoprefixer": "^10.4.27",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
+    "clsx": "^2.1.1",
+    "deck.gl": "^9.2.11",
+    "jsonwebtoken": "^9.0.3",
+    "mapbox-gl": "^3.20.0",
+    "next": "14.2.20",
+    "postcss": "8.4.31",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.72.0",
+    "react-map-gl": "^8.1.0",
+    "react-markdown": "^10.1.0",
+    "resolve-pkg-maps": "^1.0.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^3.4.19",
+    "three": "^0.183.2",
+    "typescript": "^6.0.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "tsx": "^4.21.0"
+  }
+}

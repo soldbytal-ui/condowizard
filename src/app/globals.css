@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
+@layer base {
+  body {
+    @apply bg-bg text-text-primary antialiased font-sans;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent-blue text-white font-semibold px-6 py-3 rounded-lg hover:brightness-110 transition-all inline-flex items-center justify-center;
+  }
+  .btn-secondary {
+    @apply border border-border text-text-primary font-medium px-6 py-3 rounded-lg hover:bg-surface2 hover:border-accent-blue/30 transition-all inline-flex items-center justify-center;
+  }
+  .btn-ghost {
+    @apply text-text-muted font-medium px-4 py-2 rounded-lg hover:text-text-primary hover:bg-surface2 transition-all inline-flex items-center justify-center;
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  .glass-panel-dark {
+    background: rgba(17, 19, 23, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .card {
+    @apply bg-white rounded-2xl border border-border overflow-hidden shadow-sm;
+  }
+  .section-padding {
+    @apply py-16 md:py-24;
+  }
+  .container-main {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+.mapboxgl-ctrl-attrib-button,
+.mapboxgl-ctrl-logo {
+  opacity: 0.3;
+}
+.mapboxgl-popup-content {
+  background: rgba(17, 19, 23, 0.92) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #F0EDE8;
+  border-radius: 12px;
+  padding: 0;
+}
+.mapboxgl-popup-tip {
+  display: none;
+}
+.mini-map-popup .mapboxgl-popup-content {
+  padding: 0;
+  border-radius: 10px;
+}
+
+/* Mini-map project dots */
+.mini-map-dot {
+  width: 16px;
+  height: 16px;
+  background: #0066FF;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 102, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 102, 255, 0.5), 0 0 20px rgba(0, 102, 255, 0.2);
+  animation: mini-dot-glow 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes mini-dot-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 102, 255, 0.5), 0 0 20px rgba(0, 102, 255, 0.2); }
+  50% { box-shadow: 0 0 14px rgba(0, 102, 255, 0.7), 0 0 28px rgba(0, 102, 255, 0.35); }
+}

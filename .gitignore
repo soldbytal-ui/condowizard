@@ -1,0 +1,11 @@
+node_modules/
+.next/
+".next 2/"
+.env
+.env.local
+*.lo
+.vercel
+.DS_Store
+.crawl-cache/
+.firecrawl-cache/
+.claude/

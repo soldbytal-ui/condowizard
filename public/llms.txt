@@ -1,0 +1,59 @@
+# CondoWizard.ca
+
+> Toronto's premier marketplace for pre-construction condos. Access 200+ new developments across the Greater Toronto Area from King West to Markham.
+
+For the complete content guide, see: https://condowizard.ca/llms-full.txt
+
+## About
+
+CondoWizard.ca is operated by Tal Shelef, Sales Representative at Rare Real Estate Inc., Brokerage. We aggregate and display data about pre-construction real estate projects across the Greater Toronto Area. We connect buyers and investors with new developments across Toronto, Mississauga, Vaughan, Markham, and surrounding areas.
+
+## Key Pages
+
+- [Homepage](https://condowizard.ca/): Overview of the marketplace with featured projects and interactive 3D map
+- [All Properties](https://condowizard.ca/new-condos): Browse 200+ pre-construction condo projects with filters
+- [Developers](https://condowizard.ca/developers): Explore top pre-construction condo developers in the GTA
+- [Blog](https://condowizard.ca/blog): Expert market analysis, buyer guides, and investment strategies
+- [About](https://condowizard.ca/about): About the platform and our mission
+- [Contact](https://condowizard.ca/contact-us): Get in touch with our team
+
+## Neighborhood Pages
+
+- [Downtown Core](https://condowizard.ca/new-condos-downtown-core)
+- [King West](https://condowizard.ca/new-condos-king-west)
+- [Liberty Village](https://condowizard.ca/new-condos-liberty-village)
+- [Queen West](https://condowizard.ca/new-condos-queen-west)
+- [Yorkville](https://condowizard.ca/new-condos-yorkville)
+- [The Annex](https://condowizard.ca/new-condos-the-annex)
+- [Midtown](https://condowizard.ca/new-condos-midtown)
+- [Yonge & Eglinton](https://condowizard.ca/new-condos-yonge-eglinton)
+- [North York](https://condowizard.ca/new-condos-north-york)
+- [Scarborough](https://condowizard.ca/new-condos-scarborough)
+- [Etobicoke](https://condowizard.ca/new-condos-etobicoke)
+- [Waterfront](https://condowizard.ca/new-condos-waterfront)
+- [Mississauga](https://condowizard.ca/new-condos-mississauga)
+- [Vaughan](https://condowizard.ca/new-condos-vaughan)
+- [Richmond Hill](https://condowizard.ca/new-condos-richmond-hill)
+- [Markham](https://condowizard.ca/new-condos-markham)
+
+## Topics Covered
+
+- Pre-construction condo pricing and availability in Toronto
+- Neighborhood comparisons and market analysis
+- Developer profiles and track records
+- Deposit structures and payment timelines
+- Investment analysis and ROI projections
+- Construction status updates and completion timelines
+- Floor plans and amenity details
+- Toronto real estate market trends
+- Ontario buying process: HST rebate, occupancy fees, assignment sales
+- TTC and GO Transit accessibility
+
+## Contact
+
+- Agent: Tal Shelef, Sales Representative
+- Brokerage: Rare Real Estate Inc.
+- Email: Contact@condowizard.ca
+- Phone: 647-890-4082
+- Address: 1701 Avenue Rd, Toronto, ON M5M 3Y3
+- Hours: Monday-Friday 9am-6pm EST

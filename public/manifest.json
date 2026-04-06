@@ -1,0 +1,9 @@
+{
+  "name": "CondoWizard.ca",
+  "short_name": "CondoWizard",
+  "description": "Pre-Construction Condos in Toronto & the Greater Toronto Area",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0066FF"
+}
