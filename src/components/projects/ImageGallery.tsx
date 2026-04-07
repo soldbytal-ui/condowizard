@@ -27,7 +27,6 @@ export default function ImageGallery({ images, projectName }: { images: ImageIte
   return (
     <>
       <div>
-        <h2 className="text-2xl font-semibold text-text-primary mb-4">Gallery</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {images.map((img, i) => (
             <button
