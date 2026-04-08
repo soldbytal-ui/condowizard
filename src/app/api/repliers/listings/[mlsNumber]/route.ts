@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { repliersRequest, RepliersListing } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
 
+const TRREB_BOARD_ID = '91';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { mlsNumber: string } }
@@ -11,6 +13,7 @@ export async function GET(
 
     const data = await repliersRequest<RepliersListing>({
       path: `/listings/${mlsNumber}`,
+      query: { boardId: TRREB_BOARD_ID },
       revalidate: 600,
     });
 
@@ -24,12 +27,12 @@ export async function GET(
       listing,
       comparables,
       history,
-      raw: data, // full Repliers response for detail page
+      raw: data,
     });
   } catch (error) {
     console.error('Repliers single listing error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch listing' },
+      { error: 'Failed to fetch listing', details: String(error) },
       { status: 500 }
     );
   }

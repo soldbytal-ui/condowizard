@@ -24,7 +24,6 @@ export default async function BuildingPage({ params }: Props) {
 
   try {
     const res = await repliersRequest<any>({
-      method: 'POST',
       path: '/listings',
       body: {
         city: 'Toronto',

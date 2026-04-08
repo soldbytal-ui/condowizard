@@ -12,47 +12,49 @@ export function mapMLSToUnified(listing: RepliersListing): UnifiedListing {
     .join(' ')
     .trim();
 
-  const price = listing.soldPrice || listing.listPrice;
-  const stories = det.stories || null;
-  const neighborhood = addr.neighborhood || addr.district || addr.area || '';
+  const price = listing.soldPrice || listing.listPrice || 0;
+  const stories = det?.stories || null;
+  const neighborhood = addr?.neighborhood || addr?.district || addr?.area || '';
 
   return {
     id: listing.mlsNumber,
     source: 'mls',
     address: fullAddress,
-    city: addr.city || 'Toronto',
+    city: addr?.city || 'Toronto',
     neighborhood,
-    community: addr.communityCode || addr.community || '',
-    lat: listing.map.latitude,
-    lng: listing.map.longitude,
+    community: addr?.communityCode || addr?.community || '',
+    lat: listing.map?.latitude || 0,
+    lng: listing.map?.longitude || 0,
     price,
-    priceDisplay: `$${price.toLocaleString()}`,
-    beds: det.numBedrooms + (det.numBedroomsPlus || 0),
-    baths: det.numBathrooms,
-    sqft: det.sqft || '',
-    propertyType: det.propertyType || det.type || 'Condo Apt',
+    priceDisplay: price ? `$${price.toLocaleString()}` : 'Contact for pricing',
+    beds: (det?.numBedrooms || 0) + (det?.numBedroomsPlus || 0),
+    baths: det?.numBathrooms || 0,
+    sqft: det?.sqft || '',
+    propertyType: det?.propertyType || det?.type || listing.type || 'Condo Apt',
     buildingType: classifyBuildingType({
       stories,
-      style: det.style,
+      style: det?.style,
       price,
       neighborhood,
       source: 'mls',
     }),
     status: listing.lastStatus || listing.status,
-    dom: listing.daysOnMarket || 0,
-    images: listing.images || [],
-    maintenanceFee: det.maintenanceFee ? parseFloat(det.maintenanceFee) : null,
-    yearBuilt: det.yearBuilt ? parseInt(det.yearBuilt) : null,
+    dom: listing.daysOnMarket || listing.simpleDaysOnMarket || 0,
+    images: (listing.images || []).map((img: string) =>
+      img.startsWith('http') ? img : `https://cdn.repliers.io/${img}`
+    ),
+    maintenanceFee: det?.maintenanceFee ? parseFloat(det.maintenanceFee) : (listing.condominium?.fees?.maintenance ? parseFloat(listing.condominium.fees.maintenance) : null),
+    yearBuilt: det?.yearBuilt ? parseInt(det.yearBuilt) : null,
     developer: null,
     occupancy: null,
-    description: det.description || '',
-    features: listing.condominium?.ammenities || [],
+    description: det?.description || '',
+    features: listing.condominium?.ammenities || listing.condominium?.buildingAmenities || [],
     slug: listing.mlsNumber,
     mlsNumber: listing.mlsNumber,
     estimatedValue: null,
     listDate: listing.listDate || '',
     updatedAt: listing.updatedOn || '',
-    parking: det.numParkingSpaces || null,
+    parking: det?.numParkingSpaces || null,
     stories,
     lotSize: listing.lot?.acres || listing.lot?.width ? `${listing.lot.width} x ${listing.lot.depth}` : null,
     taxes: listing.taxes?.annualAmount || null,
@@ -194,14 +196,13 @@ export async function fetchMLSListings(filters: ListingFilters): Promise<{
   }
 
   const data = await repliersRequest<RepliersListingsResponse>({
-    method: 'POST',
     path: '/listings',
     body,
     revalidate: 300,
   });
 
   return {
-    listings: data.listings.map(mapMLSToUnified),
+    listings: (data.listings || []).map(mapMLSToUnified),
     total: data.count,
     statistics: data.statistics,
   };

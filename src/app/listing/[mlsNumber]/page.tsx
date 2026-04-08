@@ -12,6 +12,7 @@ async function getListing(mlsNumber: string) {
   try {
     const data = await repliersRequest<RepliersListing>({
       path: `/listings/${mlsNumber}`,
+      query: { boardId: '91' },
       revalidate: 600,
     });
     return data;

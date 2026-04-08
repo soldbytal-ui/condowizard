@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const data = await repliersRequest<{ suggestions: unknown[] }>({
       path: '/locations/autocomplete',
-      query: { query, city: 'Toronto' },
+      query: { search: query, city: 'Toronto' },
       revalidate: 86400,
     });
 

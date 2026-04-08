@@ -13,7 +13,18 @@ interface RepliersRequestOptions {
 
 export async function repliersRequest<T = unknown>(opts: RepliersRequestOptions): Promise<T> {
   const url = new URL(`${REPLIERS_BASE}${opts.path}`);
-  if (opts.query) {
+  const usePost = opts.method === 'POST';
+
+  // For GET requests: merge query + body into query params (Repliers uses query params)
+  // For POST requests (NLP, estimates): send body as JSON
+  if (!usePost) {
+    const allParams = { ...opts.query, ...opts.body };
+    for (const [key, val] of Object.entries(allParams)) {
+      if (val !== undefined && val !== null && val !== '') {
+        url.searchParams.set(key, String(val));
+      }
+    }
+  } else if (opts.query) {
     for (const [key, val] of Object.entries(opts.query)) {
       if (val !== undefined && val !== '') {
         url.searchParams.set(key, String(val));
@@ -21,15 +32,17 @@ export async function repliersRequest<T = unknown>(opts: RepliersRequestOptions)
     }
   }
 
-  const res = await fetch(url.toString(), {
-    method: opts.method || 'GET',
+  const fetchOpts: RequestInit & { next?: { revalidate: number } } = {
+    method: usePost ? 'POST' : 'GET',
     headers: {
       'REPLIERS-API-KEY': API_KEY,
-      'Content-Type': 'application/json',
+      ...(usePost && { 'Content-Type': 'application/json' }),
     },
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
+    ...(usePost && opts.body && { body: JSON.stringify(opts.body) }),
     next: { revalidate: opts.revalidate ?? 300 },
-  });
+  };
+
+  const res = await fetch(url.toString(), fetchOpts);
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -102,6 +115,8 @@ export interface RepliersListing {
   };
   class?: string;
   type?: string;
+  simpleDaysOnMarket?: number;
+  boardId?: number;
   comparables?: RepliersListing[];
   history?: RepliersHistoryEntry[];
   [key: string]: unknown;

@@ -29,7 +29,6 @@ export default async function NeighborhoodPage({ params }: Props) {
   let stats: any = {};
   try {
     const data = await repliersRequest<RepliersListingsResponse>({
-      method: 'POST',
       path: '/listings',
       body: {
         city: 'Toronto',
@@ -38,12 +37,17 @@ export default async function NeighborhoodPage({ params }: Props) {
         type: 'sale',
         resultsPerPage: 12,
         sortBy: 'updatedOnDesc',
-        statistics: true,
+        statistics: 'avg-listPrice,med-listPrice,cnt-available',
       },
       revalidate: 300,
     });
-    mlsListings = data.listings.map(mapMLSToUnified);
-    stats = data.statistics || {};
+    mlsListings = (data.listings || []).map(mapMLSToUnified);
+    const rawStats = data.statistics as Record<string, any> || {};
+    stats = {
+      averagePrice: rawStats.listPrice?.avg,
+      medianPrice: rawStats.listPrice?.med,
+      totalActive: data.count,
+    };
   } catch {}
 
   // Fetch pre-con projects in this neighborhood
