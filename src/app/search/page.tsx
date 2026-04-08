@@ -12,10 +12,20 @@ const SearchMap = dynamic(() => import('@/components/search/SearchMap'), {
   loading: () => <div className="w-full h-full bg-gray-900 animate-pulse" />,
 });
 
+function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; }
+
+function dedup(listings: UnifiedListing[]): UnifiedListing[] {
+  const seen = new Map<string, UnifiedListing>();
+  for (const l of listings) {
+    if (!seen.has(l.id)) seen.set(l.id, l);
+  }
+  if (seen.size !== listings.length) console.warn(`[CondoWizard] Removed ${listings.length - seen.size} duplicate listings`);
+  return [...seen.values()];
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-
   const [listings, setListings] = useState<UnifiedListing[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -33,15 +43,15 @@ function SearchContent() {
       neighborhood: searchParams.get('neighborhood') || undefined,
       community: searchParams.get('community') || undefined,
       soldDateRange: tab === 'sold' ? '90' : undefined,
-      soldDateMin: tab === 'sold' ? (() => { const d = new Date(); d.setDate(d.getDate() - 90); return d.toISOString().split('T')[0]; })() : undefined,
+      soldDateMin: tab === 'sold' ? daysAgo(90) : undefined,
       page: 1,
       pageSize: 24,
     };
   });
 
-  // Build the full API request body from filters
+  // Build Repliers request body — complete param mapping
   function buildRequestBody(f: ListingFilters): Record<string, unknown> {
-    const body: Record<string, unknown> = {
+    const b: Record<string, unknown> = {
       city: 'Toronto',
       resultsPerPage: f.pageSize || 24,
       pageNum: f.page || 1,
@@ -49,95 +59,102 @@ function SearchContent() {
     };
 
     // Tab → status/type
-    if (f.tab === 'sale') { body.status = 'A'; body.type = 'sale'; }
-    else if (f.tab === 'sold') { body.status = 'U'; body.lastStatus = 'Sld'; }
-    else if (f.tab === 'rent') { body.status = 'A'; body.type = 'lease'; }
+    if (f.tab === 'sale') { b.status = 'A'; b.type = 'sale'; }
+    else if (f.tab === 'sold') { b.status = 'U'; b.lastStatus = 'Sld'; }
+    else if (f.tab === 'rent') { b.status = 'A'; b.type = 'lease'; }
 
     // Sort
+    const sold = f.tab === 'sold';
     switch (f.sortBy) {
-      case 'newest': body.sortBy = f.tab === 'sold' ? 'soldDateDesc' : 'updatedOnDesc'; break;
-      case 'price_asc': body.sortBy = f.tab === 'sold' ? 'soldPriceAsc' : 'listPriceAsc'; break;
-      case 'price_desc': body.sortBy = f.tab === 'sold' ? 'soldPriceDesc' : 'listPriceDesc'; break;
-      case 'largest': body.sortBy = 'sqftDesc'; break;
-      default: body.sortBy = 'updatedOnDesc';
+      case 'newest': b.sortBy = sold ? 'soldDateDesc' : 'updatedOnDesc'; break;
+      case 'price_asc': b.sortBy = sold ? 'soldPriceAsc' : 'listPriceAsc'; break;
+      case 'price_desc': b.sortBy = sold ? 'soldPriceDesc' : 'listPriceDesc'; break;
+      case 'largest': b.sortBy = 'sqftDesc'; break;
+      default: b.sortBy = sold ? 'soldDateDesc' : 'updatedOnDesc';
     }
 
-    // Price
-    if (f.priceMin) body.minPrice = f.priceMin;
-    if (f.priceMax) body.maxPrice = f.priceMax;
-    // Beds/Baths
-    if (f.bedsMin) body.minBeds = f.bedsMin;
-    if (f.bedsMax) body.maxBeds = f.bedsMax;
-    if (f.bathsMin) body.minBaths = f.bathsMin;
-    if (f.bathsMax) body.maxBaths = f.bathsMax;
-    // Sqft
-    if (f.sqftMin) body.minSqft = f.sqftMin;
-    if (f.sqftMax) body.maxSqft = f.sqftMax;
     // Location
-    if (f.neighborhood) body.neighborhood = f.neighborhood;
-    if (f.community) body.area = f.community;  // TRREB community → Repliers area param
-    if (f.area) body.area = f.area;
-    if (f.municipality) body.municipality = f.municipality;
-    if (f.streetName) body.streetName = f.streetName;
-    if (f.streetNumberMin) body.minStreetNumber = f.streetNumberMin;
-    if (f.streetNumberMax) body.maxStreetNumber = f.streetNumberMax;
-    if (f.streetDirection) body.streetDirection = f.streetDirection;
-    if (f.unitNumber) body.unitNumber = f.unitNumber;
+    if (f.community) b.area = f.community;
+    else if (f.area) b.area = f.area;
+    if (f.neighborhood) b.neighborhood = f.neighborhood;
+    if (f.municipality) b.city = f.municipality; // municipalities = cities in Repliers
+    if (f.streetName) b.streetName = f.streetName;
+    if (f.streetNumberMin) b.minStreetNumber = f.streetNumberMin;
+    if (f.streetNumberMax) b.maxStreetNumber = f.streetNumberMax;
+    if (f.streetDirection) b.streetDirection = f.streetDirection;
+    if (f.unitNumber) b.unitNumber = f.unitNumber;
+
     // Property
-    if (f.mlsNumber) body.mlsNumber = f.mlsNumber;
-    if (f.propertyType?.length) body.propertyType = f.propertyType.join(',');
-    if (f.style?.length) body.style = f.style.join(',');
-    if (f.class) body.class = f.class;
-    // Status/Dates — don't override lastStatus if sold tab already sets it
-    if (f.lastStatus?.length && f.tab !== 'sold') body.lastStatus = f.lastStatus.join(',');
-    // DOM filter only works with status=U (sold) in Repliers API
-    if (f.tab === 'sold') {
-      if (f.domMin) body.minDaysOnMarket = f.domMin;
-      if (f.domMax) body.maxDaysOnMarket = f.domMax;
-    }
-    if (f.updatedOnMin) body.minUpdatedOn = f.updatedOnMin;
-    if (f.updatedOnMax) body.maxUpdatedOn = f.updatedOnMax;
-    if (f.listDateMin) body.minListDate = f.listDateMin;
-    if (f.listDateMax) body.maxListDate = f.listDateMax;
-    // Sold
-    if (f.soldDateMin) body.minSoldDate = f.soldDateMin;
-    if (f.soldDateMax) body.maxSoldDate = f.soldDateMax;
-    if (f.soldPriceMin) body.minSoldPrice = f.soldPriceMin;
-    if (f.soldPriceMax) body.maxSoldPrice = f.soldPriceMax;
-    // Financials
-    if (f.maintenanceFeeMax) body.maxMaintenanceFee = f.maintenanceFeeMax;
-    if (f.taxMin) body.minTaxes = f.taxMin;
-    if (f.taxMax) body.maxTaxes = f.taxMax;
-    if (f.priceChangeType) body.lastPriceChangeType = f.priceChangeType;
-    // Size extended
-    if (f.bedsPlus) body.minBedroomsPlus = f.bedsPlus;
-    if (f.halfBathMin) body.minBathroomsHalf = f.halfBathMin;
-    if (f.lotSizeMin) body.minLotSizeSqft = f.lotSizeMin;
-    if (f.lotSizeMax) body.maxLotSizeSqft = f.lotSizeMax;
-    if (f.storiesMin) body.minStories = f.storiesMin;
-    if (f.storiesMax) body.maxStories = f.storiesMax;
-    if (f.yearBuiltMin) body.minYearBuilt = f.yearBuiltMin;
-    if (f.yearBuiltMax) body.maxYearBuilt = f.yearBuiltMax;
+    if (f.mlsNumber) b.mlsNumber = f.mlsNumber;
+    if (f.propertyType?.length) b.propertyType = f.propertyType; // array — API route handles repeated params
+    if (f.style?.length) b.style = f.style;
+    if (f.class) b.class = f.class;
+
+    // Price
+    if (f.priceMin) b.minPrice = f.priceMin;
+    if (f.priceMax) b.maxPrice = f.priceMax;
+    if (f.maintenanceFeeMax) b.maxMaintenanceFee = f.maintenanceFeeMax;
+    if (f.taxMin) b.minTaxes = f.taxMin;
+    if (f.taxMax) b.maxTaxes = f.taxMax;
+    if (f.priceChangeType) b.lastPriceChangeType = f.priceChangeType;
+
+    // Size — minBeds includes bedrooms+bedroomsPlus (total beds)
+    if (f.bedsMin) b.minBeds = f.bedsMin;
+    if (f.bedsMax) b.maxBeds = f.bedsMax;
+    if (f.bedsPlus) b.minBedroomsPlus = f.bedsPlus;
+    if (f.bathsMin) b.minBaths = f.bathsMin;
+    if (f.bathsMax) b.maxBaths = f.bathsMax;
+    if (f.halfBathMin) b.minBathroomsHalf = f.halfBathMin;
+    if (f.sqftMin) b.minSqft = f.sqftMin;
+    if (f.sqftMax) b.maxSqft = f.sqftMax;
+    if (f.lotSizeMin) b.minLotSizeSqft = f.lotSizeMin;
+    if (f.lotSizeMax) b.maxLotSizeSqft = f.lotSizeMax;
+    if (f.storiesMin) b.minStories = f.storiesMin;
+    if (f.storiesMax) b.maxStories = f.storiesMax;
+    if (f.yearBuiltMin) b.minYearBuilt = f.yearBuiltMin;
+    if (f.yearBuiltMax) b.maxYearBuilt = f.yearBuiltMax;
+
     // Parking
-    if (f.parkingMin) body.minParkingSpaces = f.parkingMin;
-    if (f.garageMin) body.minGarageSpaces = f.garageMin;
-    if (f.garageType?.length) body.garage = f.garageType.join(',');
-    if (f.locker) body.locker = f.locker;
+    if (f.parkingMin) b.minParkingSpaces = f.parkingMin;
+    if (f.garageMin) b.minGarageSpaces = f.garageMin;
+    if (f.garageType?.length) b.garage = f.garageType;
+    if (f.locker) b.locker = f.locker;
+
     // Features
-    if (f.basement?.length) body.basement = f.basement.join(',');
-    if (f.heating?.length) body.heating = f.heating.join(',');
-    if (f.pool?.length) body.swimmingPool = f.pool.join(',');
-    if (f.waterfront) body.waterfront = f.waterfront;
-    if (f.den) body.den = f.den;
+    if (f.basement?.length) b.basement = f.basement;
+    if (f.heating?.length) b.heating = f.heating;
+    if (f.pool?.length) b.swimmingPool = f.pool;
+    if (f.waterfront) b.waterfront = f.waterfront;
+    if (f.den) b.den = f.den;
+
+    // Status/Dates — don't override lastStatus for sold tab
+    if (f.lastStatus?.length && f.tab !== 'sold') b.lastStatus = f.lastStatus;
+    if (sold) {
+      if (f.domMin) b.minDaysOnMarket = f.domMin;
+      if (f.domMax) b.maxDaysOnMarket = f.domMax;
+    }
+    if (f.updatedOnMin) b.minUpdatedOn = f.updatedOnMin;
+    if (f.updatedOnMax) b.maxUpdatedOn = f.updatedOnMax;
+    if (f.listDateMin) b.minListDate = f.listDateMin;
+    if (f.listDateMax) b.maxListDate = f.listDateMax;
+
+    // Sold
+    if (f.soldDateMin) b.minSoldDate = f.soldDateMin;
+    if (f.soldDateMax) b.maxSoldDate = f.soldDateMax;
+    if (f.soldPriceMin) b.minSoldPrice = f.soldPriceMin;
+    if (f.soldPriceMax) b.maxSoldPrice = f.soldPriceMax;
+
     // Open house
-    if (f.openHouse) body.minOpenHouseDate = f.openHouseDateMin || new Date().toISOString().split('T')[0];
-    if (f.openHouseDateMax) body.maxOpenHouseDate = f.openHouseDateMax;
+    if (f.openHouse) b.minOpenHouseDate = f.openHouseDateMin || new Date().toISOString().split('T')[0];
+    if (f.openHouseDateMax) b.maxOpenHouseDate = f.openHouseDateMax;
+
     // Display
-    if (f.hasImages) body.hasImages = true;
-    if (f.hasAgents) body.hasAgents = true;
+    if (f.hasImages) b.hasImages = true;
+    if (f.hasAgents) b.hasAgents = true;
+
     // Map bounds
     if (f.bounds) {
-      body.map = JSON.stringify({
+      b.map = JSON.stringify({
         type: 'Polygon',
         coordinates: [[
           [f.bounds.sw.lng, f.bounds.ne.lat], [f.bounds.ne.lng, f.bounds.ne.lat],
@@ -147,7 +164,7 @@ function SearchContent() {
       });
     }
 
-    return body;
+    return b;
   }
 
   // MLS# direct lookup
@@ -162,29 +179,18 @@ function SearchContent() {
           setListings([data.listing]);
           setTotalCount(1);
           setStatistics({});
-          console.log(`[CondoWizard] MLS# ${mls} found:`, data.listing.address, data.listing.priceDisplay);
-        } else {
-          setListings([]);
-          setTotalCount(0);
-        }
-      } else {
-        console.error(`[CondoWizard] MLS# ${mls} not found (${res.status})`);
-        setListings([]);
-        setTotalCount(0);
-      }
-    } catch (err) {
-      console.error('[CondoWizard] MLS lookup error:', err);
-      setListings([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
-    }
+        } else { setListings([]); setTotalCount(0); }
+      } else { setListings([]); setTotalCount(0); }
+    } catch { setListings([]); setTotalCount(0); }
+    finally { setLoading(false); }
   }, []);
 
+  // Main fetch
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
       if (filters.tab === 'precon') {
+        console.log('[CondoWizard] Tab: precon, calling: /api/precon');
         const params = new URLSearchParams();
         if (filters.priceMin) params.set('priceMin', String(filters.priceMin));
         if (filters.priceMax) params.set('priceMax', String(filters.priceMax));
@@ -195,12 +201,16 @@ function SearchContent() {
         params.set('page', String(filters.page || 1));
         params.set('pageSize', String(filters.pageSize || 24));
         const res = await fetch('/api/precon?' + params.toString());
-        if (res.ok) { const data = await res.json(); setListings(data.listings || []); setTotalCount(data.total || 0); }
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`[CondoWizard] Precon: ${data.total || 0} projects`);
+          setListings(data.listings || []);
+          setTotalCount(data.total || 0);
+          setStatistics({});
+        }
       } else {
         const body = buildRequestBody(filters);
-
-        // DEBUG: Log the full request to console
-        console.log('[CondoWizard] Fetching listings with filters:', JSON.stringify(body, null, 2));
+        console.log(`[CondoWizard] Tab: ${filters.tab}, calling: /api/repliers/listings, params:`, body);
 
         const res = await fetch('/api/repliers/listings', {
           method: 'POST',
@@ -210,12 +220,14 @@ function SearchContent() {
 
         if (res.ok) {
           const data = await res.json();
-          console.log(`[CondoWizard] Got ${data.total} listings, stats:`, data.statistics);
-          setListings(data.listings || []);
+          const unique = dedup(data.listings || []);
+          console.log(`[CondoWizard] Got ${data.total} total, ${unique.length} unique listings`);
+          setListings(unique);
           setTotalCount(data.total || 0);
           if (data.statistics) setStatistics(data.statistics);
         } else {
-          console.error('[CondoWizard] API error:', res.status, await res.text());
+          const err = await res.text();
+          console.error(`[CondoWizard] API error ${res.status}:`, err.slice(0, 300));
         }
       }
     } catch (error) {
@@ -227,42 +239,32 @@ function SearchContent() {
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
-  // Update URL
+  // URL sync
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (filters.tab !== 'sale') params.set('tab', filters.tab);
-    if (filters.sortBy && filters.sortBy !== 'newest') params.set('sortBy', filters.sortBy);
-    if (filters.priceMin) params.set('priceMin', String(filters.priceMin));
-    if (filters.priceMax) params.set('priceMax', String(filters.priceMax));
-    if (filters.bedsMin) params.set('beds', String(filters.bedsMin));
-    if (filters.neighborhood) params.set('neighborhood', filters.neighborhood);
-    if (filters.community) params.set('community', filters.community);
-    if (filters.class) params.set('class', filters.class);
-    const qs = params.toString();
+    const p = new URLSearchParams();
+    if (filters.tab !== 'sale') p.set('tab', filters.tab);
+    if (filters.sortBy && filters.sortBy !== 'newest') p.set('sortBy', filters.sortBy);
+    if (filters.priceMin) p.set('priceMin', String(filters.priceMin));
+    if (filters.priceMax) p.set('priceMax', String(filters.priceMax));
+    if (filters.bedsMin) p.set('beds', String(filters.bedsMin));
+    if (filters.neighborhood) p.set('neighborhood', filters.neighborhood);
+    if (filters.community) p.set('community', filters.community);
+    if (filters.class) p.set('class', filters.class);
+    const qs = p.toString();
     router.replace(`/search${qs ? '?' + qs : ''}`, { scroll: false });
   }, [filters, router]);
 
   const handleFilterChange = useCallback((partial: Partial<ListingFilters>) => {
     setFilters((prev) => {
-      // When switching tabs, clear tab-specific filters and reset page
       if (partial.tab && partial.tab !== prev.tab) {
+        // Tab switch: reset everything except location
         const base: ListingFilters = {
-          tab: partial.tab,
-          page: 1,
-          pageSize: prev.pageSize || 24,
-          sortBy: 'newest',
-          // Keep location filters across tabs
-          neighborhood: prev.neighborhood,
-          community: prev.community,
-          priceMin: prev.priceMin,
-          priceMax: prev.priceMax,
-          bedsMin: prev.bedsMin,
+          tab: partial.tab, page: 1, pageSize: 24, sortBy: 'newest',
+          neighborhood: prev.neighborhood, community: prev.community,
         };
-        // Set defaults for sold tab
         if (partial.tab === 'sold') {
-          const d = new Date(); d.setDate(d.getDate() - 90);
           base.soldDateRange = '90';
-          base.soldDateMin = d.toISOString().split('T')[0];
+          base.soldDateMin = daysAgo(90);
         }
         return base;
       }
@@ -278,6 +280,8 @@ function SearchContent() {
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
     setFilters((prev) => ({ ...prev, bounds }));
   }, []);
+
+  const isPrecon = filters.tab === 'precon';
 
   return (
     <div className="h-screen flex flex-col pt-14">
@@ -298,20 +302,32 @@ function SearchContent() {
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-border animate-pulse">
                   <div className="aspect-[4/3] bg-surface2 rounded-t-xl" />
-                  <div className="p-3 space-y-2"><div className="h-5 bg-surface2 rounded w-24" /><div className="h-4 bg-surface2 rounded w-40" /><div className="h-3 bg-surface2 rounded w-32" /></div>
+                  <div className="p-3 space-y-2"><div className="h-5 bg-surface2 rounded w-24" /><div className="h-4 bg-surface2 rounded w-40" /></div>
                 </div>
               ))}
             </div>
           ) : listings.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <svg className="w-16 h-16 text-text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <h3 className="text-lg font-semibold text-text-primary">No listings found</h3>
-              <p className="text-sm text-text-muted mt-1">Try adjusting your filters or search area</p>
+              {isPrecon ? (
+                <>
+                  <div className="w-16 h-16 bg-bt-precon/20 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-2xl">🏗</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-text-primary">No pre-construction projects found</h3>
+                  <p className="text-sm text-text-muted mt-1">Add projects via <a href="/admin/projects" className="text-accent-blue hover:underline">/admin/projects</a></p>
+                </>
+              ) : (
+                <>
+                  <svg className="w-16 h-16 text-text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <h3 className="text-lg font-semibold text-text-primary">No listings found</h3>
+                  <p className="text-sm text-text-muted mt-1">Try adjusting your filters or search area</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
               {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView={filters.tab === 'sold'} />
+                <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView={filters.tab === 'sold'} isRentView={filters.tab === 'rent'} />
               ))}
             </div>
           )}

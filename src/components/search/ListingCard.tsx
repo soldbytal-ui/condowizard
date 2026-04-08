@@ -8,6 +8,7 @@ interface ListingCardProps {
   onHover?: (id: string | null) => void;
   isHighlighted?: boolean;
   isSoldView?: boolean;
+  isRentView?: boolean;
 }
 
 function timeAgo(dateStr: string): string {
@@ -35,7 +36,7 @@ function overUnderAsking(soldPrice: number | null, listPrice: number | null): { 
   return { text: `${Math.abs(pct).toFixed(1)}% under`, color: 'text-red-500' };
 }
 
-export default function ListingCard({ listing, onHover, isHighlighted, isSoldView }: ListingCardProps) {
+export default function ListingCard({ listing, onHover, isHighlighted, isSoldView, isRentView }: ListingCardProps) {
   const href = listing.source === 'mls'
     ? `/listing/${listing.mlsNumber}`
     : `/projects/${listing.slug}`;
@@ -123,6 +124,17 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
               )}
             </div>
           </>
+        ) : isRentView ? (
+          <p className="font-serif text-lg font-bold text-text-primary leading-tight">
+            {listing.price ? `$${listing.price.toLocaleString()}/mo` : listing.priceDisplay}
+          </p>
+        ) : listing.source === 'precon' ? (
+          <>
+            <p className="font-serif text-lg font-bold text-text-primary leading-tight">
+              {listing.priceDisplay}
+            </p>
+            {listing.developer && <p className="text-xs text-accent-blue mt-0.5">by {listing.developer}</p>}
+          </>
         ) : (
           <p className="font-serif text-lg font-bold text-text-primary leading-tight">
             {listing.priceDisplay}
@@ -143,12 +155,16 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
           <p className="text-xs text-text-muted mt-1">{listing.dom} days on market</p>
         )}
 
-        {/* Active: maintenance fee */}
-        {!isSold && listing.maintenanceFee && listing.maintenanceFee > 0 && (
+        {/* Active: maintenance fee (not shown for rentals) */}
+        {!isSold && !isRentView && listing.maintenanceFee && listing.maintenanceFee > 0 && (
           <p className="text-xs text-text-muted mt-1">${Math.round(listing.maintenanceFee)}/mo maint.</p>
         )}
 
-        {listing.source === 'precon' && listing.developer && (
+        {/* Pre-con: occupancy */}
+        {listing.source === 'precon' && listing.occupancy && (
+          <p className="text-xs text-text-muted mt-1">Est. {listing.occupancy}</p>
+        )}
+        {listing.source === 'precon' && listing.developer && !isRentView && !isSoldView && (
           <p className="text-xs text-accent-blue mt-1">{listing.developer}</p>
         )}
       </div>

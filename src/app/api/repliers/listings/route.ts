@@ -1,75 +1,111 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
+import { RepliersListingsResponse } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
 
-// All known Repliers query param keys — pass them straight through
-const PASSTHROUGH_KEYS = [
-  'city', 'status', 'type', 'lastStatus', 'sortBy', 'resultsPerPage', 'pageNum',
-  'minPrice', 'maxPrice', 'minBeds', 'maxBeds', 'minBaths', 'maxBaths',
+const REPLIERS_BASE = 'https://api.repliers.io';
+const API_KEY = process.env.REPLIERS_API_KEY || '';
+
+// Scalar params: key→value (single value)
+const SCALAR_KEYS = [
+  'city', 'status', 'type', 'sortBy', 'resultsPerPage', 'pageNum',
+  'minPrice', 'maxPrice', 'minBedrooms', 'maxBedrooms', 'minBeds', 'maxBeds',
+  'minBaths', 'maxBaths',
   'minSqft', 'maxSqft', 'minDaysOnMarket', 'maxDaysOnMarket',
   'neighborhood', 'area', 'district', 'municipality',
-  'streetName', 'minStreetNumber', 'maxStreetNumber', 'streetDirection', 'unitNumber',
-  'mlsNumber', 'propertyType', 'style', 'class',
+  'streetName', 'minStreetNumber', 'maxStreetNumber', 'unitNumber',
+  'mlsNumber', 'class',
   'minUpdatedOn', 'maxUpdatedOn', 'minListDate', 'maxListDate',
   'minSoldDate', 'maxSoldDate', 'minSoldPrice', 'maxSoldPrice',
   'maxMaintenanceFee', 'minTaxes', 'maxTaxes',
-  'minBedroomsTotal', 'maxBedroomsTotal', 'minBedroomsPlus', 'maxBedroomsPlus',
+  'minBedroomsPlus', 'maxBedroomsPlus',
   'minBathroomsHalf', 'maxBathroomsHalf', 'minKitchens', 'maxKitchens',
   'minLotSizeSqft', 'maxLotSizeSqft', 'minStories', 'maxStories',
   'minYearBuilt', 'maxYearBuilt',
-  'minParkingSpaces', 'minGarageSpaces', 'garage', 'driveway', 'locker',
-  'basement', 'heating', 'exteriorConstruction', 'swimmingPool', 'balcony',
+  'minParkingSpaces', 'minGarageSpaces', 'locker',
   'waterfront', 'den',
   'minOpenHouseDate', 'maxOpenHouseDate',
   'hasImages', 'hasAgents',
-  'cluster', 'map', 'aggregates',
-  'lastPriceChangeType',
+  'cluster', 'lastPriceChangeType',
+  'listings', 'aggregates',
+];
+
+// Array params: key→multiple values (Repliers expects repeated query params)
+const ARRAY_KEYS = [
+  'lastStatus', 'propertyType', 'style', 'streetDirection',
+  'garage', 'driveway', 'basement', 'heating', 'exteriorConstruction',
+  'swimmingPool', 'balcony',
 ];
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const params: Record<string, unknown> = {};
 
-    // Pass through all known params
-    for (const key of PASSTHROUGH_KEYS) {
-      if (body[key] !== undefined && body[key] !== null && body[key] !== '') {
-        params[key] = body[key];
-      }
-    }
+    // Build URLSearchParams with proper repeated-param handling
+    const qp = new URLSearchParams();
 
     // Defaults
-    if (!params.city) params.city = 'Toronto';
-    if (!params.status) params.status = 'A';
-    if (!params.sortBy) params.sortBy = 'updatedOnDesc';
-    if (!params.resultsPerPage) params.resultsPerPage = 24;
-    if (!params.pageNum) params.pageNum = 1;
+    qp.set('city', body.city || 'Toronto');
+    qp.set('status', body.status || 'A');
+    qp.set('sortBy', body.sortBy || 'updatedOnDesc');
+    qp.set('resultsPerPage', String(body.resultsPerPage || 24));
+    qp.set('pageNum', String(body.pageNum || 1));
 
-    // Statistics: Repliers requires specific stat names
-    if (body.statistics) {
-      const status = params.status as string;
-      const lastStatus = params.lastStatus as string;
-      if (status === 'U' || lastStatus === 'Sld' || lastStatus === 'Lsd') {
-        params.statistics = 'avg-listPrice,med-listPrice,avg-soldPrice,med-soldPrice,avg-daysOnMarket,med-daysOnMarket,cnt-available,cnt-closed';
-      } else {
-        params.statistics = 'avg-listPrice,med-listPrice,cnt-available,cnt-new';
+    // Scalar params
+    for (const key of SCALAR_KEYS) {
+      if (body[key] !== undefined && body[key] !== null && body[key] !== '') {
+        qp.set(key, String(body[key]));
       }
     }
 
-    console.log('[Repliers] Fetching with params:', JSON.stringify(params));
+    // Array params — Repliers expects: &propertyType=X&propertyType=Y (repeated)
+    for (const key of ARRAY_KEYS) {
+      if (body[key]) {
+        const val = body[key];
+        // Could be comma-separated string or actual array
+        const arr = Array.isArray(val) ? val : String(val).split(',').map((s: string) => s.trim());
+        for (const v of arr) {
+          if (v) qp.append(key, v);
+        }
+      }
+    }
 
-    const data = await repliersRequest<RepliersListingsResponse>({
-      path: '/listings',
-      body: params,
-      revalidate: 300,
+    // Statistics
+    if (body.statistics) {
+      const status = qp.get('status');
+      const lastStatus = qp.get('lastStatus');
+      if (status === 'U' || lastStatus === 'Sld' || lastStatus === 'Lsd') {
+        qp.set('statistics', 'avg-listPrice,med-listPrice,avg-soldPrice,med-soldPrice,avg-daysOnMarket,med-daysOnMarket,cnt-available,cnt-closed');
+      } else {
+        qp.set('statistics', 'avg-listPrice,med-listPrice,cnt-available,cnt-new');
+      }
+    }
+
+    // Map polygon (passed as body.map — special handling, keep as query param)
+    if (body.map) {
+      qp.set('map', typeof body.map === 'string' ? body.map : JSON.stringify(body.map));
+    }
+
+    const url = `${REPLIERS_BASE}/listings?${qp.toString()}`;
+    console.log(`[Repliers] GET ${url.slice(0, 300)}...`);
+
+    const res = await fetch(url, {
+      headers: { 'REPLIERS-API-KEY': API_KEY },
+      next: { revalidate: 300 },
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[Repliers] Error ${res.status}:`, errText.slice(0, 500));
+      return NextResponse.json({ error: 'Repliers API error', details: errText.slice(0, 300) }, { status: res.status });
+    }
+
+    const data: RepliersListingsResponse = await res.json();
     console.log(`[Repliers] Got ${data.listings?.length || 0} listings, total: ${data.count}`);
 
     const listings = (data.listings || []).map(mapMLSToUnified);
 
     // Normalize statistics
-    const rawStats = data.statistics as Record<string, any> || {};
+    const rawStats = (data.statistics as Record<string, any>) || {};
     const normalizedStats = {
       averagePrice: rawStats.listPrice?.avg || null,
       medianPrice: rawStats.listPrice?.med || null,
@@ -96,9 +132,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Repliers listings error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch listings', details: String(error) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch listings', details: String(error) }, { status: 500 });
   }
 }
