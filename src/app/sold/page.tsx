@@ -11,13 +11,22 @@ const SearchMap = dynamic(() => import('@/components/search/SearchMap'), {
   loading: () => <div className="w-full h-full bg-gray-900 animate-pulse" />,
 });
 
+function daysAgoDate(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
 function SoldContent() {
   const searchParams = useSearchParams();
   const [listings, setListings] = useState<UnifiedListing[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [stats, setStats] = useState<Record<string, any>>({});
   const [dateRange, setDateRange] = useState(searchParams.get('range') || '90');
+  const [soldDateMin, setSoldDateMin] = useState(daysAgoDate(90));
+  const [soldDateMax, setSoldDateMax] = useState('');
   const [neighborhood, setNeighborhood] = useState(searchParams.get('neighborhood') || '');
   const [page, setPage] = useState(1);
 
@@ -34,13 +43,8 @@ function SoldContent() {
         statistics: true,
       };
 
-      if (dateRange !== 'all') {
-        const days = parseInt(dateRange);
-        const since = new Date();
-        since.setDate(since.getDate() - days);
-        body.minSoldDate = since.toISOString().split('T')[0];
-      }
-
+      if (soldDateMin) body.minSoldDate = soldDateMin;
+      if (soldDateMax) body.maxSoldDate = soldDateMax;
       if (neighborhood) body.neighborhood = neighborhood;
 
       const res = await fetch('/api/repliers/listings', {
@@ -53,25 +57,33 @@ function SoldContent() {
         const data = await res.json();
         setListings(data.listings || []);
         setTotalCount(data.total || 0);
+        if (data.statistics) setStats(data.statistics);
       }
     } catch (error) {
       console.error('Error fetching sold data:', error);
     } finally {
       setLoading(false);
     }
-  }, [dateRange, neighborhood, page]);
+  }, [soldDateMin, soldDateMax, neighborhood, page]);
 
-  useEffect(() => {
-    fetchSold();
-  }, [fetchSold]);
+  useEffect(() => { fetchSold(); }, [fetchSold]);
+
+  function handleDateRange(value: string) {
+    setDateRange(value);
+    setPage(1);
+    if (value === 'custom') return;
+    const days = parseInt(value);
+    setSoldDateMin(daysAgoDate(days));
+    setSoldDateMax('');
+  }
 
   const dateRangeOptions = [
     { label: '30 Days', value: '30' },
-    { label: '60 Days', value: '60' },
     { label: '90 Days', value: '90' },
     { label: '6 Months', value: '180' },
     { label: '1 Year', value: '365' },
-    { label: 'All Time', value: 'all' },
+    { label: '2 Years', value: '730' },
+    { label: 'Custom', value: 'custom' },
   ];
 
   return (
@@ -82,16 +94,13 @@ function SoldContent() {
         <p className="text-sm text-text-muted mt-1">Recent sale prices and market data from TRREB MLS</p>
 
         <div className="flex flex-wrap items-center gap-3 mt-4">
-          {/* Date range pills */}
           <div className="flex border border-border rounded-lg overflow-hidden">
             {dateRangeOptions.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => { setDateRange(opt.value); setPage(1); }}
+                onClick={() => handleDateRange(opt.value)}
                 className={`px-3 py-1.5 text-sm transition-colors ${
-                  dateRange === opt.value
-                    ? 'bg-accent-blue text-white'
-                    : 'text-text-muted hover:bg-surface2'
+                  dateRange === opt.value ? 'bg-accent-blue text-white' : 'text-text-muted hover:bg-surface2'
                 }`}
               >
                 {opt.label}
@@ -99,15 +108,22 @@ function SoldContent() {
             ))}
           </div>
 
-          <input
-            type="text"
-            placeholder="Filter by neighborhood..."
-            value={neighborhood}
-            onChange={(e) => { setNeighborhood(e.target.value); setPage(1); }}
-            className="px-3 py-1.5 text-sm border border-border rounded-lg w-48"
-          />
+          {dateRange === 'custom' && (
+            <div className="flex items-center gap-1.5">
+              <input type="date" value={soldDateMin} onChange={(e) => { setSoldDateMin(e.target.value); setPage(1); }} className="px-2 py-1.5 text-sm border border-border rounded-lg" />
+              <span className="text-sm text-text-muted">to</span>
+              <input type="date" value={soldDateMax} onChange={(e) => { setSoldDateMax(e.target.value); setPage(1); }} className="px-2 py-1.5 text-sm border border-border rounded-lg" />
+            </div>
+          )}
 
-          <span className="text-sm text-text-muted">{totalCount.toLocaleString()} sold properties</span>
+          <input type="text" placeholder="Filter by neighborhood..." value={neighborhood} onChange={(e) => { setNeighborhood(e.target.value); setPage(1); }} className="px-3 py-1.5 text-sm border border-border rounded-lg w-48" />
+
+          <div className="flex items-center gap-3 text-sm text-text-muted">
+            <span className="font-medium text-text-primary">{totalCount.toLocaleString()} sold</span>
+            {soldDateMin && <span>from {soldDateMin}</span>}
+            {stats.medianSoldPrice && <span>Median ${Math.round(stats.medianSoldPrice).toLocaleString()}</span>}
+            {stats.averageDom && <span>Avg {Math.round(stats.averageDom)} DOM</span>}
+          </div>
         </div>
       </div>
 
@@ -119,22 +135,19 @@ function SoldContent() {
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-border animate-pulse">
                   <div className="aspect-[4/3] bg-surface2 rounded-t-xl" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-5 bg-surface2 rounded w-24" />
-                    <div className="h-4 bg-surface2 rounded w-40" />
-                  </div>
+                  <div className="p-3 space-y-2"><div className="h-5 bg-surface2 rounded w-24" /><div className="h-4 bg-surface2 rounded w-40" /></div>
                 </div>
               ))}
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <h3 className="text-lg font-semibold text-text-primary">No sold listings found</h3>
+              <p className="text-sm text-text-muted mt-1">Try expanding the date range or changing neighborhood</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
               {listings.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  onHover={setHighlightedId}
-                  isHighlighted={listing.id === highlightedId}
-                />
+                <ListingCard key={listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView />
               ))}
             </div>
           )}
@@ -146,11 +159,7 @@ function SoldContent() {
         </div>
 
         <div className="hidden lg:block lg:w-[45%]">
-          <SearchMap
-            listings={listings}
-            highlightedId={highlightedId}
-            onMarkerHover={setHighlightedId}
-          />
+          <SearchMap listings={listings} highlightedId={highlightedId} onMarkerHover={setHighlightedId} isSoldView />
         </div>
       </div>
     </div>

@@ -2,71 +2,61 @@ import { NextRequest, NextResponse } from 'next/server';
 import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
 
+// All known Repliers query param keys — pass them straight through
+const PASSTHROUGH_KEYS = [
+  'city', 'status', 'type', 'lastStatus', 'sortBy', 'resultsPerPage', 'pageNum',
+  'minPrice', 'maxPrice', 'minBeds', 'maxBeds', 'minBaths', 'maxBaths',
+  'minSqft', 'maxSqft', 'minDaysOnMarket', 'maxDaysOnMarket',
+  'neighborhood', 'area', 'district', 'municipality',
+  'streetName', 'minStreetNumber', 'maxStreetNumber', 'streetDirection', 'unitNumber',
+  'mlsNumber', 'propertyType', 'style', 'class',
+  'minUpdatedOn', 'maxUpdatedOn', 'minListDate', 'maxListDate',
+  'minSoldDate', 'maxSoldDate', 'minSoldPrice', 'maxSoldPrice',
+  'maxMaintenanceFee', 'minTaxes', 'maxTaxes',
+  'minBedroomsTotal', 'maxBedroomsTotal', 'minBedroomsPlus', 'maxBedroomsPlus',
+  'minBathroomsHalf', 'maxBathroomsHalf', 'minKitchens', 'maxKitchens',
+  'minLotSizeSqft', 'maxLotSizeSqft', 'minStories', 'maxStories',
+  'minYearBuilt', 'maxYearBuilt',
+  'minParkingSpaces', 'minGarageSpaces', 'garage', 'driveway', 'locker',
+  'basement', 'heating', 'exteriorConstruction', 'swimmingPool', 'balcony',
+  'waterfront', 'den',
+  'minOpenHouseDate', 'maxOpenHouseDate',
+  'hasImages', 'hasAgents',
+  'cluster', 'map', 'aggregates',
+  'lastPriceChangeType',
+];
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      city = 'Toronto',
-      status = 'A',
-      type,
-      lastStatus,
-      sortBy = 'updatedOnDesc',
-      resultsPerPage = 24,
-      pageNum = 1,
-      minPrice,
-      maxPrice,
-      minBeds,
-      maxBeds,
-      minBaths,
-      minSqft,
-      maxSqft,
-      maxDom,
-      neighborhood,
-      area,
-      cluster,
-      map,
-      statistics,
-      aggregates,
-      class: propertyClass,
-    } = body;
+    const params: Record<string, unknown> = {};
 
-    const params: Record<string, unknown> = {
-      city,
-      status,
-      sortBy,
-      resultsPerPage,
-      pageNum,
-    };
+    // Pass through all known params
+    for (const key of PASSTHROUGH_KEYS) {
+      if (body[key] !== undefined && body[key] !== null && body[key] !== '') {
+        params[key] = body[key];
+      }
+    }
 
-    if (type) params.type = type;
-    if (lastStatus) params.lastStatus = lastStatus;
-    if (minPrice) params.minPrice = minPrice;
-    if (maxPrice) params.maxPrice = maxPrice;
-    if (minBeds) params.minBeds = minBeds;
-    if (maxBeds) params.maxBeds = maxBeds;
-    if (minBaths) params.minBaths = minBaths;
-    if (minSqft) params.minSqft = minSqft;
-    if (maxSqft) params.maxSqft = maxSqft;
-    if (maxDom) params.maxDom = maxDom;
-    if (neighborhood) params.neighborhood = neighborhood;
-    if (area) params.area = area;
-    if (cluster) params.cluster = true;
-    if (map) params.map = map;
-    if (propertyClass) params.class = propertyClass;
+    // Defaults
+    if (!params.city) params.city = 'Toronto';
+    if (!params.status) params.status = 'A';
+    if (!params.sortBy) params.sortBy = 'updatedOnDesc';
+    if (!params.resultsPerPage) params.resultsPerPage = 24;
+    if (!params.pageNum) params.pageNum = 1;
 
-    // Statistics: Repliers requires specific stat names, not a boolean.
-    // Different stats available for active (status=A) vs sold (status=U).
-    if (statistics) {
-      if (status === 'U' || lastStatus === 'Sld') {
+    // Statistics: Repliers requires specific stat names
+    if (body.statistics) {
+      const status = params.status as string;
+      const lastStatus = params.lastStatus as string;
+      if (status === 'U' || lastStatus === 'Sld' || lastStatus === 'Lsd') {
         params.statistics = 'avg-listPrice,med-listPrice,avg-soldPrice,med-soldPrice,avg-daysOnMarket,med-daysOnMarket,cnt-available,cnt-closed';
       } else {
         params.statistics = 'avg-listPrice,med-listPrice,cnt-available,cnt-new';
       }
     }
 
-    if (aggregates) params.aggregates = aggregates;
-
-    console.log('[Repliers] Fetching listings with params:', JSON.stringify(params));
+    console.log('[Repliers] Fetching with params:', JSON.stringify(params));
 
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
@@ -78,14 +68,21 @@ export async function POST(req: NextRequest) {
 
     const listings = (data.listings || []).map(mapMLSToUnified);
 
-    // Normalize statistics to a simpler shape for the frontend
+    // Normalize statistics
     const rawStats = data.statistics as Record<string, any> || {};
     const normalizedStats = {
       averagePrice: rawStats.listPrice?.avg || null,
       medianPrice: rawStats.listPrice?.med || null,
+      averageSoldPrice: rawStats.soldPrice?.avg || null,
+      medianSoldPrice: rawStats.soldPrice?.med || null,
       averageDom: rawStats.daysOnMarket?.avg || null,
-      totalActive: rawStats.available?.mth ? Object.values(rawStats.available.mth as Record<string, number>).reduce((a: number, b: number) => a + b, 0) : null,
-      totalSold: rawStats.closed?.mth ? Object.values(rawStats.closed.mth as Record<string, number>).reduce((a: number, b: number) => a + b, 0) : null,
+      medianDom: rawStats.daysOnMarket?.med || null,
+      totalActive: rawStats.available?.mth
+        ? Object.values(rawStats.available.mth).filter((v): v is number => typeof v === 'number').reduce((a, b) => a + b, 0)
+        : null,
+      totalSold: rawStats.closed?.mth
+        ? Object.values(rawStats.closed.mth).filter((v): v is number => typeof v === 'number').reduce((a, b) => a + b, 0)
+        : null,
     };
 
     return NextResponse.json({

@@ -1,20 +1,22 @@
 'use client';
 
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl, FullscreenControl } from 'react-map-gl/mapbox';
 import { UnifiedListing, BUILDING_TYPE_COLORS } from '@/types/listing';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+const SOLD_PIN_COLOR = '#9CA3AF'; // gray for sold
 
 interface SearchMapProps {
   listings: UnifiedListing[];
   highlightedId: string | null;
   onMarkerHover: (id: string | null) => void;
   onBoundsChange?: (bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => void;
+  isSoldView?: boolean;
 }
 
-export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange }: SearchMapProps) {
+export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView }: SearchMapProps) {
   const mapRef = useRef<any>(null);
   const [popup, setPopup] = useState<UnifiedListing | null>(null);
   const [viewState, setViewState] = useState({
@@ -35,15 +37,6 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     });
   }, [onBoundsChange]);
 
-  // Fly to highlighted listing
-  useEffect(() => {
-    if (!highlightedId || !mapRef.current) return;
-    const listing = listings.find((l) => l.id === highlightedId);
-    if (listing && listing.lat && listing.lng) {
-      // Don't fly, just highlight - flying on hover is jarring
-    }
-  }, [highlightedId, listings]);
-
   return (
     <Map
       ref={mapRef}
@@ -59,74 +52,48 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
       <NavigationControl position="top-right" />
       <FullscreenControl position="top-right" />
 
-      {/* 3D building layer */}
-      {/* Map pins */}
       {listings.map((listing) => {
         if (!listing.lat || !listing.lng) return null;
         const isHighlighted = listing.id === highlightedId;
-        const color = BUILDING_TYPE_COLORS[listing.buildingType];
+        const color = isSoldView || listing.soldPrice
+          ? SOLD_PIN_COLOR
+          : (BUILDING_TYPE_COLORS[listing.buildingType] || '#6B7280');
 
         return (
-          <Marker
-            key={listing.id}
-            latitude={listing.lat}
-            longitude={listing.lng}
-            anchor="center"
-          >
+          <Marker key={listing.id} latitude={listing.lat} longitude={listing.lng} anchor="center">
             <div
               className="cursor-pointer transition-transform"
               style={{ transform: isHighlighted ? 'scale(1.8)' : 'scale(1)' }}
-              onMouseEnter={() => {
-                onMarkerHover(listing.id);
-                setPopup(listing);
-              }}
-              onMouseLeave={() => {
-                onMarkerHover(null);
-                setPopup(null);
-              }}
+              onMouseEnter={() => { onMarkerHover(listing.id); setPopup(listing); }}
+              onMouseLeave={() => { onMarkerHover(null); setPopup(null); }}
               onClick={() => {
-                const href = listing.source === 'mls'
-                  ? `/listing/${listing.mlsNumber}`
-                  : `/projects/${listing.slug}`;
+                const href = listing.source === 'mls' ? `/listing/${listing.mlsNumber}` : `/projects/${listing.slug}`;
                 window.open(href, '_blank');
               }}
             >
-              <div
-                className="w-3 h-3 rounded-full border-2 border-white shadow-lg"
-                style={{ backgroundColor: color }}
-              />
+              <div className="w-3 h-3 rounded-full border-2 border-white shadow-lg" style={{ backgroundColor: color }} />
             </div>
           </Marker>
         );
       })}
 
-      {/* Popup on hover */}
       {popup && popup.lat && popup.lng && (
-        <Popup
-          latitude={popup.lat}
-          longitude={popup.lng}
-          closeButton={false}
-          closeOnClick={false}
-          anchor="bottom"
-          offset={12}
-          className="search-map-popup"
-        >
+        <Popup latitude={popup.lat} longitude={popup.lng} closeButton={false} closeOnClick={false} anchor="bottom" offset={12} className="search-map-popup">
           <div className="p-0 min-w-[200px]">
-            {popup.images[0] && (
-              <img
-                src={popup.images[0]}
-                alt={popup.address}
-                className="w-full h-28 object-cover rounded-t"
-              />
-            )}
+            {popup.images?.[0] && <img src={popup.images[0]} alt={popup.address} className="w-full h-28 object-cover rounded-t" />}
             <div className="p-2">
-              <p className="font-serif font-bold text-sm">{popup.priceDisplay}</p>
+              <p className="font-serif font-bold text-sm">
+                {isSoldView && popup.soldPrice
+                  ? `$${popup.soldPrice.toLocaleString()} sold`
+                  : popup.priceDisplay}
+              </p>
               <p className="text-xs text-gray-600 truncate">{popup.address}</p>
               <div className="flex gap-2 text-xs text-gray-500 mt-1">
                 {popup.beds > 0 && <span>{popup.beds} bd</span>}
                 {popup.baths > 0 && <span>{popup.baths} ba</span>}
                 {popup.sqft && <span>{popup.sqft} sqft</span>}
               </div>
+              {isSoldView && popup.dom > 0 && <p className="text-xs text-gray-500 mt-0.5">{popup.dom} DOM</p>}
             </div>
           </div>
         </Popup>

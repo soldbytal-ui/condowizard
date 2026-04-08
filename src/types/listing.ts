@@ -89,27 +89,129 @@ export function classifyBuildingType(listing: {
 
 export interface ListingFilters {
   tab: 'sale' | 'precon' | 'sold' | 'rent';
+  // Basic
   priceMin?: number;
   priceMax?: number;
   bedsMin?: number;
+  bedsMax?: number;
   bathsMin?: number;
+  bathsMax?: number;
   sqftMin?: number;
   sqftMax?: number;
-  propertyType?: string;
-  buildingTypes?: BuildingType[];
-  neighborhood?: string;
-  community?: string;
-  yearBuiltMin?: number;
-  domMax?: number;
-  maintenanceFeeMax?: number;
-  parking?: boolean;
-  openHouse?: boolean;
-  developer?: string;
-  occupancyYear?: number;
   sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'largest';
   page?: number;
   pageSize?: number;
+  // Location
+  neighborhood?: string;
+  community?: string;
+  area?: string;
+  municipality?: string;
+  streetName?: string;
+  streetNumberMin?: number;
+  streetNumberMax?: number;
+  streetDirection?: string;
+  unitNumber?: string;
+  // Property
+  mlsNumber?: string;
+  propertyType?: string[];
+  style?: string[];
+  class?: string;
+  buildingTypes?: BuildingType[];
+  // Status
+  lastStatus?: string[];
+  domMin?: number;
+  domMax?: number;
+  updatedOnMin?: string;
+  updatedOnMax?: string;
+  listDateMin?: string;
+  listDateMax?: string;
+  // Sold-specific
+  soldDateMin?: string;
+  soldDateMax?: string;
+  soldPriceMin?: number;
+  soldPriceMax?: number;
+  soldDateRange?: string; // '30' | '90' | '180' | '365' | '730' | 'custom'
+  // Price & Financials
+  maintenanceFeeMax?: number;
+  taxMin?: number;
+  taxMax?: number;
+  priceChangeType?: string;
+  // Size & Features
+  bedsPlus?: number;
+  halfBathMin?: number;
+  halfBathMax?: number;
+  kitchensMin?: number;
+  kitchensMax?: number;
+  lotSizeMin?: number;
+  lotSizeMax?: number;
+  storiesMin?: number;
+  storiesMax?: number;
+  yearBuiltMin?: number;
+  yearBuiltMax?: number;
+  // Parking
+  parkingMin?: number;
+  garageMin?: number;
+  garageType?: string[];
+  driveway?: string[];
+  locker?: string;
+  // Features
+  basement?: string[];
+  heating?: string[];
+  exterior?: string[];
+  pool?: string[];
+  balcony?: string[];
+  waterfront?: string;
+  den?: string;
+  // Open House
+  openHouse?: boolean;
+  openHouseDateMin?: string;
+  openHouseDateMax?: string;
+  // Display
+  hasImages?: boolean;
+  hasAgents?: boolean;
+  // Map
   bounds?: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } };
   polygon?: number[][];
   cluster?: boolean;
+  // Pre-con specific
+  developer?: string;
+  occupancyYear?: number;
+  // Legacy compat
+  parking?: boolean;
+}
+
+// Count how many advanced filters are active
+export function countAdvancedFilters(f: ListingFilters): number {
+  let n = 0;
+  if (f.mlsNumber) n++;
+  if (f.propertyType?.length) n++;
+  if (f.style?.length) n++;
+  if (f.class) n++;
+  if (f.lastStatus?.length) n++;
+  if (f.domMin || f.domMax) n++;
+  if (f.updatedOnMin || f.updatedOnMax) n++;
+  if (f.listDateMin || f.listDateMax) n++;
+  if (f.soldDateMin || f.soldDateMax) n++;
+  if (f.soldPriceMin || f.soldPriceMax) n++;
+  if (f.maintenanceFeeMax) n++;
+  if (f.taxMin || f.taxMax) n++;
+  if (f.priceChangeType) n++;
+  if (f.bedsPlus) n++;
+  if (f.halfBathMin) n++;
+  if (f.lotSizeMin || f.lotSizeMax) n++;
+  if (f.storiesMin || f.storiesMax) n++;
+  if (f.yearBuiltMin || f.yearBuiltMax) n++;
+  if (f.parkingMin) n++;
+  if (f.garageMin) n++;
+  if (f.garageType?.length) n++;
+  if (f.basement?.length) n++;
+  if (f.heating?.length) n++;
+  if (f.pool?.length) n++;
+  if (f.waterfront) n++;
+  if (f.openHouse) n++;
+  if (f.hasImages) n++;
+  if (f.streetName) n++;
+  if (f.area) n++;
+  if (f.municipality) n++;
+  return n;
 }
