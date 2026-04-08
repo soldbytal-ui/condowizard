@@ -3,26 +3,35 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS, BuildingType } from '@/types/listing';
-import { RepliersHistoryEntry, RepliersListing } from '@/lib/repliers';
+import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 
-const MiniMap = dynamic(() => import('@/components/map/NeighborhoodMiniMap'), { ssr: false });
+const ListingMiniMap = dynamic(() => import('./ListingMiniMap'), { ssr: false });
+
+interface HistoryEntry {
+  mlsNumber?: string;
+  listDate?: string;
+  listPrice?: number;
+  soldDate?: string;
+  soldPrice?: number;
+  status?: string;
+  lastStatus?: string;
+}
 
 interface Props {
   listing: UnifiedListing;
   comparables: UnifiedListing[];
-  history: RepliersHistoryEntry[];
-  rawData: RepliersListing;
+  history: HistoryEntry[];
 }
 
 function MortgageCalculator({ price }: { price: number }) {
+  const safePrice = price || 500000;
   const [downPayment, setDownPayment] = useState(20);
   const [rate, setRate] = useState(5.5);
   const [amortization, setAmortization] = useState(25);
-  const [maintenanceFee, setMaintenanceFee] = useState(0);
-  const [propertyTax, setPropertyTax] = useState(Math.round(price * 0.0065 / 12));
+  const [maintenanceFee] = useState(0);
+  const [propertyTax] = useState(Math.round(safePrice * 0.0065 / 12));
 
-  const principal = price * (1 - downPayment / 100);
+  const principal = safePrice * (1 - downPayment / 100);
   const monthlyRate = rate / 100 / 12;
   const numPayments = amortization * 12;
   const monthlyMortgage = monthlyRate > 0
@@ -35,7 +44,7 @@ function MortgageCalculator({ price }: { price: number }) {
       <div>
         <label className="flex justify-between text-sm">
           <span>Down Payment</span>
-          <span className="font-medium">{downPayment}% (${Math.round(price * downPayment / 100).toLocaleString()})</span>
+          <span className="font-medium">{downPayment}% (${Math.round(safePrice * downPayment / 100).toLocaleString()})</span>
         </label>
         <input type="range" min={5} max={50} value={downPayment} onChange={(e) => setDownPayment(parseInt(e.target.value))} className="w-full mt-1 accent-accent-blue" />
       </div>
@@ -75,13 +84,18 @@ function MortgageCalculator({ price }: { price: number }) {
   );
 }
 
-export default function ListingDetail({ listing, comparables, history, rawData }: Props) {
+export default function ListingDetail({ listing, comparables, history }: Props) {
   const [activeTab, setActiveTab] = useState('overview');
   const [activeImage, setActiveImage] = useState(0);
   const [estimate, setEstimate] = useState<{ estimatedValue: number; low: number; high: number } | null>(null);
 
+  const images = listing?.images || [];
+  const features = listing?.features || [];
+  const safeComparables = comparables || [];
+  const safeHistory = history || [];
+
   useEffect(() => {
-    // Fetch AI estimate
+    if (!listing?.mlsNumber) return;
     fetch('/api/repliers/estimates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -92,7 +106,15 @@ export default function ListingDetail({ listing, comparables, history, rawData }
         if (data?.estimatedValue) setEstimate(data);
       })
       .catch(() => {});
-  }, [listing.mlsNumber]);
+  }, [listing?.mlsNumber]);
+
+  if (!listing) {
+    return (
+      <div className="pt-14 bg-bg min-h-screen flex items-center justify-center">
+        <p className="text-text-muted">Listing not found.</p>
+      </div>
+    );
+  }
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
@@ -100,6 +122,9 @@ export default function ListingDetail({ listing, comparables, history, rawData }
     { key: 'comparables', label: 'Comparables' },
     { key: 'mortgage', label: 'Mortgage' },
   ];
+
+  const buildingTypeColor = BUILDING_TYPE_COLORS[listing.buildingType] || '#6B7280';
+  const buildingTypeLabel = BUILDING_TYPE_LABELS[listing.buildingType] || listing.buildingType || 'Unknown';
 
   return (
     <div className="pt-14 bg-bg min-h-screen">
@@ -110,15 +135,15 @@ export default function ListingDetail({ listing, comparables, history, rawData }
           <span>/</span>
           <Link href="/search" className="hover:text-accent-blue">Search</Link>
           <span>/</span>
-          {listing.neighborhood && (
+          {listing.neighborhood ? (
             <>
               <Link href={`/neighborhood/${listing.neighborhood.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-accent-blue">
                 {listing.neighborhood}
               </Link>
               <span>/</span>
             </>
-          )}
-          <span className="text-text-primary">{listing.mlsNumber}</span>
+          ) : null}
+          <span className="text-text-primary">{listing.mlsNumber || listing.id}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -126,29 +151,30 @@ export default function ListingDetail({ listing, comparables, history, rawData }
           <div className="lg:col-span-2">
             {/* Image gallery */}
             <div className="rounded-xl overflow-hidden bg-surface2">
-              {listing.images.length > 0 ? (
+              {images.length > 0 ? (
                 <div className="relative">
                   <img
-                    src={listing.images[activeImage]}
-                    alt={`${listing.address} - Photo ${activeImage + 1}`}
+                    src={images[activeImage] || images[0]}
+                    alt={`${listing.address || 'Property'} - Photo ${activeImage + 1}`}
                     className="w-full aspect-[16/10] object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-property.jpg'; }}
                   />
-                  {listing.images.length > 1 && (
+                  {images.length > 1 && (
                     <>
                       <button
-                        onClick={() => setActiveImage((prev) => (prev - 1 + listing.images.length) % listing.images.length)}
+                        onClick={() => setActiveImage((prev) => (prev - 1 + images.length) % images.length)}
                         className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                       </button>
                       <button
-                        onClick={() => setActiveImage((prev) => (prev + 1) % listing.images.length)}
+                        onClick={() => setActiveImage((prev) => (prev + 1) % images.length)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </button>
                       <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        {activeImage + 1} / {listing.images.length}
+                        {activeImage + 1} / {images.length}
                       </div>
                     </>
                   )}
@@ -157,9 +183,9 @@ export default function ListingDetail({ listing, comparables, history, rawData }
                 <div className="aspect-[16/10] flex items-center justify-center text-text-muted">No images available</div>
               )}
               {/* Thumbnails */}
-              {listing.images.length > 1 && (
+              {images.length > 1 && (
                 <div className="flex gap-1 p-2 overflow-x-auto">
-                  {listing.images.slice(0, 10).map((img, i) => (
+                  {images.slice(0, 10).map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setActiveImage(i)}
@@ -167,7 +193,12 @@ export default function ListingDetail({ listing, comparables, history, rawData }
                         i === activeImage ? 'border-accent-blue' : 'border-transparent'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={img}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
                     </button>
                   ))}
                 </div>
@@ -176,42 +207,44 @@ export default function ListingDetail({ listing, comparables, history, rawData }
 
             {/* Price + quick stats */}
             <div className="mt-6">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between flex-wrap gap-4">
                 <div>
-                  <div className="flex items-center gap-3">
-                    <h1 className="font-serif text-3xl font-bold">{listing.priceDisplay}</h1>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="font-serif text-3xl font-bold">{listing.priceDisplay || 'Contact for pricing'}</h1>
                     <span
                       className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full"
-                      style={{ backgroundColor: BUILDING_TYPE_COLORS[listing.buildingType] + '20', color: BUILDING_TYPE_COLORS[listing.buildingType] }}
+                      style={{ backgroundColor: buildingTypeColor + '20', color: buildingTypeColor }}
                     >
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: BUILDING_TYPE_COLORS[listing.buildingType] }} />
-                      {BUILDING_TYPE_LABELS[listing.buildingType]}
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: buildingTypeColor }} />
+                      {buildingTypeLabel}
                     </span>
                   </div>
                   {estimate && (
                     <div className="mt-1 flex items-center gap-2 text-sm">
                       <span className="text-text-muted">AI Estimate:</span>
                       <span className="font-medium text-accent-green">${estimate.estimatedValue.toLocaleString()}</span>
-                      <span className="text-text-muted text-xs">({`$${estimate.low.toLocaleString()} - $${estimate.high.toLocaleString()}`})</span>
+                      <span className="text-text-muted text-xs">(${estimate.low.toLocaleString()} - ${estimate.high.toLocaleString()})</span>
                     </div>
                   )}
-                  <p className="text-lg text-text-muted mt-1">{listing.address}</p>
-                  <p className="text-sm text-text-muted">{listing.neighborhood}, {listing.city}</p>
+                  <p className="text-lg text-text-muted mt-1">{listing.address || 'Address unavailable'}</p>
+                  <p className="text-sm text-text-muted">
+                    {[listing.neighborhood, listing.city].filter(Boolean).join(', ') || 'Toronto'}
+                  </p>
                 </div>
                 <div className="text-right text-sm text-text-muted">
-                  <p>MLS# {listing.mlsNumber}</p>
-                  <p>{listing.dom} days on market</p>
+                  {listing.mlsNumber && <p>MLS# {listing.mlsNumber}</p>}
+                  <p>{listing.dom || 0} days on market</p>
                 </div>
               </div>
 
               {/* Quick stats */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6 p-4 bg-white rounded-xl border border-border">
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{listing.beds}</p>
+                  <p className="text-2xl font-bold">{listing.beds ?? 'N/A'}</p>
                   <p className="text-xs text-text-muted">Bedrooms</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{listing.baths}</p>
+                  <p className="text-2xl font-bold">{listing.baths ?? 'N/A'}</p>
                   <p className="text-xs text-text-muted">Bathrooms</p>
                 </div>
                 <div className="text-center">
@@ -219,7 +252,7 @@ export default function ListingDetail({ listing, comparables, history, rawData }
                   <p className="text-xs text-text-muted">Sqft</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{listing.parking || 0}</p>
+                  <p className="text-2xl font-bold">{listing.parking ?? 0}</p>
                   <p className="text-xs text-text-muted">Parking</p>
                 </div>
                 <div className="text-center">
@@ -251,62 +284,69 @@ export default function ListingDetail({ listing, comparables, history, rawData }
             <div className="mt-6">
               {activeTab === 'overview' && (
                 <div className="space-y-6">
-                  {listing.description && (
+                  {listing.description ? (
                     <div>
                       <h3 className="font-semibold text-lg mb-2">Description</h3>
                       <p className="text-sm text-text-muted leading-relaxed whitespace-pre-line">{listing.description}</p>
                     </div>
-                  )}
-                  {listing.features.length > 0 && (
+                  ) : null}
+                  {features.length > 0 ? (
                     <div>
                       <h3 className="font-semibold text-lg mb-2">Features & Amenities</h3>
                       <div className="flex flex-wrap gap-2">
-                        {listing.features.map((f, i) => (
+                        {features.map((f, i) => (
                           <span key={i} className="px-3 py-1.5 bg-surface2 rounded-full text-sm text-text-muted">{f}</span>
                         ))}
                       </div>
                     </div>
-                  )}
-                  {listing.maintenanceFee && (
+                  ) : null}
+                  {listing.maintenanceFee ? (
                     <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-border">
                       <div>
                         <p className="text-sm text-text-muted">Maintenance Fee</p>
                         <p className="text-lg font-bold">${Math.round(listing.maintenanceFee).toLocaleString()}/mo</p>
                       </div>
-                      {listing.taxes && (
+                      {listing.taxes ? (
                         <div className="border-l border-border pl-4">
                           <p className="text-sm text-text-muted">Property Tax</p>
                           <p className="text-lg font-bold">${listing.taxes.toLocaleString()}/yr</p>
                         </div>
-                      )}
+                      ) : null}
                     </div>
-                  )}
+                  ) : null}
                   {/* Mini map */}
-                  {listing.lat && listing.lng && (
+                  {listing.lat && listing.lng ? (
                     <div>
                       <h3 className="font-semibold text-lg mb-2">Location</h3>
                       <div className="h-64 rounded-xl overflow-hidden">
-                        <MiniMap lat={listing.lat} lng={listing.lng} zoom={15} />
+                        <ListingMiniMap lat={listing.lat} lng={listing.lng} zoom={15} />
                       </div>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
 
               {activeTab === 'history' && (
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Listing History</h3>
-                  {history.length > 0 ? (
+                  {safeHistory.length > 0 ? (
                     <div className="space-y-3">
-                      {history.map((h, i) => (
+                      {safeHistory.map((h, i) => (
                         <div key={i} className="flex items-center justify-between p-3 bg-white rounded-lg border border-border">
                           <div>
-                            <p className="text-sm font-medium">{h.status}{h.lastStatus ? ` (${h.lastStatus})` : ''}</p>
-                            <p className="text-xs text-text-muted">{h.listDate}</p>
+                            <p className="text-sm font-medium">
+                              {h.status || 'Unknown'}
+                              {h.lastStatus ? ` (${h.lastStatus})` : ''}
+                            </p>
+                            <p className="text-xs text-text-muted">{h.listDate || 'N/A'}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-medium">${h.listPrice.toLocaleString()}</p>
-                            {h.soldPrice && <p className="text-xs text-accent-green">Sold: ${h.soldPrice.toLocaleString()}</p>}
+                            <p className="text-sm font-medium">
+                              {h.listPrice ? `$${h.listPrice.toLocaleString()}` : 'N/A'}
+                            </p>
+                            {h.soldPrice ? (
+                              <p className="text-xs text-accent-green">Sold: ${h.soldPrice.toLocaleString()}</p>
+                            ) : null}
                           </div>
                         </div>
                       ))}
@@ -320,22 +360,24 @@ export default function ListingDetail({ listing, comparables, history, rawData }
               {activeTab === 'comparables' && (
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Comparable Sales</h3>
-                  {comparables.length > 0 ? (
+                  {safeComparables.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {comparables.map((comp) => (
+                      {safeComparables.map((comp) => (
                         <Link
                           key={comp.id}
-                          href={`/listing/${comp.mlsNumber}`}
+                          href={`/listing/${comp.mlsNumber || comp.id}`}
                           className="block p-4 bg-white rounded-xl border border-border hover:border-accent-blue/30 transition-colors"
                         >
                           <div className="flex gap-3">
-                            {comp.images[0] && (
-                              <img src={comp.images[0]} alt={comp.address} className="w-20 h-16 object-cover rounded" />
-                            )}
+                            {comp.images?.[0] ? (
+                              <img src={comp.images[0]} alt={comp.address || ''} className="w-20 h-16 object-cover rounded" />
+                            ) : null}
                             <div>
-                              <p className="font-serif font-bold">{comp.priceDisplay}</p>
-                              <p className="text-sm text-text-muted truncate">{comp.address}</p>
-                              <p className="text-xs text-text-muted">{comp.beds} bd | {comp.baths} ba | {comp.sqft} sqft</p>
+                              <p className="font-serif font-bold">{comp.priceDisplay || 'N/A'}</p>
+                              <p className="text-sm text-text-muted truncate">{comp.address || 'Address unavailable'}</p>
+                              <p className="text-xs text-text-muted">
+                                {comp.beds ?? 0} bd | {comp.baths ?? 0} ba{comp.sqft ? ` | ${comp.sqft} sqft` : ''}
+                              </p>
                             </div>
                           </div>
                         </Link>
@@ -351,7 +393,7 @@ export default function ListingDetail({ listing, comparables, history, rawData }
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Mortgage Calculator</h3>
                   <div className="max-w-md bg-white p-6 rounded-xl border border-border">
-                    <MortgageCalculator price={listing.price} />
+                    <MortgageCalculator price={listing.price || 0} />
                   </div>
                 </div>
               )}
@@ -382,21 +424,25 @@ export default function ListingDetail({ listing, comparables, history, rawData }
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;
-                  const data = new FormData(form);
-                  await fetch('/api/leads', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      name: data.get('name'),
-                      email: data.get('email'),
-                      phone: data.get('phone'),
-                      message: data.get('message') || `Inquiry about MLS# ${listing.mlsNumber}`,
-                      source: 'listing_page',
-                      projectSlug: listing.mlsNumber,
-                    }),
-                  });
-                  form.reset();
-                  alert('Your inquiry has been sent. We\'ll be in touch shortly!');
+                  const formData = new FormData(form);
+                  try {
+                    await fetch('/api/leads', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        phone: formData.get('phone'),
+                        message: formData.get('message') || `Inquiry about MLS# ${listing.mlsNumber || listing.id}`,
+                        source: 'listing_page',
+                        projectSlug: listing.mlsNumber || listing.id,
+                      }),
+                    });
+                    form.reset();
+                    alert('Your inquiry has been sent!');
+                  } catch {
+                    alert('Something went wrong. Please try again.');
+                  }
                 }}
                 className="space-y-3 mt-4"
               >
