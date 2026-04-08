@@ -7,10 +7,10 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://condowizard.ca'),
   title: {
-    default: 'Pre-Construction Condos in Toronto | CondoWizard.ca',
+    default: 'Toronto Real Estate - MLS Listings & Pre-Construction Condos | CondoWizard.ca',
     template: '%s | CondoWizard.ca',
   },
-  description: 'Access 200+ pre-construction condo developments across Toronto and the Greater Toronto Area. From $400K to $5M+. King West, Yorkville, Downtown Core & more.',
+  description: 'Search Toronto MLS listings, pre-construction condos, sold data & market stats. Live TRREB data with AI-powered search. CondoWizard.ca — your Toronto real estate marketplace.',
   alternates: {
     canonical: 'https://condowizard.ca',
   },
@@ -19,21 +19,21 @@ export const metadata: Metadata = {
     locale: 'en_CA',
     url: 'https://condowizard.ca',
     siteName: 'CondoWizard.ca',
-    title: 'Pre-Construction Condos in Toronto | CondoWizard.ca',
-    description: 'Access 200+ pre-construction condo developments across Toronto and the Greater Toronto Area.',
+    title: 'Toronto Real Estate - MLS Listings & Pre-Construction Condos | CondoWizard.ca',
+    description: 'Search Toronto MLS listings, pre-construction condos, sold data & market stats.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'CondoWizard.ca - Toronto Pre-Construction Condo Marketplace',
+        alt: 'CondoWizard.ca - Toronto Real Estate Marketplace',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Pre-Construction Condos in Toronto | CondoWizard.ca',
-    description: 'Access 200+ pre-construction condo developments across Toronto and the Greater Toronto Area.',
+    title: 'Toronto Real Estate - MLS Listings & Pre-Construction Condos | CondoWizard.ca',
+    description: 'Search Toronto MLS listings, pre-construction condos, sold data & market stats.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0066FF" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

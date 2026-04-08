@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400 });
   }
 
-  // Rate limit: max 20 messages
   if (messages.filter((m: any) => m.role === 'user').length > 20) {
     return new Response(
       JSON.stringify({ error: 'Message limit reached. Please submit your info for personalized help from a licensed agent.' }),
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Fetch project catalog for context
+  // Fetch project catalog for pre-con context
   const { data: projects } = await supabase
     .from('projects')
     .select('name, slug, status, category, priceMin, priceMax, floors, estCompletion, address, neighborhoodId, neighborhood:neighborhoods(name, slug), developer:developers(name)')
@@ -39,26 +38,58 @@ export async function POST(req: NextRequest) {
     `- ${p.name} | ${p.neighborhood?.name || 'Toronto'} | ${p.status} | ${p.priceMin ? `$${(p.priceMin/1000000).toFixed(1)}M` : 'TBD'}-${p.priceMax ? `$${(p.priceMax/1000000).toFixed(1)}M` : 'TBD'} | ${p.floors || '?'} floors | ${p.estCompletion || 'TBD'} | ${p.developer?.name || 'TBD'} | /properties/${p.slug}`
   ).join('\n');
 
-  const systemPrompt = `You are the CondoWizard AI assistant. You help users find pre-construction condos, townhomes, and homes in the Greater Toronto Area (GTA).
+  // Check if the latest user message looks like a property search
+  const lastUserMsg = messages.filter((m: any) => m.role === 'user').pop()?.content || '';
+  let nlpContext = '';
 
-AVAILABLE PROJECTS (${(projects || []).length} total):
+  // Try Repliers NLP for property search queries
+  if (/\b(find|search|show|looking|want|need|condo|house|apartment|bedroom|bed|bath|under|over|near|in |price|rent|lease)\b/i.test(lastUserMsg)) {
+    try {
+      const nlpRes = await fetch('https://api.repliers.io/nlp', {
+        method: 'POST',
+        headers: {
+          'REPLIERS-API-KEY': process.env.REPLIERS_API_KEY || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: lastUserMsg }),
+      });
+      if (nlpRes.ok) {
+        const nlpData = await nlpRes.json();
+        nlpContext = `\n\nREPLIERS NLP SEARCH RESULT (structured interpretation of user's query):\n${JSON.stringify(nlpData, null, 2)}\nUse this to help the user. If it contains search parameters, describe what you found and suggest they visit /search with appropriate filters.`;
+      }
+    } catch {}
+  }
+
+  const systemPrompt = `You are CondoWizard AI, a Toronto real estate assistant on CondoWizard.ca. You help buyers find properties, understand the Toronto market, and navigate the Ontario buying process. You work with Tal Shelef, Sales Representative at Rare Real Estate Inc. (1701 Avenue Rd, Toronto, ON M5M 3Y3, 647-890-4082).
+
+You have access to live MLS data through the Repliers API. When a user asks to find properties, use the NLP interpretation provided below to give real results and suggest they visit the search page for full results.
+
+You can answer questions about: pre-construction vs resale, HST rebates, assignment sales, occupancy fees, deposit structures, the Ontario buying process, TRREB market data, neighborhood comparisons, mortgage calculations, and investment analysis.
+
+AVAILABLE PRE-CONSTRUCTION PROJECTS (${(projects || []).length} total):
 ${projectSummary}
 
-RULES:
-- When recommending projects, ALWAYS include: project name, neighborhood, price range, estimated completion, and a link formatted as [Project Name](/properties/slug)
-- Be concise, friendly, and helpful. Use short paragraphs.
-- You represent CondoWizard.ca, operated by Tal Shelef, Sales Representative at Rare Real Estate Inc., Brokerage.
-- If users ask for investment advice or legal guidance, remind them to consult with a licensed real estate professional.
-- Never guarantee returns, appreciation, or investment outcomes.
-- Mention relevant Toronto details: TTC access, GO Transit connections, nearby landmarks, Ontario buying process (HST rebate, occupancy fees, assignment sales).
-- If asked about a project not on the list, say you don't have information on it and suggest they contact the team.
-- When comparing projects, use a brief table or bullet format.
-- For neighborhood questions, mention the relevant neighborhood page: /new-condos-[slug]
-- Keep responses under 300 words unless the user asks for detailed comparisons.
-- Always end recommendations with: "Would you like me to help you narrow down your search?"
-- Prices are in Canadian dollars (CAD).`;
+KEY PAGES ON THE SITE:
+- /search — MLS listings search (buy/rent)
+- /search?tab=precon — Pre-construction projects
+- /sold — Sold data
+- /market — Market stats
+- /neighborhood/[slug] — Neighborhood pages (e.g. /neighborhood/king-west)
+- /properties/[slug] — Pre-construction project detail
+- /listing/[mlsNumber] — MLS listing detail
+- /contact-us — Contact page${nlpContext}
 
-  // Call Anthropic API with streaming
+RULES:
+- When recommending pre-con projects, include: name, neighborhood, price range, completion, and a link as [Name](/properties/slug)
+- For MLS searches, describe what they're looking for and link to /search with appropriate filters
+- Be concise, friendly, and helpful. Use short paragraphs.
+- If users ask for investment advice, remind them to consult a licensed professional.
+- Never guarantee returns or appreciation.
+- Mention Toronto details: TTC/GO Transit, HST rebate, occupancy fees, assignment sales when relevant.
+- Keep responses under 300 words unless detailed comparison requested.
+- Prices are in Canadian dollars (CAD).
+- Always disclose that Tal Shelef is a licensed Sales Representative at Rare Real Estate Inc.`;
+
   const response = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     headers: {
@@ -87,7 +118,6 @@ RULES:
     );
   }
 
-  // Stream the response
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {

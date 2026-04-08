@@ -1,0 +1,130 @@
+firecrawl search "100 Las Olas Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-100-las-olas-residences.json --json
+firecrawl search "14ROC Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-14roc-miami.json --json
+firecrawl search "2200 Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-2200-brickell.json --json
+firecrawl search "38 West Eleventh Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-38-west-eleventh-residences.json --json
+firecrawl search "42 Pine Miami condos" --scrape --limit 2 -o .firecrawl/search-42-pine.json --json
+firecrawl search "600 Miami Worldcenter Miami condos" --scrape --limit 2 -o .firecrawl/search-600-miami-worldcenter.json --json
+firecrawl search "619 Brickell by Nobu Miami condos" --scrape --limit 2 -o .firecrawl/search-619-brickell-by-nobu.json --json
+firecrawl search "72 Carlyle Miami Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-72-carlyle-miami-beach.json --json
+firecrawl search "7200 Collins Miami condos" --scrape --limit 2 -o .firecrawl/search-7200-collins.json --json
+firecrawl search "888 Brickell by Dolce & Gabbana Miami condos" --scrape --limit 2 -o .firecrawl/search-888-brickell-by-dolce-and-gabbana.json --json
+firecrawl search "9900 West Miami condos" --scrape --limit 2 -o .firecrawl/search-9900-west.json --json
+firecrawl search "Alba Palm Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-alba-palm-beach.json --json
+firecrawl search "Alhambra Parc Miami condos" --scrape --limit 2 -o .firecrawl/search-alhambra-parc.json --json
+firecrawl search "Alina Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-alina-residences.json --json
+firecrawl search "Aman Residences Miami Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-aman-residences-miami-beach.json --json
+firecrawl search "Arbor Coconut Grove Miami condos" --scrape --limit 2 -o .firecrawl/search-arbor-coconut-grove.json --json
+firecrawl search "Aria Reserve North Tower Miami condos" --scrape --limit 2 -o .firecrawl/search-aria-reserve-north-tower.json --json
+firecrawl search "Arte Surfside Miami condos" --scrape --limit 2 -o .firecrawl/search-arte-surfside.json --json
+firecrawl search "Atelier Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-atelier-residences-miami.json --json
+firecrawl search "Avenia Aventura by Fendi Casa Miami condos" --scrape --limit 2 -o .firecrawl/search-avenia-aventura-by-fendi-casa.json --json
+firecrawl search "Baccarat Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-baccarat-residences-miami.json --json
+firecrawl search "Bay Harbor Towers Miami condos" --scrape --limit 2 -o .firecrawl/search-bay-harbor-towers.json --json
+firecrawl search "Bay Villas Miami condos" --scrape --limit 2 -o .firecrawl/search-bay-villas.json --json
+firecrawl search "Bentley Residences Sunny Isles Miami condos" --scrape --limit 2 -o .firecrawl/search-bentley-residences-sunny-isles.json --json
+firecrawl search "Casa Bella Miami condos" --scrape --limit 2 -o .firecrawl/search-casa-bella.json --json
+firecrawl search "Casa Cipriani Miami Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-casa-cipriani-miami-beach.json --json
+firecrawl search "Cassia Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-cassia-residences.json --json
+firecrawl search "Cipriani Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-cipriani-residences-miami.json --json
+firecrawl search "Colette Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-colette-residences.json --json
+firecrawl search "Continuum Club & Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-continuum-club-and-residences.json --json
+firecrawl search "CORA Miami condos" --scrape --limit 2 -o .firecrawl/search-cora.json --json
+firecrawl search "Cove Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-cove-miami.json --json
+firecrawl search "Delano Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-delano-residences-miami.json --json
+firecrawl search "District 225 Miami condos" --scrape --limit 2 -o .firecrawl/search-district-225.json --json
+firecrawl search "Domus Brickell Center Miami condos" --scrape --limit 2 -o .firecrawl/search-domus-brickell-center.json --json
+firecrawl search "Domus Brickell Park Miami condos" --scrape --limit 2 -o .firecrawl/search-domus-brickell-park.json --json
+firecrawl search "E11EVEN Hotel & Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-e11even-hotel-and-residences.json --json
+firecrawl search "E11EVEN Residences Beyond Miami condos" --scrape --limit 2 -o .firecrawl/search-e11even-residences-beyond.json --json
+firecrawl search "Edge House Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-edge-house-miami.json --json
+firecrawl search "EDITION Residences Edgewater Miami condos" --scrape --limit 2 -o .firecrawl/search-edition-residences-edgewater.json --json
+firecrawl search "Ella Miami Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-ella-miami-beach.json --json
+firecrawl search "ELLE Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-elle-residences-miami.json --json
+firecrawl search "Faena Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-faena-residences-miami.json --json
+firecrawl search "Five Park Miami Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-five-park-miami-beach.json --json
+firecrawl search "Flow House Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-flow-house-miami.json --json
+firecrawl search "Four Seasons Fort Lauderdale Miami condos" --scrape --limit 2 -o .firecrawl/search-four-seasons-fort-lauderdale.json --json
+firecrawl search "Four Seasons Private Residences Coconut Grove Miami condos" --scrape --limit 2 -o .firecrawl/search-four-seasons-private-residences-coconut-grove.json --json
+firecrawl search "Frida Kahlo Wynwood Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-frida-kahlo-wynwood-residences.json --json
+firecrawl search "Gale Fort Lauderdale Miami condos" --scrape --limit 2 -o .firecrawl/search-gale-fort-lauderdale.json --json
+firecrawl search "House of Wellness Miami condos" --scrape --limit 2 -o .firecrawl/search-house-of-wellness.json --json
+firecrawl search "HQ Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-hq-residences-miami.json --json
+firecrawl search "HUB Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-hub-miami.json --json
+firecrawl search "Hyde Resort & Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-hyde-resort-and-residences.json --json
+firecrawl search "Indian Creek Residences & Yacht Club Miami condos" --scrape --limit 2 -o .firecrawl/search-indian-creek-residences-and-yacht-club.json --json
+firecrawl search "Jean-Georges Miami Tropic Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-jean-georges-miami-tropic-residences.json --json
+firecrawl search "JEM Private Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-jem-private-residences.json --json
+firecrawl search "Kempinski Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-kempinski-residences-miami.json --json
+firecrawl search "La Baia Bay Harbor Miami condos" --scrape --limit 2 -o .firecrawl/search-la-baia-bay-harbor.json --json
+firecrawl search "La Mare Bay Harbor Islands Miami condos" --scrape --limit 2 -o .firecrawl/search-la-mare-bay-harbor-islands.json --json
+firecrawl search "Legacy at Miami Worldcenter Miami condos" --scrape --limit 2 -o .firecrawl/search-legacy-at-miami-worldcenter.json --json
+firecrawl search "LOFTY Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-lofty-brickell.json --json
+firecrawl search "Mandarin Oriental North Tower Miami condos" --scrape --limit 2 -o .firecrawl/search-mandarin-oriental-north-tower.json --json
+firecrawl search "Melia Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-melia-residences-miami.json --json
+firecrawl search "Mercedes-Benz Places Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-mercedes-benz-places-miami.json --json
+firecrawl search "Miami Beach Club Miami condos" --scrape --limit 2 -o .firecrawl/search-miami-beach-club.json --json
+firecrawl search "Miami Design Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-miami-design-residences.json --json
+firecrawl search "Midtown Park Residences by Proper Miami condos" --scrape --limit 2 -o .firecrawl/search-midtown-park-residences-by-proper.json --json
+firecrawl search "Millux Place Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-millux-place-miami.json --json
+firecrawl search "NoMad Wynwood Miami condos" --scrape --limit 2 -o .firecrawl/search-nomad-wynwood.json --json
+firecrawl search "Oasis Hallandale Miami condos" --scrape --limit 2 -o .firecrawl/search-oasis-hallandale.json --json
+firecrawl search "Ocean House Surfside Miami condos" --scrape --limit 2 -o .firecrawl/search-ocean-house-surfside.json --json
+firecrawl search "Okan Tower Miami condos" --scrape --limit 2 -o .firecrawl/search-okan-tower.json --json
+firecrawl search "One Twenty Brickell Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-one-twenty-brickell-residences.json --json
+firecrawl search "ONE W12 Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-one-w12-residences.json --json
+firecrawl search "OPUS Coconut Grove Miami condos" --scrape --limit 2 -o .firecrawl/search-opus-coconut-grove.json --json
+firecrawl search "ORA by Casa Tua Miami condos" --scrape --limit 2 -o .firecrawl/search-ora-by-casa-tua.json --json
+firecrawl search "Origin Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-origin-residences.json --json
+firecrawl search "Pagani Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-pagani-residences-miami.json --json
+firecrawl search "Palma Miami Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-palma-miami-beach.json --json
+firecrawl search "Parkside Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-parkside-brickell.json --json
+firecrawl search "Pier Sixty-Six Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-pier-sixty-six-residences.json --json
+firecrawl search "Ponce Park Miami condos" --scrape --limit 2 -o .firecrawl/search-ponce-park.json --json
+firecrawl search "Raleigh at Rosewood Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-raleigh-at-rosewood-residences.json --json
+firecrawl search "Ritz-Carlton Residences South Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-ritz-carlton-residences-south-beach.json --json
+firecrawl search "Riva Fort Lauderdale Miami condos" --scrape --limit 2 -o .firecrawl/search-riva-fort-lauderdale.json --json
+firecrawl search "Rivage Bal Harbour Miami condos" --scrape --limit 2 -o .firecrawl/search-rivage-bal-harbour.json --json
+firecrawl search "Season One Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-season-one-brickell.json --json
+firecrawl search "Seven Park Miami condos" --scrape --limit 2 -o .firecrawl/search-seven-park.json --json
+firecrawl search "Seventeen Gables Miami condos" --scrape --limit 2 -o .firecrawl/search-seventeen-gables.json --json
+firecrawl search "Shoma Bay Miami condos" --scrape --limit 2 -o .firecrawl/search-shoma-bay.json --json
+firecrawl search "Shore Club Private Collection Miami condos" --scrape --limit 2 -o .firecrawl/search-shore-club-private-collection.json --json
+firecrawl search "Silver Sands Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-silver-sands-residences.json --json
+firecrawl search "Sixth & Rio Miami condos" --scrape --limit 2 -o .firecrawl/search-sixth-and-rio.json --json
+firecrawl search "Smart Brickell II Miami condos" --scrape --limit 2 -o .firecrawl/search-smart-brickell-ii.json --json
+firecrawl search "Smart Brickell III Miami condos" --scrape --limit 2 -o .firecrawl/search-smart-brickell-iii.json --json
+firecrawl search "Solemar Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-solemar-residences.json --json
+firecrawl search "Solina Bay Harbor Miami condos" --scrape --limit 2 -o .firecrawl/search-solina-bay-harbor.json --json
+firecrawl search "St. Regis Residences Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-st-regis-residences-brickell.json --json
+firecrawl search "Surf House at The Surf Club Miami condos" --scrape --limit 2 -o .firecrawl/search-surf-house-at-the-surf-club.json --json
+firecrawl search "Surf Row Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-surf-row-residences.json --json
+firecrawl search "The Avenue Coral Gables Miami condos" --scrape --limit 2 -o .firecrawl/search-the-avenue-coral-gables.json --json
+firecrawl search "The Cloud One Hotel & Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-the-cloud-one-hotel-and-residences.json --json
+firecrawl search "The Delmore Surfside Miami condos" --scrape --limit 2 -o .firecrawl/search-the-delmore-surfside.json --json
+firecrawl search "The EDITION Residences Fort Lauderdale Miami condos" --scrape --limit 2 -o .firecrawl/search-the-edition-residences-fort-lauderdale.json --json
+firecrawl search "The Lincoln Coconut Grove Miami condos" --scrape --limit 2 -o .firecrawl/search-the-lincoln-coconut-grove.json --json
+firecrawl search "The Links Estates Miami condos" --scrape --limit 2 -o .firecrawl/search-the-links-estates.json --json
+firecrawl search "The Perigon Miami condos" --scrape --limit 2 -o .firecrawl/search-the-perigon.json --json
+firecrawl search "The Residences at 1428 Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-the-residences-at-1428-brickell.json --json
+firecrawl search "The Residences at Mandarin Oriental Miami condos" --scrape --limit 2 -o .firecrawl/search-the-residences-at-mandarin-oriental.json --json
+firecrawl search "The Residences at Shell Bay Miami condos" --scrape --limit 2 -o .firecrawl/search-the-residences-at-shell-bay.json --json
+firecrawl search "The Residences at Six Fisher Island Miami condos" --scrape --limit 2 -o .firecrawl/search-the-residences-at-six-fisher-island.json --json
+firecrawl search "The Rider Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-the-rider-residences.json --json
+firecrawl search "The St. Regis Residences Sunny Isles Miami condos" --scrape --limit 2 -o .firecrawl/search-the-st-regis-residences-sunny-isles.json --json
+firecrawl search "The Standard Residences Brickell Miami condos" --scrape --limit 2 -o .firecrawl/search-the-standard-residences-brickell.json --json
+firecrawl search "The Standard Residences Midtown Miami condos" --scrape --limit 2 -o .firecrawl/search-the-standard-residences-midtown.json --json
+firecrawl search "The Village at Coral Gables Miami condos" --scrape --limit 2 -o .firecrawl/search-the-village-at-coral-gables.json --json
+firecrawl search "THE WELL Bay Harbor Islands Miami condos" --scrape --limit 2 -o .firecrawl/search-the-well-bay-harbor-islands.json --json
+firecrawl search "THE WELL Coconut Grove Miami condos" --scrape --limit 2 -o .firecrawl/search-the-well-coconut-grove.json --json
+firecrawl search "Tula Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-tula-residences.json --json
+firecrawl search "Twenty Sixth & 2nd Wynwood Miami condos" --scrape --limit 2 -o .firecrawl/search-twenty-sixth-and-2nd-wynwood.json --json
+firecrawl search "Twenty-Nine Indian Creek Miami condos" --scrape --limit 2 -o .firecrawl/search-twenty-nine-indian-creek.json --json
+firecrawl search "Viceroy Brickell Residences Miami condos" --scrape --limit 2 -o .firecrawl/search-viceroy-brickell-residences.json --json
+firecrawl search "Viceroy Residences Aventura Miami condos" --scrape --limit 2 -o .firecrawl/search-viceroy-residences-aventura.json --json
+firecrawl search "Villa Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-villa-miami.json --json
+firecrawl search "Villa Valencia Miami condos" --scrape --limit 2 -o .firecrawl/search-villa-valencia.json --json
+firecrawl search "Vista Harbor Residences & Yacht Club Miami condos" --scrape --limit 2 -o .firecrawl/search-vista-harbor-residences-and-yacht-club.json --json
+firecrawl search "Vita at Grove Isle Miami condos" --scrape --limit 2 -o .firecrawl/search-vita-at-grove-isle.json --json
+firecrawl search "Waldorf Astoria Pompano Beach Miami condos" --scrape --limit 2 -o .firecrawl/search-waldorf-astoria-pompano-beach.json --json
+firecrawl search "Waldorf Astoria Residences Miami Miami condos" --scrape --limit 2 -o .firecrawl/search-waldorf-astoria-residences-miami.json --json
+firecrawl search "Ziggurat Miami condos" --scrape --limit 2 -o .firecrawl/search-ziggurat.json --json

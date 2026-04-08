@@ -3,7 +3,7 @@ export function generateLocalBusinessSchema() {
     '@context': 'https://schema.org',
     '@type': 'RealEstateAgent',
     name: 'CondoWizard.ca',
-    description: 'Toronto\'s premier pre-construction condo marketplace. Access 200+ new developments across the Greater Toronto Area.',
+    description: 'Toronto real estate marketplace — MLS listings, pre-construction condos, sold data & market stats. Operated by Tal Shelef, Sales Representative at Rare Real Estate Inc., Brokerage.',
     url: 'https://condowizard.ca',
     logo: 'https://condowizard.ca/og-image.png',
     image: 'https://condowizard.ca/og-image.png',
@@ -72,12 +72,12 @@ export function generateWebSiteSchema() {
     '@type': 'WebSite',
     name: 'CondoWizard.ca',
     url: 'https://condowizard.ca',
-    description: 'Toronto\'s premier marketplace for pre-construction condos. Access 200+ new developments across the Greater Toronto Area.',
+    description: 'Toronto real estate marketplace — search MLS listings, pre-construction condos, sold data & market stats. Live TRREB data with AI-powered search.',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://condowizard.ca/new-condos?q={search_term_string}',
+        urlTemplate: 'https://condowizard.ca/search?neighborhood={search_term_string}',
       },
       'query-input': 'required name=search_term_string',
     },
