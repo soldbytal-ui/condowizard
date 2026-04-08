@@ -36,6 +36,7 @@ export function mapMLSToUnified(listing: RepliersListing): UnifiedListing {
       style: det?.style,
       price,
       neighborhood,
+      propertyType: det?.propertyType || det?.type || listing.type,
       source: 'mls',
     }),
     status: listing.lastStatus || listing.status,

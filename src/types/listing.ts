@@ -62,15 +62,26 @@ export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
 
 const LUXURY_NEIGHBORHOODS = ['yorkville', 'rosedale', 'forest hill', 'bridle path', 'the annex'];
 
+// Freehold property types — these are houses, not condos
+const FREEHOLD_TYPES = ['detached', 'semi-detached', 'att/row/twnhouse', 'link', 'duplex', 'triplex', 'fourplex', 'multiplex', 'farm', 'rural resid', 'vacant land'];
+
 export function classifyBuildingType(listing: {
   stories?: number | null;
   style?: string | null;
   price?: number | null;
   neighborhood?: string | null;
+  propertyType?: string | null;
   source?: 'mls' | 'precon';
 }): BuildingType {
   if (listing.source === 'precon') return 'precon';
-  if (listing.style?.toLowerCase().includes('loft')) return 'loft';
+
+  const style = listing.style?.toLowerCase() || '';
+  const propType = listing.propertyType?.toLowerCase() || '';
+
+  // Loft check
+  if (style.includes('loft') || propType.includes('loft')) return 'loft';
+
+  // Luxury check
   if (
     listing.price &&
     listing.price > 2_000_000 &&
@@ -79,12 +90,27 @@ export function classifyBuildingType(listing: {
   ) {
     return 'luxury';
   }
+
+  // Freehold houses → low-rise
+  if (FREEHOLD_TYPES.some((t) => propType.includes(t))) return 'low-rise';
+
+  // Condo townhouse → low-rise
+  if (propType.includes('condo townhouse') || propType.includes('condo town')) return 'low-rise';
+
+  // Stories-based classification (when available)
   if (listing.stories) {
     if (listing.stories < 5) return 'low-rise';
     if (listing.stories <= 12) return 'mid-rise';
     return 'high-rise';
   }
-  return 'mid-rise'; // default for condos
+
+  // Condo apartment without stories data → mid-rise (most common)
+  if (propType.includes('condo') || propType.includes('co-op') || propType.includes('apartment')) return 'mid-rise';
+
+  // Commercial types
+  if (propType.includes('commercial') || propType.includes('industrial') || propType.includes('office') || propType.includes('sale of business')) return 'low-rise';
+
+  return 'mid-rise';
 }
 
 export interface ListingFilters {
