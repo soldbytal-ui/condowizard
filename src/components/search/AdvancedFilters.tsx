@@ -177,7 +177,7 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
                 </select>
               </div>
               <div>
-                <label className="text-xs text-text-muted">Neighborhood</label>
+                <label className="text-xs text-text-muted">Neighbourhood</label>
                 <input type="text" placeholder="e.g. Yorkville" value={f.neighborhood || ''} onChange={(e) => set({ neighborhood: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" />
               </div>
               <div>

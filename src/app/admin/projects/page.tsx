@@ -178,7 +178,7 @@ export default function AdminProjectsPage() {
                   <input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400">Neighborhood</label>
+                  <label className="text-xs text-gray-400">Neighbourhood</label>
                   <input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded text-sm" />
                 </div>
                 <div>
@@ -302,7 +302,7 @@ export default function AdminProjectsPage() {
           <thead>
             <tr className="border-b border-gray-700">
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Project</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium hidden md:table-cell">Neighborhood</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium hidden md:table-cell">Neighbourhood</th>
               <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium hidden md:table-cell">Developer</th>
               <th className="text-right px-4 py-3 text-xs text-gray-400 font-medium">Price From</th>
               <th className="text-center px-4 py-3 text-xs text-gray-400 font-medium">Status</th>

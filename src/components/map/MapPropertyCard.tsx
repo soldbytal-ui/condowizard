@@ -102,7 +102,7 @@ export default function MapPropertyCard({ project: p, onClose }: Props) {
           {/* Neighborhood */}
           {p.neighborhood && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-text-muted">Neighborhood:</span>
+              <span className="text-xs text-text-muted">Neighbourhood:</span>
               <span className="text-xs bg-surface2 px-2.5 py-1 rounded-full text-text-primary">
                 {p.neighborhood.name}
               </span>

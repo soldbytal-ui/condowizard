@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ListingFilters, BuildingType, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS, countAdvancedFilters } from '@/types/listing';
+import { getCommunityByCode } from '@/lib/communities';
 import AdvancedFilters from './AdvancedFilters';
 
 const FREEHOLD_TYPES = ['Att/Row/Twnhouse', 'Detached', 'Det Condo', 'Duplex', 'Farm', 'Fourplex', 'Link', 'Multiplex', 'Semi-Detached', 'Store W/Apt/Ofc', 'Triplex', 'Vacant Land'];
@@ -229,7 +230,17 @@ export default function SearchFilters({ filters, onFilterChange, onMlsLookup, to
         })}
       </div>
 
-      {/* Stats bar */}
+      {/* Community badge + Stats bar */}
+      {filters.community && (
+        <div className="px-4 pb-1">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent-blue/10 text-accent-blue text-xs font-medium rounded-full">
+            {filters.community}{getCommunityByCode(filters.community) ? ` - ${getCommunityByCode(filters.community)!.name}` : ''}
+            <button onClick={() => onFilterChange({ community: undefined, page: 1 })} className="hover:text-red-500 ml-0.5">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </span>
+        </div>
+      )}
       <div className="px-4 pb-2 flex items-center gap-4 text-xs text-text-muted">
         <span className="font-medium text-text-primary">{totalCount.toLocaleString()} {isSold ? 'sold' : isRent ? 'rental' : ''} listings</span>
         {isSold && filters.soldDateMin && <span>from {filters.soldDateMin}</span>}

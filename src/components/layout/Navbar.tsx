@@ -124,7 +124,7 @@ export default function Navbar() {
             <Link href="/market" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Market Stats</Link>
             <Link href="/blog" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Blog</Link>
             <div className="pt-2 border-t border-border mt-2">
-              <p className="text-xs text-text-muted uppercase tracking-wider mb-2">Neighborhoods</p>
+              <p className="text-xs text-text-muted uppercase tracking-wider mb-2">Neighbourhoods</p>
               <div className="grid grid-cols-2 gap-1">
                 {NEIGHBORHOODS.slice(0, 12).map((n) => (
                   <Link key={n.slug} href={`/neighborhood/${n.slug}`} className="text-sm text-text-muted hover:text-accent-blue py-1.5 transition-colors">{n.name}</Link>

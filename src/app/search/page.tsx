@@ -242,9 +242,38 @@ function SearchContent() {
     router.replace(`/search${qs ? '?' + qs : ''}`, { scroll: false });
   }, [filters, router]);
 
-  const handleFilterChange = (partial: Partial<ListingFilters>) => {
-    setFilters((prev) => ({ ...prev, ...partial }));
-  };
+  const handleFilterChange = useCallback((partial: Partial<ListingFilters>) => {
+    setFilters((prev) => {
+      // When switching tabs, clear tab-specific filters and reset page
+      if (partial.tab && partial.tab !== prev.tab) {
+        const base: ListingFilters = {
+          tab: partial.tab,
+          page: 1,
+          pageSize: prev.pageSize || 24,
+          sortBy: 'newest',
+          // Keep location filters across tabs
+          neighborhood: prev.neighborhood,
+          community: prev.community,
+          priceMin: prev.priceMin,
+          priceMax: prev.priceMax,
+          bedsMin: prev.bedsMin,
+        };
+        // Set defaults for sold tab
+        if (partial.tab === 'sold') {
+          const d = new Date(); d.setDate(d.getDate() - 90);
+          base.soldDateRange = '90';
+          base.soldDateMin = d.toISOString().split('T')[0];
+        }
+        return base;
+      }
+      return { ...prev, ...partial };
+    });
+  }, []);
+
+  const handleCommunityClick = useCallback((code: string, name: string) => {
+    console.log(`[CondoWizard] Community clicked: ${code} - ${name}`);
+    setFilters((prev) => ({ ...prev, community: code, page: 1 }));
+  }, []);
 
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
     setFilters((prev) => ({ ...prev, bounds }));
@@ -302,7 +331,7 @@ function SearchContent() {
         </div>
 
         <div className="hidden lg:block lg:w-[45%] relative">
-          <SearchMap listings={listings} highlightedId={highlightedId} onMarkerHover={setHighlightedId} onBoundsChange={handleBoundsChange} isSoldView={filters.tab === 'sold'} />
+          <SearchMap listings={listings} highlightedId={highlightedId} onMarkerHover={setHighlightedId} onBoundsChange={handleBoundsChange} isSoldView={filters.tab === 'sold'} onCommunityClick={handleCommunityClick} />
         </div>
       </div>
     </div>

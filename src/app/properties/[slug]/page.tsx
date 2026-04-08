@@ -291,7 +291,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                   href={`/new-condos-${project.neighborhood.slug}`}
                   className="mt-6 block card p-5 group hover:border-accent-blue/30 transition-all"
                 >
-                  <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Neighborhood</div>
+                  <div className="text-xs text-text-muted uppercase tracking-wider mb-1">Neighbourhood</div>
                   <div className="text-text-primary text-lg font-semibold group-hover:text-accent-blue transition-colors">
                     {project.neighborhood.name}
                   </div>

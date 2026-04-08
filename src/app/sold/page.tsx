@@ -116,7 +116,7 @@ function SoldContent() {
             </div>
           )}
 
-          <input type="text" placeholder="Filter by neighborhood..." value={neighborhood} onChange={(e) => { setNeighborhood(e.target.value); setPage(1); }} className="px-3 py-1.5 text-sm border border-border rounded-lg w-48" />
+          <input type="text" placeholder="Filter by neighbourhood..." value={neighborhood} onChange={(e) => { setNeighborhood(e.target.value); setPage(1); }} className="px-3 py-1.5 text-sm border border-border rounded-lg w-48" />
 
           <div className="flex items-center gap-3 text-sm text-text-muted">
             <span className="font-medium text-text-primary">{totalCount.toLocaleString()} sold</span>

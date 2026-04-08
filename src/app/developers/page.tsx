@@ -124,7 +124,7 @@ export default async function DevelopersPage() {
                   </p>
                 )}
 
-                {/* Neighborhood tags */}
+                {/* Neighbourhood tags */}
                 {neighborhoods.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {neighborhoods.slice(0, 4).map((n: string) => (

@@ -141,7 +141,7 @@ export default async function DeveloperProfilePage({ params }: Props) {
             <div className="text-text-primary font-semibold text-xl mt-1">{allProjects.length}</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-xs text-text-muted uppercase tracking-wider">Neighborhoods</div>
+            <div className="text-xs text-text-muted uppercase tracking-wider">Neighbourhoods</div>
             <div className="text-text-primary font-semibold text-xl mt-1">{neighborhoods.length}</div>
           </div>
           <div className="glass-panel rounded-xl p-4">

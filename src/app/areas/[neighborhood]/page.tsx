@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .select('*')
     .eq('slug', slug)
     .single();
-  if (!n) return { title: 'Neighborhood Not Found' };
+  if (!n) return { title: 'Neighbourhood Not Found' };
   return {
     title: n.metaTitle || `New Pre-Construction Condos in ${n.name} | CondoWizard.ca`,
     description: n.metaDescription || `Browse pre-construction condos in ${n.name}. Find new developments, pricing, floor plans, and completion dates.`,
@@ -99,7 +99,7 @@ export default async function NeighborhoodPage({ params }: Props) {
     },
     {
       question: `Is ${neighborhood.name} a good area to buy pre-construction in Toronto?`,
-      answer: `${neighborhood.name} is one of the Greater Toronto Area's most sought-after neighborhoods for pre-construction investment. ${neighborhood.description?.slice(0, 200) || `The area offers excellent amenities, strong appreciation potential, and a desirable lifestyle.`} Connect with a licensed agent for a personalized investment analysis.`,
+      answer: `${neighborhood.name} is one of the Greater Toronto Area's most sought-after neighbourhoods for pre-construction investment. ${neighborhood.description?.slice(0, 200) || `The area offers excellent amenities, strong appreciation potential, and a desirable lifestyle.`} Connect with a licensed agent for a personalized investment analysis.`,
     },
     {
       question: `When will new condos in ${neighborhood.name} be completed?`,
@@ -181,7 +181,7 @@ export default async function NeighborhoodPage({ params }: Props) {
         </div>
       </section>
 
-      {/* Neighborhood 3D Mini-Map */}
+      {/* Neighbourhood 3D Mini-Map */}
       <section className="container-main mt-8">
         <DynamicNeighborhoodMap
           center={mapCenter}
@@ -286,7 +286,7 @@ export default async function NeighborhoodPage({ params }: Props) {
               </div>
             </section>
 
-            {/* Top Developers in this Neighborhood */}
+            {/* Top Developers in this Neighbourhood */}
             {(() => {
               const devCounts: Record<string, { name: string; slug: string; count: number }> = {};
               for (const p of projectList) {
@@ -323,10 +323,10 @@ export default async function NeighborhoodPage({ params }: Props) {
               );
             })()}
 
-            {/* Explore All Neighborhoods — Full Interlinking */}
+            {/* Explore All Neighbourhoods — Full Interlinking */}
             <section>
               <h2 className="text-2xl font-bold text-text-primary mb-6">
-                Explore More GTA Neighborhoods
+                Explore More GTA Neighbourhoods
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {bottomNeighborhoods.map((n: any) => (
@@ -346,7 +346,7 @@ export default async function NeighborhoodPage({ params }: Props) {
               </div>
               <div className="mt-4 text-center">
                 <Link href="/new-condos" className="text-sm text-accent-blue hover:underline">
-                  View all neighborhoods &rarr;
+                  View all neighbourhoods &rarr;
                 </Link>
               </div>
             </section>
@@ -376,9 +376,9 @@ export default async function NeighborhoodPage({ params }: Props) {
             <div className="sticky top-20 space-y-6">
               <InquiryForm neighborhoodId={neighborhood.id} source="neighborhood" />
 
-              {/* Nearby Neighborhoods */}
+              {/* Nearby Neighbourhoods */}
               <div className="card p-6">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Nearby Neighborhoods</h3>
+                <h3 className="text-lg font-semibold text-text-primary mb-4">Nearby Neighbourhoods</h3>
                 <div className="space-y-3">
                   {sidebarNeighborhoods.map((n: any) => (
                     <Link

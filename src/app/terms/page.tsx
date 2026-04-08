@@ -57,7 +57,7 @@ export default function TermsPage() {
             <li>Estimated completion dates and construction timelines</li>
             <li>Amenity lists, building features, and specifications</li>
             <li>Developer information, track records, and project histories</li>
-            <li>Neighborhood descriptions, market analyses, and investment commentary</li>
+            <li>Neighbourhood descriptions, market analyses, and investment commentary</li>
             <li>Images, renderings, and visual representations</li>
           </ul>
           <p className="mt-3">

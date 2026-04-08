@@ -24,7 +24,7 @@ export default async function HomePage() {
     .order('priceMin', { ascending: false })
     .limit(6);
 
-  // Neighborhoods
+  // Neighbourhoods
   const neighborhoodRes = await supabase
     .from('neighborhoods')
     .select('*, projects(count)')
@@ -92,7 +92,7 @@ export default async function HomePage() {
             </div>
             <div>
               <div className="text-accent-blue font-mono text-lg font-bold">24+</div>
-              <div className="text-text-muted text-xs mt-0.5">Neighborhoods</div>
+              <div className="text-text-muted text-xs mt-0.5">Neighbourhoods</div>
             </div>
           </div>
         </div>
@@ -185,11 +185,11 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Neighborhoods */}
+      {/* Neighbourhoods */}
       <section className="py-16 px-6 bg-white border-t border-border">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-text-primary">Explore Toronto Neighborhoods</h2>
+            <h2 className="text-3xl font-bold text-text-primary">Explore Toronto Neighbourhoods</h2>
             <p className="text-text-muted mt-2 max-w-xl mx-auto">
               From the vibrant streets of King West to the refined elegance of Yorkville
             </p>
@@ -230,7 +230,7 @@ export default async function HomePage() {
             {[
               { label: 'Active Listings', value: 'Live', sub: 'TRREB MLS' },
               { label: 'Pre-Con Projects', value: `${projectCount}+`, sub: 'Across GTA' },
-              { label: 'Neighborhoods', value: '24+', sub: 'Toronto & GTA' },
+              { label: 'Neighbourhoods', value: '24+', sub: 'Toronto & GTA' },
               { label: 'Price Range', value: '$400K-$5M+', sub: 'All property types' },
             ].map((stat) => (
               <div key={stat.label} className="bg-white rounded-xl border border-border p-5 text-center">

@@ -33,7 +33,7 @@ export default function ProjectFilters({ neighborhoods }: { neighborhoods: Neigh
           className="px-4 py-2.5 bg-surface2 border border-border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue outline-none transition-colors"
         />
         <select defaultValue={searchParams.get('neighborhood') || ''} onChange={(e) => updateParam('neighborhood', e.target.value)} className={selectClass}>
-          <option value="">All Neighborhoods</option>
+          <option value="">All Neighbourhoods</option>
           {neighborhoods.map((n) => <option key={n.id} value={n.slug}>{n.name}</option>)}
         </select>
         <select defaultValue={searchParams.get('status') || ''} onChange={(e) => updateParam('status', e.target.value)} className={selectClass}>

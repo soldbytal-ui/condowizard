@@ -132,14 +132,14 @@ export default function MarketPage() {
           )}
         </div>
 
-        {/* Neighborhood breakdown */}
+        {/* Neighbourhood breakdown */}
         <section className="mt-12">
-          <h2 className="text-2xl font-bold text-text-primary mb-6">Market by Neighborhood</h2>
+          <h2 className="text-2xl font-bold text-text-primary mb-6">Market by Neighbourhood</h2>
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-surface">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-text-muted">Neighborhood</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-text-muted">Neighbourhood</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-text-muted">Avg Price</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-text-muted">Active</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-text-muted hidden md:table-cell">Avg DOM</th>
