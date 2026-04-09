@@ -175,22 +175,7 @@ function SearchContent() {
     console.log(`[FETCH #${fetchId}] neighborhood=${filters.neighborhood}, class=${filters.class}, tab=${filters.tab}`);
 
     try {
-      if (filters.tab === 'precon') {
-        const params = new URLSearchParams();
-        if (filters.priceMin) params.set('priceMin', String(filters.priceMin));
-        if (filters.priceMax) params.set('priceMax', String(filters.priceMax));
-        if (filters.bedsMin) params.set('bedsMin', String(filters.bedsMin));
-        if (filters.neighborhood) params.set('neighborhood', filters.neighborhood);
-        if (filters.developer) params.set('developer', filters.developer);
-        if (filters.occupancyYear) params.set('occupancyYear', String(filters.occupancyYear));
-        params.set('page', String(filters.page || 1));
-        params.set('pageSize', String(filters.pageSize || 24));
-        const res = await fetch('/api/precon?' + params.toString());
-        if (res.ok && fetchId === fetchCounter.current) {
-          const data = await res.json();
-          setListings(data.listings || []); setTotalCount(data.total || 0); setStatistics({});
-        }
-      } else {
+      {
         const body = buildRequestBody(filters);
         console.log(`[FETCH #${fetchId}] Request body:`, JSON.stringify(body));
 
@@ -214,7 +199,7 @@ function SearchContent() {
           console.error(`[FETCH #${fetchId}] API error ${res.status}:`, err.slice(0, 300));
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[FETCH #${fetchCounter.current}] Error:`, error);
     } finally {
       if (fetchId === fetchCounter.current) setLoading(false);
@@ -278,8 +263,6 @@ function SearchContent() {
     });
   }, []);
 
-  const isPrecon = filters.tab === 'precon';
-
   return (
     <div className="h-screen flex flex-col pt-14">
       <SearchFilters
@@ -305,19 +288,9 @@ function SearchContent() {
             </div>
           ) : listings.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              {isPrecon ? (
-                <>
-                  <div className="w-16 h-16 bg-bt-precon/20 rounded-full flex items-center justify-center mb-4"><span className="text-2xl">🏗</span></div>
-                  <h3 className="text-lg font-semibold text-text-primary">No pre-construction projects found</h3>
-                  <p className="text-sm text-text-muted mt-1">Add projects via <a href="/admin/projects" className="text-accent-blue hover:underline">/admin/projects</a></p>
-                </>
-              ) : (
-                <>
-                  <svg className="w-16 h-16 text-text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  <h3 className="text-lg font-semibold text-text-primary">No listings found</h3>
-                  <p className="text-sm text-text-muted mt-1">Try adjusting your filters or search area</p>
-                </>
-              )}
+              <svg className="w-16 h-16 text-text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <h3 className="text-lg font-semibold text-text-primary">No listings found</h3>
+              <p className="text-sm text-text-muted mt-1">Try adjusting your filters or search area</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">

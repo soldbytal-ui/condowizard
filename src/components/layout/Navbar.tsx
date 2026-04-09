@@ -68,11 +68,9 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
-          <Link href="/search" className={`btn-ghost text-sm ${isSearch ? 'text-accent-blue' : ''}`}>
-            Buy
-          </Link>
+          <Link href="/search" className={`btn-ghost text-sm ${isSearch ? 'text-accent-blue' : ''}`}>Buy</Link>
           <Link href="/search?tab=rent" className="btn-ghost text-sm">Rent</Link>
-          <Link href="/sold" className="btn-ghost text-sm">Sold</Link>
+          <Link href="/search?tab=sold" className="btn-ghost text-sm">Sold</Link>
           <Link href="/new-condos" className="btn-ghost text-sm">Pre-Construction</Link>
           <div
             className="relative"
@@ -119,7 +117,7 @@ export default function Navbar() {
           <div className="container-main py-4 space-y-1">
             <Link href="/search" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors font-medium">Buy</Link>
             <Link href="/search?tab=rent" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Rent</Link>
-            <Link href="/sold" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Sold Data</Link>
+            <Link href="/search?tab=sold" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Sold Data</Link>
             <Link href="/new-condos" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Pre-Construction</Link>
             <Link href="/market" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Market Stats</Link>
             <Link href="/blog" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Blog</Link>

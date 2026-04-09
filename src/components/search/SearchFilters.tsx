@@ -42,7 +42,6 @@ export default function SearchFilters({ filters, onFilterChange, onMlsLookup, to
 
   const tabs: { key: ListingFilters['tab']; label: string }[] = [
     { key: 'sale', label: 'For Sale' },
-    { key: 'precon', label: 'Pre-Construction' },
     { key: 'sold', label: 'Sold' },
     { key: 'rent', label: 'For Rent' },
   ];
