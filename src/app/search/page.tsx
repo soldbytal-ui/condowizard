@@ -29,6 +29,7 @@ interface CommunityBoundary {
   boundary: number[][][];
   lat: number;
   lng: number;
+  city?: string;
 }
 
 // Polygon names that don't match Repliers listing neighbourhood names
@@ -234,17 +235,24 @@ function SearchContent() {
     });
   }, []);
 
-  const handleCommunityClick = useCallback((code: string, name: string) => {
-    // Map polygon name → Repliers listing neighbourhood name
+  const handleCommunityClick = useCallback((name: string, displayName: string, city?: string) => {
     const repliersName = NEIGHBOURHOOD_NAME_MAP[name];
     if (repliersName === '') {
       console.log(`[COMMUNITY-CLICK] Skipping "${name}" (city-level polygon)`);
       return;
     }
     const filterName = repliersName || name;
-    console.log(`[COMMUNITY-CLICK] ${name}${repliersName ? ` → mapped to "${repliersName}"` : ''}`);
+    console.log(`[COMMUNITY-CLICK] ${name}${repliersName ? ` → "${repliersName}"` : ''} city=${city || 'Toronto'}`);
     setPreviewListing(null);
-    setFilters((prev) => ({ ...prev, neighborhood: filterName, class: undefined, propertyType: undefined, page: 1 }));
+    setFilters((prev) => ({
+      ...prev,
+      neighborhood: filterName,
+      // Set city for non-Toronto communities so Repliers searches the right municipality
+      municipality: city && city !== 'Toronto' ? city : undefined,
+      class: undefined,
+      propertyType: undefined,
+      page: 1,
+    }));
   }, []);
 
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {

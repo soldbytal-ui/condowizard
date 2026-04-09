@@ -14,6 +14,7 @@ interface CommunityBoundary {
   boundary: number[][][];
   lat: number;
   lng: number;
+  city?: string;
   area: number; // precomputed polygon area for sort
 }
 
@@ -23,7 +24,7 @@ interface SearchMapProps {
   onMarkerHover: (id: string | null) => void;
   onBoundsChange?: (bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => void;
   isSoldView?: boolean;
-  onCommunityClick?: (code: string, name: string) => void;
+  onCommunityClick?: (name: string, displayName: string, city?: string) => void;
   selectedNeighbourhood?: string;
   onPinClick?: (listing: UnifiedListing) => void;
   onCommunitiesLoaded?: (communities: CommunityBoundary[]) => void;
@@ -77,7 +78,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
   const [popupListing, setPopupListing] = useState<UnifiedListing | null>(null);
 
   const [viewState, setViewState] = useState({
-    longitude: -79.3832, latitude: 43.6832, zoom: 11.5, pitch: 40, bearing: -10,
+    longitude: -79.5, latitude: 43.72, zoom: 9.5, pitch: 30, bearing: -10,
   });
 
   // Fetch boundaries once, sort by area (smallest first for overlap priority)
@@ -200,8 +201,8 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     // 2. Manual point-in-polygon for community detection
     const community = findCommunityAtPoint(e.lngLat.lng, e.lngLat.lat);
     if (community) {
-      console.log(`[Map] Point-in-polygon match: ${community.name}`);
-      onCommunityClick?.(community.name, community.name);
+      console.log(`[Map] Point-in-polygon match: ${community.name} (${(community as any).city || 'Toronto'})`);
+      onCommunityClick?.(community.name, community.name, (community as any).city);
       const ring = community.boundary[0];
       let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
       for (const [lng, lat] of ring) {
@@ -273,7 +274,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
         reuseMaps
-        maxBounds={[[-80.2, 43.2], [-78.6, 44.4]]}
+        maxBounds={[[-80.6, 43.0], [-78.4, 44.8]]} // Full GTA: Hamilton to Oshawa, Barrie to Lake Ontario
       >
         <NavigationControl position="top-right" />
         <FullscreenControl position="top-right" />
