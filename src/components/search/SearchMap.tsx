@@ -14,6 +14,7 @@ interface CommunityBoundary {
   boundary: number[][][];
   lat: number;
   lng: number;
+  area: number; // precomputed polygon area for sort
 }
 
 interface SearchMapProps {
@@ -26,15 +27,13 @@ interface SearchMapProps {
   selectedNeighbourhood?: string;
 }
 
-// Static paint constants — stable references prevent layer re-creation
+// Static paint — stable references
 const BASE_FILL_PAINT = { 'fill-color': '#0066FF', 'fill-opacity': 0.05 };
 const BASE_LINE_PAINT = { 'line-color': '#0066FF', 'line-width': 1.5, 'line-opacity': 0.35 };
 const HOVER_FILL_PAINT = { 'fill-color': '#0066FF', 'fill-opacity': 0.18 };
 const HOVER_LINE_PAINT = { 'line-color': '#0066FF', 'line-width': 2.5, 'line-opacity': 0.7 };
 const SELECTED_FILL_PAINT = { 'fill-color': '#0066FF', 'fill-opacity': 0.25 };
 const SELECTED_LINE_PAINT = { 'line-color': '#0066FF', 'line-width': 3, 'line-opacity': 0.9 };
-
-// Listing circle layer paint — static, uses data-driven 'color' property
 const CIRCLE_PAINT = {
   'circle-radius': 5,
   'circle-color': ['get', 'color'],
@@ -42,6 +41,29 @@ const CIRCLE_PAINT = {
   'circle-stroke-color': '#ffffff',
   'circle-opacity': 0.9,
 };
+
+// Ray-casting point-in-polygon — works for ANY polygon complexity
+function pointInPolygon(point: [number, number], ring: number[][]): boolean {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Approximate polygon area (for sorting smallest-first)
+function polygonArea(ring: number[][]): number {
+  let area = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    area += (ring[j][0] + ring[i][0]) * (ring[j][1] - ring[i][1]);
+  }
+  return Math.abs(area / 2);
+}
 
 export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick, selectedNeighbourhood }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null);
@@ -54,25 +76,35 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     longitude: -79.3832, latitude: 43.6832, zoom: 11.5, pitch: 40, bearing: -10,
   });
 
-  // Fetch boundaries once
+  // Fetch boundaries once, sort by area (smallest first for overlap priority)
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch('/api/repliers/communities');
         if (!res.ok) return;
         const data = await res.json();
-        const locs: CommunityBoundary[] = (data.locations || []).filter(
-          (c: any) => c.boundary?.[0]?.length >= 3
-        );
+        const locs: CommunityBoundary[] = (data.locations || [])
+          .filter((c: any) => c.boundary?.[0]?.length >= 3)
+          .map((c: any) => ({ ...c, area: polygonArea(c.boundary[0]) }))
+          .sort((a: CommunityBoundary, b: CommunityBoundary) => a.area - b.area); // smallest first
         setBoundaries(locs);
-        console.log(`[Map] ${locs.length} communities loaded`);
+        console.log(`[Map] ${locs.length} communities loaded, sorted by area (smallest first)`);
       } catch (err) {
         console.error('[Map] Failed to load communities:', err);
       }
     })();
   }, []);
 
-  // ===== GeoJSON sources (all useMemo for stable references) =====
+  // Find community at a point — returns first match (smallest polygon due to sort)
+  const findCommunityAtPoint = useCallback((lng: number, lat: number): CommunityBoundary | null => {
+    const pt: [number, number] = [lng, lat];
+    for (const c of boundaries) {
+      if (pointInPolygon(pt, c.boundary[0])) return c;
+    }
+    return null;
+  }, [boundaries]);
+
+  // ===== GeoJSON sources =====
 
   const boundariesGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
@@ -106,7 +138,6 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: b.boundary }, properties: { name: b.name } }] };
   }, [selectedNeighbourhood, boundaries]);
 
-  // Listing pins as GeoJSON circle layer — NO HTML Markers blocking clicks
   const listingsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
     features: listings.filter((l) => l.lat && l.lng).map((l) => ({
@@ -120,12 +151,6 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
         mlsNumber: l.mlsNumber || '',
         slug: l.slug || '',
         source: l.source,
-        address: l.address || '',
-        priceDisplay: (isSoldView && l.soldPrice) ? `$${l.soldPrice.toLocaleString()} sold` : l.priceDisplay || '',
-        beds: l.beds || 0,
-        baths: l.baths || 0,
-        sqft: l.sqft || '',
-        mainImage: l.images?.[0] || '',
       },
     })),
   }), [listings, isSoldView]);
@@ -142,64 +167,66 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     });
   }, [onBoundsChange]);
 
-  // Unified click handler — checks which layer was clicked
+  // Click: check listing pins first (via Mapbox), then point-in-polygon for communities
   const handleClick = useCallback((e: MapLayerMouseEvent) => {
-    const feature = e.features?.[0];
-    if (!feature) return;
-
-    if (feature.layer?.id === 'community-fill') {
-      const name = feature.properties?.name;
-      if (name) {
-        console.log(`[Map] Community clicked: ${name}`);
-        onCommunityClick?.(name, name);
-        // Zoom to bbox
-        if (feature.geometry.type === 'Polygon') {
-          const coords = (feature.geometry as GeoJSON.Polygon).coordinates[0];
-          let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-          for (const [lng, lat] of coords) {
-            if (lng < minLng) minLng = lng; if (lng > maxLng) maxLng = lng;
-            if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
-          }
-          mapRef.current?.getMap().fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 800 });
-        }
-      }
-    } else if (feature.layer?.id === 'listings-circle') {
-      const src = feature.properties?.source;
+    // 1. Check if a listing pin was clicked (Mapbox handles this via interactiveLayerIds)
+    const pinFeature = e.features?.find((f: any) => f.layer?.id === 'listings-circle');
+    if (pinFeature) {
+      const src = pinFeature.properties?.source;
       const href = src === 'mls'
-        ? `/listing/${feature.properties?.mlsNumber}`
-        : `/projects/${feature.properties?.slug}`;
+        ? `/listing/${pinFeature.properties?.mlsNumber}`
+        : `/projects/${pinFeature.properties?.slug}`;
       if (href !== '/listing/' && href !== '/projects/') {
         window.open(href, '_blank');
       }
-    }
-  }, [onCommunityClick]);
-
-  // Unified hover handler
-  const handleMouseMove = useCallback((e: MapLayerMouseEvent) => {
-    const feature = e.features?.[0];
-    if (!feature) {
-      setHoveredCommunity(null);
-      setCommunityTooltip(null);
-      setPopupListing(null);
-      onMarkerHover(null);
       return;
     }
 
-    if (feature.layer?.id === 'community-fill') {
-      const name = feature.properties?.name;
-      setHoveredCommunity(name || null);
-      setCommunityTooltip(name ? { name, x: e.point.x, y: e.point.y } : null);
-      setPopupListing(null);
-      onMarkerHover(null);
-    } else if (feature.layer?.id === 'listings-circle') {
-      const id = feature.properties?.id;
+    // 2. Manual point-in-polygon for community detection
+    const community = findCommunityAtPoint(e.lngLat.lng, e.lngLat.lat);
+    if (community) {
+      console.log(`[Map] Point-in-polygon match: ${community.name}`);
+      onCommunityClick?.(community.name, community.name);
+
+      // Zoom to bbox
+      const ring = community.boundary[0];
+      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      for (const [lng, lat] of ring) {
+        if (lng < minLng) minLng = lng; if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
+      }
+      mapRef.current?.getMap().fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 800 });
+    }
+  }, [findCommunityAtPoint, onCommunityClick]);
+
+  // Hover: listing pins via Mapbox, communities via point-in-polygon
+  const handleMouseMove = useCallback((e: MapLayerMouseEvent) => {
+    // Check listing pins first
+    const pinFeature = e.features?.find((f: any) => f.layer?.id === 'listings-circle');
+    if (pinFeature) {
+      const id = pinFeature.properties?.id;
       const listing = listings.find((l) => l.id === id);
       setPopupListing(listing || null);
       onMarkerHover(id || null);
       setHoveredCommunity(null);
       setCommunityTooltip(null);
+      return;
     }
-  }, [listings, onMarkerHover]);
+
+    // Community detection via point-in-polygon
+    const community = findCommunityAtPoint(e.lngLat.lng, e.lngLat.lat);
+    if (community) {
+      setHoveredCommunity(community.name);
+      setCommunityTooltip({ name: community.name, x: e.point.x, y: e.point.y });
+      setPopupListing(null);
+      onMarkerHover(null);
+    } else {
+      setHoveredCommunity(null);
+      setCommunityTooltip(null);
+      setPopupListing(null);
+      onMarkerHover(null);
+    }
+  }, [findCommunityAtPoint, listings, onMarkerHover]);
 
   const handleMouseLeave = useCallback(() => {
     setHoveredCommunity(null);
@@ -208,12 +235,10 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     onMarkerHover(null);
   }, [onMarkerHover]);
 
-  // Both layers are interactive
-  const interactiveLayers = useMemo(() => {
-    const layers = ['community-fill'];
-    if (listings.length > 0) layers.push('listings-circle');
-    return layers;
-  }, [listings.length]);
+  // Only listing pins use Mapbox interactiveLayerIds — community detection is manual
+  const interactiveLayers = useMemo(() =>
+    listings.length > 0 ? ['listings-circle'] : undefined
+  , [listings.length]);
 
   return (
     <div className="relative w-full h-full">
@@ -237,7 +262,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
         <NavigationControl position="top-right" />
         <FullscreenControl position="top-right" />
 
-        {/* Layer 1: Community fill (bottom — clickable) */}
+        {/* Community fill + border (visual only — click detection is manual) */}
         {boundaries.length > 0 && (
           <Source id="community-boundaries" type="geojson" data={boundariesGeoJSON}>
             <Layer id="community-fill" type="fill" paint={BASE_FILL_PAINT} />
@@ -245,24 +270,24 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
           </Source>
         )}
 
-        {/* Layer 2: Hover overlay */}
+        {/* Hover highlight */}
         <Source id="community-hover" type="geojson" data={hoverGeoJSON}>
           <Layer id="community-hover-fill" type="fill" paint={HOVER_FILL_PAINT} />
           <Layer id="community-hover-line" type="line" paint={HOVER_LINE_PAINT} />
         </Source>
 
-        {/* Layer 3: Selected overlay */}
+        {/* Selected highlight */}
         <Source id="community-selected" type="geojson" data={selectedGeoJSON}>
           <Layer id="community-selected-fill" type="fill" paint={SELECTED_FILL_PAINT} />
           <Layer id="community-selected-line" type="line" paint={SELECTED_LINE_PAINT} />
         </Source>
 
-        {/* Layer 4: Listing pins as GL circles (NOT HTML Markers) */}
+        {/* Listing pins as GL circles */}
         <Source id="listings-pins" type="geojson" data={listingsGeoJSON}>
           <Layer id="listings-circle" type="circle" paint={CIRCLE_PAINT as any} />
         </Source>
 
-        {/* Layer 5: Community labels (on top) */}
+        {/* Community labels */}
         {boundaries.length > 0 && (
           <Source id="community-labels" type="geojson" data={labelsGeoJSON}>
             <Layer
@@ -279,7 +304,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
           </Source>
         )}
 
-        {/* Listing popup on hover */}
+        {/* Listing popup */}
         {popupListing && popupListing.lat && popupListing.lng && (
           <Popup latitude={popupListing.lat} longitude={popupListing.lng} closeButton={false} closeOnClick={false} anchor="bottom" offset={12} className="search-map-popup">
             <div className="p-0 min-w-[200px]">
