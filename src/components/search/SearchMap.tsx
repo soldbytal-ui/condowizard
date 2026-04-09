@@ -25,6 +25,8 @@ interface SearchMapProps {
   isSoldView?: boolean;
   onCommunityClick?: (code: string, name: string) => void;
   selectedNeighbourhood?: string;
+  onPinClick?: (listing: UnifiedListing) => void;
+  onCommunitiesLoaded?: (communities: CommunityBoundary[]) => void;
 }
 
 // Static paint — stable references
@@ -65,7 +67,7 @@ function polygonArea(ring: number[][]): number {
   return Math.abs(area / 2);
 }
 
-export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick, selectedNeighbourhood }: SearchMapProps) {
+export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick, selectedNeighbourhood, onPinClick, onCommunitiesLoaded }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [boundaries, setBoundaries] = useState<CommunityBoundary[]>([]);
   const [hoveredCommunity, setHoveredCommunity] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
           .map((c: any) => ({ ...c, area: polygonArea(c.boundary[0]) }))
           .sort((a: CommunityBoundary, b: CommunityBoundary) => a.area - b.area); // smallest first
         setBoundaries(locs);
+        onCommunitiesLoaded?.(locs);
         console.log(`[Map] ${locs.length} communities loaded, sorted by area (smallest first)`);
       } catch (err) {
         console.error('[Map] Failed to load communities:', err);
@@ -172,11 +175,13 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     // 1. Check if a listing pin was clicked (Mapbox handles this via interactiveLayerIds)
     const pinFeature = e.features?.find((f: any) => f.layer?.id === 'listings-circle');
     if (pinFeature) {
-      const src = pinFeature.properties?.source;
-      const href = src === 'mls'
-        ? `/listing/${pinFeature.properties?.mlsNumber}`
-        : `/projects/${pinFeature.properties?.slug}`;
-      if (href !== '/listing/' && href !== '/projects/') {
+      const id = pinFeature.properties?.id;
+      const listing = listings.find((l) => l.id === id);
+      if (listing && onPinClick) {
+        onPinClick(listing);
+      } else if (listing) {
+        // Fallback: open in new tab if no onPinClick handler
+        const href = listing.source === 'mls' ? `/listing/${listing.mlsNumber}` : `/projects/${listing.slug}`;
         window.open(href, '_blank');
       }
       return;
