@@ -41,7 +41,7 @@ function SearchContent() {
       priceMax: searchParams.get('priceMax') ? parseInt(searchParams.get('priceMax')!) : undefined,
       bedsMin: searchParams.get('beds') ? parseInt(searchParams.get('beds')!) : undefined,
       neighborhood: searchParams.get('neighborhood') || undefined,
-      community: searchParams.get('community') || undefined,
+      area: searchParams.get('area') || undefined,
       soldDateRange: tab === 'sold' ? '90' : undefined,
       soldDateMin: tab === 'sold' ? daysAgo(90) : undefined,
       page: 1,
@@ -152,8 +152,9 @@ function SearchContent() {
     if (f.hasImages) b.hasImages = true;
     if (f.hasAgents) b.hasAgents = true;
 
-    // Map bounds
-    if (f.bounds) {
+    // Map bounds — only send when NO neighbourhood is selected
+    // (neighbourhood name filter is more reliable than geo-polygon intersection)
+    if (f.bounds && !f.neighborhood) {
       b.map = JSON.stringify({
         type: 'Polygon',
         coordinates: [[
@@ -210,7 +211,9 @@ function SearchContent() {
         }
       } else {
         const body = buildRequestBody(filters);
-        console.log(`[CondoWizard] Tab: ${filters.tab}, calling: /api/repliers/listings, params:`, body);
+        console.log(`[CondoWizard] Tab: ${filters.tab}, calling: /api/repliers/listings`);
+        console.log('[CondoWizard] Active filters:', JSON.stringify(filters, null, 2));
+        console.log('[CondoWizard] Request body:', JSON.stringify(body, null, 2));
 
         const res = await fetch('/api/repliers/listings', {
           method: 'POST',
@@ -274,8 +277,15 @@ function SearchContent() {
 
   const handleCommunityClick = useCallback((code: string, name: string) => {
     console.log(`[CondoWizard] Neighbourhood clicked: ${name}`);
-    // Map polygon names ARE neighbourhood names in Repliers
-    setFilters((prev) => ({ ...prev, neighborhood: name, page: 1 }));
+    // Set neighbourhood, clear class/propertyType to avoid 0-result, clear bounds
+    setFilters((prev) => ({
+      ...prev,
+      neighborhood: name,
+      class: undefined,
+      propertyType: undefined,
+      bounds: undefined,
+      page: 1,
+    }));
   }, []);
 
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {

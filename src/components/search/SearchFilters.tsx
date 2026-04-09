@@ -234,7 +234,7 @@ export default function SearchFilters({ filters, onFilterChange, onMlsLookup, to
         <div className="px-4 pb-1">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent-blue/10 text-accent-blue text-xs font-medium rounded-full">
             {filters.neighborhood}
-            <button onClick={() => onFilterChange({ neighborhood: undefined, page: 1 })} className="hover:text-red-500 ml-0.5">
+            <button onClick={() => onFilterChange({ neighborhood: undefined, bounds: undefined, page: 1 })} className="hover:text-red-500 ml-0.5">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </span>
