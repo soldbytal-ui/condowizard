@@ -195,7 +195,7 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
           <Section title="Location" defaultOpen>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-text-muted">Area (TRREB Region)</label>
+                <label className="text-xs text-text-muted">Area (TREB Region)</label>
                 <select value={f.area || ''} onChange={(e) => set({ area: e.target.value || undefined, municipality: undefined, neighborhood: undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
                   <option value="">All GTA</option>
                   {GTA_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -282,7 +282,7 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
             <NumInput label="Bedrooms Plus (den/basement)" value={f.bedsPlus} onChange={(v) => set({ bedsPlus: v, page: 1 })} placeholder="Min" />
             <RangeInputs label="Bathrooms" minVal={f.bathsMin} maxVal={f.bathsMax} onMin={(v) => set({ bathsMin: num(v), page: 1 })} onMax={(v) => set({ bathsMax: num(v), page: 1 })} />
             <RangeInputs label="Sqft" minVal={f.sqftMin} maxVal={f.sqftMax} onMin={(v) => set({ sqftMin: num(v), page: 1 })} onMax={(v) => set({ sqftMax: num(v), page: 1 })} />
-            <p className="text-[10px] text-text-muted -mt-1">Note: TRREB provides sqft as ranges. Some listings without sqft data may be excluded.</p>
+            <p className="text-[10px] text-text-muted -mt-1">Note: TREB provides sqft as ranges. Some listings without sqft data may be excluded.</p>
             <RangeInputs label="Lot Size (sqft)" minVal={f.lotSizeMin} maxVal={f.lotSizeMax} onMin={(v) => set({ lotSizeMin: num(v), page: 1 })} onMax={(v) => set({ lotSizeMax: num(v), page: 1 })} />
             <RangeInputs label="Stories" minVal={f.storiesMin} maxVal={f.storiesMax} onMin={(v) => set({ storiesMin: num(v), page: 1 })} onMax={(v) => set({ storiesMax: num(v), page: 1 })} />
             <RangeInputs label="Year Built" minVal={f.yearBuiltMin} maxVal={f.yearBuiltMax} onMin={(v) => set({ yearBuiltMin: num(v), page: 1 })} onMax={(v) => set({ yearBuiltMax: num(v), page: 1 })} />
