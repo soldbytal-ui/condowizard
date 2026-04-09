@@ -31,6 +31,12 @@ interface CommunityBoundary {
   lng: number;
 }
 
+// Polygon names that don't match Repliers listing neighbourhood names
+const NEIGHBOURHOOD_NAME_MAP: Record<string, string> = {
+  'Oakwood-Vaughan': 'Oakwood Village',
+  'Toronto': '', // City-level polygon, skip — not a real neighbourhood
+};
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -229,9 +235,16 @@ function SearchContent() {
   }, []);
 
   const handleCommunityClick = useCallback((code: string, name: string) => {
-    console.log(`[COMMUNITY-CLICK] ${name}`);
-    setPreviewListing(null); // Close preview when selecting community
-    setFilters((prev) => ({ ...prev, neighborhood: name, class: undefined, propertyType: undefined, page: 1 }));
+    // Map polygon name → Repliers listing neighbourhood name
+    const repliersName = NEIGHBOURHOOD_NAME_MAP[name];
+    if (repliersName === '') {
+      console.log(`[COMMUNITY-CLICK] Skipping "${name}" (city-level polygon)`);
+      return;
+    }
+    const filterName = repliersName || name;
+    console.log(`[COMMUNITY-CLICK] ${name}${repliersName ? ` → mapped to "${repliersName}"` : ''}`);
+    setPreviewListing(null);
+    setFilters((prev) => ({ ...prev, neighborhood: filterName, class: undefined, propertyType: undefined, page: 1 }));
   }, []);
 
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
