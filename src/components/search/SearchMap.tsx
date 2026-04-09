@@ -23,14 +23,14 @@ interface SearchMapProps {
   onBoundsChange?: (bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => void;
   isSoldView?: boolean;
   onCommunityClick?: (code: string, name: string) => void;
+  selectedNeighbourhood?: string;
 }
 
-export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick }: SearchMapProps) {
+export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick, selectedNeighbourhood }: SearchMapProps) {
   const mapRef = useRef<any>(null);
   const [popup, setPopup] = useState<UnifiedListing | null>(null);
   const [boundaries, setBoundaries] = useState<CommunityBoundary[]>([]);
   const [hoveredCommunity, setHoveredCommunity] = useState<string | null>(null);
-  const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null);
   const [communityTooltip, setCommunityTooltip] = useState<{ name: string; x: number; y: number } | null>(null);
 
   // Toronto-centered view — zoom 11.5 shows the city, not all of Ontario
@@ -91,7 +91,6 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     const feature = e.features?.[0];
     if (!feature?.properties?.name) return;
     const name = feature.properties.name;
-    setSelectedCommunity(name);
     onCommunityClick?.(name, name);
 
     // Zoom to the clicked community's bounds
@@ -133,7 +132,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     'fill-color': '#0066FF',
     'fill-opacity': [
       'case',
-      ['==', ['get', 'name'], selectedCommunity || ''], 0.2,
+      ['==', ['get', 'name'], selectedNeighbourhood || ''], 0.2,
       ['==', ['get', 'name'], hoveredCommunity || ''], 0.12,
       0.03,
     ],
@@ -143,13 +142,13 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     'line-color': '#0066FF',
     'line-width': [
       'case',
-      ['==', ['get', 'name'], selectedCommunity || ''], 3,
+      ['==', ['get', 'name'], selectedNeighbourhood || ''], 3,
       ['==', ['get', 'name'], hoveredCommunity || ''], 2.5,
       1.5,
     ],
     'line-opacity': [
       'case',
-      ['==', ['get', 'name'], selectedCommunity || ''], 0.8,
+      ['==', ['get', 'name'], selectedNeighbourhood || ''], 0.8,
       ['==', ['get', 'name'], hoveredCommunity || ''], 0.6,
       0.35,
     ],

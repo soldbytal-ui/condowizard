@@ -73,11 +73,11 @@ function SearchContent() {
       default: b.sortBy = sold ? 'soldDateDesc' : 'updatedOnDesc';
     }
 
-    // Location
-    if (f.community) b.area = f.community;
-    else if (f.area) b.area = f.area;
+    // Location — Repliers hierarchy: area → city → neighborhood
+    if (f.area) b.area = f.area;
+    if (f.municipality) b.city = f.municipality;
+    // neighborhood filter — set by dropdown or map polygon click
     if (f.neighborhood) b.neighborhood = f.neighborhood;
-    if (f.municipality) b.city = f.municipality; // municipalities = cities in Repliers
     if (f.streetName) b.streetName = f.streetName;
     if (f.streetNumberMin) b.minStreetNumber = f.streetNumberMin;
     if (f.streetNumberMax) b.maxStreetNumber = f.streetNumberMax;
@@ -248,7 +248,7 @@ function SearchContent() {
     if (filters.priceMax) p.set('priceMax', String(filters.priceMax));
     if (filters.bedsMin) p.set('beds', String(filters.bedsMin));
     if (filters.neighborhood) p.set('neighborhood', filters.neighborhood);
-    if (filters.community) p.set('community', filters.community);
+    if (filters.area) p.set('area', filters.area);
     if (filters.class) p.set('class', filters.class);
     const qs = p.toString();
     router.replace(`/search${qs ? '?' + qs : ''}`, { scroll: false });
@@ -260,7 +260,7 @@ function SearchContent() {
         // Tab switch: reset everything except location
         const base: ListingFilters = {
           tab: partial.tab, page: 1, pageSize: 24, sortBy: 'newest',
-          neighborhood: prev.neighborhood, community: prev.community,
+          area: prev.area, municipality: prev.municipality, neighborhood: prev.neighborhood,
         };
         if (partial.tab === 'sold') {
           base.soldDateRange = '90';
@@ -273,8 +273,9 @@ function SearchContent() {
   }, []);
 
   const handleCommunityClick = useCallback((code: string, name: string) => {
-    console.log(`[CondoWizard] Community clicked: ${code} - ${name}`);
-    setFilters((prev) => ({ ...prev, community: code, page: 1 }));
+    console.log(`[CondoWizard] Neighbourhood clicked: ${name}`);
+    // Map polygon names ARE neighbourhood names in Repliers
+    setFilters((prev) => ({ ...prev, neighborhood: name, page: 1 }));
   }, []);
 
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
@@ -347,7 +348,7 @@ function SearchContent() {
         </div>
 
         <div className="hidden lg:block lg:w-[45%] relative">
-          <SearchMap listings={listings} highlightedId={highlightedId} onMarkerHover={setHighlightedId} onBoundsChange={handleBoundsChange} isSoldView={filters.tab === 'sold'} onCommunityClick={handleCommunityClick} />
+          <SearchMap listings={listings} highlightedId={highlightedId} onMarkerHover={setHighlightedId} onBoundsChange={handleBoundsChange} isSoldView={filters.tab === 'sold'} onCommunityClick={handleCommunityClick} selectedNeighbourhood={filters.neighborhood} />
         </div>
       </div>
     </div>

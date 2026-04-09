@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ListingFilters, BuildingType, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
+import { useState, useEffect } from 'react';
+import { ListingFilters } from '@/types/listing';
 
 interface Props {
   filters: ListingFilters;
@@ -16,9 +16,7 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
     <div className="border-b border-border">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-text-primary hover:bg-surface2 transition-colors">
         {title}
-        <svg className={`w-4 h-4 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <svg className={`w-4 h-4 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </button>
       {open && <div className="px-4 pb-4 space-y-3">{children}</div>}
     </div>
@@ -88,6 +86,7 @@ function NumInput({ label, value, onChange, placeholder }: { label: string; valu
 
 const num = (v: string) => v ? parseInt(v) : undefined;
 
+const GTA_AREAS = ['Toronto', 'York', 'Peel', 'Halton', 'Durham', 'Simcoe', 'Hamilton', 'Dufferin'];
 const LAST_STATUSES = [
   { value: 'New', label: 'New' }, { value: 'Pc', label: 'Price Change' }, { value: 'Ext', label: 'Extension' },
   { value: 'Sld', label: 'Sold' }, { value: 'Sc', label: 'Sold Conditional' }, { value: 'Sce', label: 'Sold Cond. Escaped' },
@@ -99,16 +98,48 @@ const GARAGE_TYPES = ['Attached', 'Detached', 'Built-In', 'Underground', 'None',
 const HEATING_TYPES = ['Forced Air', 'Radiant', 'Baseboard', 'Heat Pump', 'Other'];
 const POOL_TYPES = ['Indoor', 'Inground', 'Above Ground', 'None'];
 const STYLES = ['Apartment', 'Bungalow', '2-Storey', '3-Storey', 'Backsplit', 'Sidesplit', 'Loft', '1 1/2 Storey', 'Bungalow-Raised', 'Multi-Level', 'Other'];
-const TRREB_COMMUNITIES = [
-  'C01', 'C02', 'C03', 'C04', 'C06', 'C07', 'C08', 'C09', 'C10', 'C11', 'C12', 'C13', 'C14', 'C15',
-  'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08', 'E09', 'E10', 'E11',
-  'W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07', 'W08', 'W09', 'W10',
-  'N01', 'N02', 'N03', 'N04', 'N05', 'N06', 'N07', 'N08', 'N09', 'N10', 'N11',
-];
 
 export default function AdvancedFilters({ filters: f, onFilterChange: set, onClose, onMlsLookup }: Props) {
   const isSold = f.tab === 'sold';
   const [mlsInput, setMlsInput] = useState(f.mlsNumber || '');
+
+  // Dynamic location dropdowns: Area → City → Neighbourhood
+  const [cities, setCities] = useState<string[]>([]);
+  const [neighbourhoods, setNeighbourhoods] = useState<string[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingHoods, setLoadingHoods] = useState(false);
+
+  // Fetch cities when area changes
+  useEffect(() => {
+    const area = f.area;
+    if (!area) { setCities([]); return; }
+    setLoadingCities(true);
+    fetch(`/api/repliers/locations?type=city&area=${encodeURIComponent(area)}`)
+      .then((r) => r.ok ? r.json() : { locations: [] })
+      .then((data) => {
+        const names = (data.locations || []).map((l: any) => l.name).sort();
+        setCities(names);
+        console.log(`[CondoWizard] Cities in ${area}:`, names.length);
+      })
+      .catch(() => setCities([]))
+      .finally(() => setLoadingCities(false));
+  }, [f.area]);
+
+  // Fetch neighbourhoods when city changes (or area=Toronto with no city)
+  useEffect(() => {
+    const city = f.municipality || (f.area === 'Toronto' ? 'Toronto' : '');
+    if (!city) { setNeighbourhoods([]); return; }
+    setLoadingHoods(true);
+    fetch(`/api/repliers/locations?type=neighborhood&city=${encodeURIComponent(city)}`)
+      .then((r) => r.ok ? r.json() : { locations: [] })
+      .then((data) => {
+        const names = (data.locations || []).map((l: any) => l.name).sort();
+        setNeighbourhoods(names);
+        console.log(`[CondoWizard] Neighbourhoods in ${city}:`, names.length);
+      })
+      .catch(() => setNeighbourhoods([]))
+      .finally(() => setLoadingHoods(false));
+  }, [f.municipality, f.area]);
 
   function clearAll() {
     set({
@@ -133,10 +164,7 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
 
   function handleMlsSearch() {
     const mls = mlsInput.trim().toUpperCase();
-    if (mls) {
-      onMlsLookup(mls);
-      onClose();
-    }
+    if (mls) { onMlsLookup(mls); onClose(); }
   }
 
   return (
@@ -150,14 +178,11 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
         </div>
 
         <div className="overflow-y-auto flex-1">
-          {/* MLS# DIRECT LOOKUP — top of modal */}
+          {/* MLS# lookup */}
           <div className="px-4 py-3 border-b border-border bg-surface">
             <label className="text-xs text-text-muted font-medium">MLS # Direct Lookup</label>
             <div className="flex gap-2 mt-1">
-              <input type="text" placeholder="e.g. C12966146" value={mlsInput}
-                onChange={(e) => setMlsInput(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === 'Enter' && handleMlsSearch()}
-                className="flex-1 px-3 py-2 text-sm border border-border rounded-lg font-mono" />
+              <input type="text" placeholder="e.g. C12966146" value={mlsInput} onChange={(e) => setMlsInput(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === 'Enter' && handleMlsSearch()} className="flex-1 px-3 py-2 text-sm border border-border rounded-lg font-mono" />
               <button onClick={handleMlsSearch} className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 flex items-center gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 Search
@@ -166,34 +191,38 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
             <p className="text-[10px] text-text-muted mt-1">Searching by MLS# bypasses all other filters</p>
           </div>
 
-          {/* LOCATION */}
+          {/* LOCATION — Area → City → Neighbourhood cascade */}
           <Section title="Location" defaultOpen>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-text-muted">Community (TRREB)</label>
-                <select value={f.community || ''} onChange={(e) => set({ community: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
-                  <option value="">Any</option>
-                  {TRREB_COMMUNITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                <label className="text-xs text-text-muted">Area (TRREB Region)</label>
+                <select value={f.area || ''} onChange={(e) => set({ area: e.target.value || undefined, municipality: undefined, neighborhood: undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
+                  <option value="">All GTA</option>
+                  {GTA_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
               <div>
+                <label className="text-xs text-text-muted">City / Municipality</label>
+                <select value={f.municipality || ''} onChange={(e) => set({ municipality: e.target.value || undefined, neighborhood: undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" disabled={!f.area && cities.length === 0}>
+                  <option value="">{loadingCities ? 'Loading...' : f.area ? 'All cities' : 'Select area first'}</option>
+                  {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
                 <label className="text-xs text-text-muted">Neighbourhood</label>
-                <input type="text" placeholder="e.g. Yorkville" value={f.neighborhood || ''} onChange={(e) => set({ neighborhood: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" />
-              </div>
-              <div>
-                <label className="text-xs text-text-muted">Area</label>
-                <input type="text" placeholder="e.g. Toronto" value={f.area || ''} onChange={(e) => set({ area: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" />
-              </div>
-              <div>
-                <label className="text-xs text-text-muted">Municipality</label>
-                <input type="text" value={f.municipality || ''} onChange={(e) => set({ municipality: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" />
+                <select value={f.neighborhood || ''} onChange={(e) => set({ neighborhood: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
+                  <option value="">{loadingHoods ? 'Loading...' : neighbourhoods.length > 0 ? `All neighbourhoods (${neighbourhoods.length})` : 'Select area/city first'}</option>
+                  {neighbourhoods.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+                {f.neighborhood && (
+                  <p className="text-[10px] text-accent-blue mt-1">Filtering: {f.neighborhood}</p>
+                )}
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-text-muted">Street Name</label>
                 <input type="text" placeholder="e.g. Bay" value={f.streetName || ''} onChange={(e) => set({ streetName: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" />
               </div>
-              <RangeInputs label="Street # Range" minVal={f.streetNumberMin} maxVal={f.streetNumberMax}
-                onMin={(v) => set({ streetNumberMin: num(v), page: 1 })} onMax={(v) => set({ streetNumberMax: num(v), page: 1 })} placeholder={['From #', 'To #']} />
+              <RangeInputs label="Street # Range" minVal={f.streetNumberMin} maxVal={f.streetNumberMax} onMin={(v) => set({ streetNumberMin: num(v), page: 1 })} onMax={(v) => set({ streetNumberMax: num(v), page: 1 })} placeholder={['From #', 'To #']} />
               <div>
                 <label className="text-xs text-text-muted">Apt/Unit #</label>
                 <input type="text" value={f.unitNumber || ''} onChange={(e) => set({ unitNumber: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg" />
@@ -201,14 +230,13 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
               <div>
                 <label className="text-xs text-text-muted">Street Direction</label>
                 <select value={f.streetDirection || ''} onChange={(e) => set({ streetDirection: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
-                  <option value="">Any</option>
-                  <option value="N">N</option><option value="S">S</option><option value="E">E</option><option value="W">W</option>
+                  <option value="">Any</option><option value="N">N</option><option value="S">S</option><option value="E">E</option><option value="W">W</option>
                 </select>
               </div>
             </div>
           </Section>
 
-          {/* PROPERTY */}
+          {/* PROPERTY TYPE & STYLE */}
           <Section title="Property Type & Style">
             <MultiCheck label="Style" options={STYLES} selected={f.style} onChange={(v) => set({ style: v.length ? v : undefined, page: 1 })} />
           </Section>
@@ -223,10 +251,9 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
                   return (
                     <button key={value} type="button" onClick={() => {
                       const curr = f.lastStatus || [];
-                      set({ lastStatus: active ? (curr.filter((s) => s !== value).length ? curr.filter((s) => s !== value) : undefined) : [...curr, value], page: 1 });
-                    }} className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${active ? 'bg-accent-blue text-white border-accent-blue' : 'border-border text-text-muted'}`}>
-                      {label}
-                    </button>
+                      const next = active ? curr.filter((s) => s !== value) : [...curr, value];
+                      set({ lastStatus: next.length ? next : undefined, page: 1 });
+                    }} className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${active ? 'bg-accent-blue text-white border-accent-blue' : 'border-border text-text-muted'}`}>{label}</button>
                   );
                 })}
               </div>
@@ -247,14 +274,6 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
             <RangeInputs label="Price Range" minVal={f.priceMin} maxVal={f.priceMax} onMin={(v) => set({ priceMin: num(v), page: 1 })} onMax={(v) => set({ priceMax: num(v), page: 1 })} />
             <NumInput label="Max Maintenance Fee" value={f.maintenanceFeeMax} onChange={(v) => set({ maintenanceFeeMax: v, page: 1 })} />
             <RangeInputs label="Annual Tax" minVal={f.taxMin} maxVal={f.taxMax} onMin={(v) => set({ taxMin: num(v), page: 1 })} onMax={(v) => set({ taxMax: num(v), page: 1 })} />
-            <div>
-              <label className="text-xs text-text-muted">Price Change</label>
-              <select value={f.priceChangeType || ''} onChange={(e) => set({ priceChangeType: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
-                <option value="">Any</option>
-                <option value="increase">Price Increase</option>
-                <option value="decrease">Price Decrease</option>
-              </select>
-            </div>
           </Section>
 
           {/* SIZE & FEATURES */}
@@ -263,6 +282,7 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
             <NumInput label="Bedrooms Plus (den/basement)" value={f.bedsPlus} onChange={(v) => set({ bedsPlus: v, page: 1 })} placeholder="Min" />
             <RangeInputs label="Bathrooms" minVal={f.bathsMin} maxVal={f.bathsMax} onMin={(v) => set({ bathsMin: num(v), page: 1 })} onMax={(v) => set({ bathsMax: num(v), page: 1 })} />
             <RangeInputs label="Sqft" minVal={f.sqftMin} maxVal={f.sqftMax} onMin={(v) => set({ sqftMin: num(v), page: 1 })} onMax={(v) => set({ sqftMax: num(v), page: 1 })} />
+            <p className="text-[10px] text-text-muted -mt-1">Note: TRREB provides sqft as ranges. Some listings without sqft data may be excluded.</p>
             <RangeInputs label="Lot Size (sqft)" minVal={f.lotSizeMin} maxVal={f.lotSizeMax} onMin={(v) => set({ lotSizeMin: num(v), page: 1 })} onMax={(v) => set({ lotSizeMax: num(v), page: 1 })} />
             <RangeInputs label="Stories" minVal={f.storiesMin} maxVal={f.storiesMax} onMin={(v) => set({ storiesMin: num(v), page: 1 })} onMax={(v) => set({ storiesMax: num(v), page: 1 })} />
             <RangeInputs label="Year Built" minVal={f.yearBuiltMin} maxVal={f.yearBuiltMax} onMin={(v) => set({ yearBuiltMin: num(v), page: 1 })} onMax={(v) => set({ yearBuiltMax: num(v), page: 1 })} />
@@ -278,8 +298,7 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
             <div>
               <label className="text-xs text-text-muted">Locker</label>
               <select value={f.locker || ''} onChange={(e) => set({ locker: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
-                <option value="">Any</option>
-                <option value="Owned">Owned</option><option value="Ensuite">Ensuite</option><option value="Exclusive">Exclusive</option><option value="None">None</option>
+                <option value="">Any</option><option value="Owned">Owned</option><option value="Ensuite">Ensuite</option><option value="Exclusive">Exclusive</option><option value="None">None</option>
               </select>
             </div>
           </Section>
@@ -290,52 +309,29 @@ export default function AdvancedFilters({ filters: f, onFilterChange: set, onClo
             <MultiCheck label="Heating" options={HEATING_TYPES} selected={f.heating} onChange={(v) => set({ heating: v.length ? v : undefined, page: 1 })} />
             <MultiCheck label="Pool" options={POOL_TYPES} selected={f.pool} onChange={(v) => set({ pool: v.length ? v : undefined, page: 1 })} />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-text-muted">Waterfront</label>
-                <select value={f.waterfront || ''} onChange={(e) => set({ waterfront: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
-                  <option value="">Any</option><option value="Y">Yes</option><option value="N">No</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-text-muted">Den</label>
-                <select value={f.den || ''} onChange={(e) => set({ den: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg">
-                  <option value="">Any</option><option value="Y">Yes</option><option value="N">No</option>
-                </select>
-              </div>
+              <div><label className="text-xs text-text-muted">Waterfront</label><select value={f.waterfront || ''} onChange={(e) => set({ waterfront: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg"><option value="">Any</option><option value="Y">Yes</option><option value="N">No</option></select></div>
+              <div><label className="text-xs text-text-muted">Den</label><select value={f.den || ''} onChange={(e) => set({ den: e.target.value || undefined, page: 1 })} className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded-lg"><option value="">Any</option><option value="Y">Yes</option><option value="N">No</option></select></div>
             </div>
           </Section>
 
           {/* OPEN HOUSE */}
           <Section title="Open House">
             <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-              <input type="checkbox" checked={f.openHouse || false} onChange={(e) => set({ openHouse: e.target.checked || undefined, page: 1 })} className="rounded" />
-              Has Open House
+              <input type="checkbox" checked={f.openHouse || false} onChange={(e) => set({ openHouse: e.target.checked || undefined, page: 1 })} className="rounded" />Has Open House
             </label>
-            {f.openHouse && (
-              <DateRange label="Open House Date" minVal={f.openHouseDateMin} maxVal={f.openHouseDateMax}
-                onMin={(v) => set({ openHouseDateMin: v || undefined })} onMax={(v) => set({ openHouseDateMax: v || undefined })} />
-            )}
+            {f.openHouse && <DateRange label="Open House Date" minVal={f.openHouseDateMin} maxVal={f.openHouseDateMax} onMin={(v) => set({ openHouseDateMin: v || undefined })} onMax={(v) => set({ openHouseDateMax: v || undefined })} />}
           </Section>
 
           {/* DISPLAY */}
           <Section title="Display Options">
-            <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-              <input type="checkbox" checked={f.hasImages || false} onChange={(e) => set({ hasImages: e.target.checked || undefined, page: 1 })} className="rounded" />
-              Has Images
-            </label>
-            <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-              <input type="checkbox" checked={f.hasAgents || false} onChange={(e) => set({ hasAgents: e.target.checked || undefined, page: 1 })} className="rounded" />
-              Has Agent Info
-            </label>
+            <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" checked={f.hasImages || false} onChange={(e) => set({ hasImages: e.target.checked || undefined, page: 1 })} className="rounded" />Has Images</label>
+            <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" checked={f.hasAgents || false} onChange={(e) => set({ hasAgents: e.target.checked || undefined, page: 1 })} className="rounded" />Has Agent Info</label>
           </Section>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-border flex-shrink-0">
           <button onClick={clearAll} className="text-sm text-red-500 hover:underline">Clear All</button>
-          <button onClick={onClose} className="px-6 py-2 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors">
-            Done
-          </button>
+          <button onClick={onClose} className="px-6 py-2 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors">Done</button>
         </div>
       </div>
     </div>
