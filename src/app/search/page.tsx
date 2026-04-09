@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import SearchFilters from '@/components/search/SearchFilters';
@@ -16,9 +16,7 @@ function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); 
 
 function dedup(listings: UnifiedListing[]): UnifiedListing[] {
   const seen = new Map<string, UnifiedListing>();
-  for (const l of listings) {
-    if (!seen.has(l.id)) seen.set(l.id, l);
-  }
+  for (const l of listings) { if (!seen.has(l.id)) seen.set(l.id, l); }
   if (seen.size !== listings.length) console.warn(`[CondoWizard] Removed ${listings.length - seen.size} duplicate listings`);
   return [...seen.values()];
 }
@@ -31,6 +29,7 @@ function SearchContent() {
   const [loading, setLoading] = useState(true);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [statistics, setStatistics] = useState<Record<string, any>>({});
+  const fetchCounter = useRef(0);
 
   const [filters, setFilters] = useState<ListingFilters>(() => {
     const tab = (searchParams.get('tab') as ListingFilters['tab']) || 'sale';
@@ -49,7 +48,7 @@ function SearchContent() {
     };
   });
 
-  // Build Repliers request body — complete param mapping
+  // Build Repliers request body
   function buildRequestBody(f: ListingFilters): Record<string, unknown> {
     const b: Record<string, unknown> = {
       city: 'Toronto',
@@ -58,12 +57,10 @@ function SearchContent() {
       statistics: true,
     };
 
-    // Tab → status/type
     if (f.tab === 'sale') { b.status = 'A'; b.type = 'sale'; }
     else if (f.tab === 'sold') { b.status = 'U'; b.lastStatus = 'Sld'; }
     else if (f.tab === 'rent') { b.status = 'A'; b.type = 'lease'; }
 
-    // Sort
     const sold = f.tab === 'sold';
     switch (f.sortBy) {
       case 'newest': b.sortBy = sold ? 'soldDateDesc' : 'updatedOnDesc'; break;
@@ -73,10 +70,9 @@ function SearchContent() {
       default: b.sortBy = sold ? 'soldDateDesc' : 'updatedOnDesc';
     }
 
-    // Location — Repliers hierarchy: area → city → neighborhood
+    // Location
     if (f.area) b.area = f.area;
     if (f.municipality) b.city = f.municipality;
-    // neighborhood filter — set by dropdown or map polygon click
     if (f.neighborhood) b.neighborhood = f.neighborhood;
     if (f.streetName) b.streetName = f.streetName;
     if (f.streetNumberMin) b.minStreetNumber = f.streetNumberMin;
@@ -86,7 +82,7 @@ function SearchContent() {
 
     // Property
     if (f.mlsNumber) b.mlsNumber = f.mlsNumber;
-    if (f.propertyType?.length) b.propertyType = f.propertyType; // array — API route handles repeated params
+    if (f.propertyType?.length) b.propertyType = f.propertyType;
     if (f.style?.length) b.style = f.style;
     if (f.class) b.class = f.class;
 
@@ -98,7 +94,7 @@ function SearchContent() {
     if (f.taxMax) b.maxTaxes = f.taxMax;
     if (f.priceChangeType) b.lastPriceChangeType = f.priceChangeType;
 
-    // Size — minBeds includes bedrooms+bedroomsPlus (total beds)
+    // Size
     if (f.bedsMin) b.minBeds = f.bedsMin;
     if (f.bedsMax) b.maxBeds = f.bedsMax;
     if (f.bedsPlus) b.minBedroomsPlus = f.bedsPlus;
@@ -127,7 +123,7 @@ function SearchContent() {
     if (f.waterfront) b.waterfront = f.waterfront;
     if (f.den) b.den = f.den;
 
-    // Status/Dates — don't override lastStatus for sold tab
+    // Status/Dates
     if (f.lastStatus?.length && f.tab !== 'sold') b.lastStatus = f.lastStatus;
     if (sold) {
       if (f.domMin) b.minDaysOnMarket = f.domMin;
@@ -137,8 +133,6 @@ function SearchContent() {
     if (f.updatedOnMax) b.maxUpdatedOn = f.updatedOnMax;
     if (f.listDateMin) b.minListDate = f.listDateMin;
     if (f.listDateMax) b.maxListDate = f.listDateMax;
-
-    // Sold
     if (f.soldDateMin) b.minSoldDate = f.soldDateMin;
     if (f.soldDateMax) b.maxSoldDate = f.soldDateMax;
     if (f.soldPriceMin) b.minSoldPrice = f.soldPriceMin;
@@ -152,18 +146,8 @@ function SearchContent() {
     if (f.hasImages) b.hasImages = true;
     if (f.hasAgents) b.hasAgents = true;
 
-    // Map bounds — only send when NO neighbourhood is selected
-    // (neighbourhood name filter is more reliable than geo-polygon intersection)
-    if (f.bounds && !f.neighborhood) {
-      b.map = JSON.stringify({
-        type: 'Polygon',
-        coordinates: [[
-          [f.bounds.sw.lng, f.bounds.ne.lat], [f.bounds.ne.lng, f.bounds.ne.lat],
-          [f.bounds.ne.lng, f.bounds.sw.lat], [f.bounds.sw.lng, f.bounds.sw.lat],
-          [f.bounds.sw.lng, f.bounds.ne.lat],
-        ]],
-      });
-    }
+    // NO map bounds — neighbourhood name filter is the primary geo filter.
+    // Bounds caused race conditions (map fitBounds → onMoveEnd → bounds overwrite).
 
     return b;
   }
@@ -176,22 +160,22 @@ function SearchContent() {
       const res = await fetch(`/api/repliers/listings/${mls}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.listing) {
-          setListings([data.listing]);
-          setTotalCount(1);
-          setStatistics({});
-        } else { setListings([]); setTotalCount(0); }
+        if (data.listing) { setListings([data.listing]); setTotalCount(1); setStatistics({}); }
+        else { setListings([]); setTotalCount(0); }
       } else { setListings([]); setTotalCount(0); }
     } catch { setListings([]); setTotalCount(0); }
     finally { setLoading(false); }
   }, []);
 
-  // Main fetch
+  // Main fetch — uses a counter to discard stale responses
   const fetchListings = useCallback(async () => {
+    const fetchId = ++fetchCounter.current;
     setLoading(true);
+
+    console.log(`[FETCH #${fetchId}] neighborhood=${filters.neighborhood}, class=${filters.class}, tab=${filters.tab}`);
+
     try {
       if (filters.tab === 'precon') {
-        console.log('[CondoWizard] Tab: precon, calling: /api/precon');
         const params = new URLSearchParams();
         if (filters.priceMin) params.set('priceMin', String(filters.priceMin));
         if (filters.priceMax) params.set('priceMax', String(filters.priceMax));
@@ -202,18 +186,13 @@ function SearchContent() {
         params.set('page', String(filters.page || 1));
         params.set('pageSize', String(filters.pageSize || 24));
         const res = await fetch('/api/precon?' + params.toString());
-        if (res.ok) {
+        if (res.ok && fetchId === fetchCounter.current) {
           const data = await res.json();
-          console.log(`[CondoWizard] Precon: ${data.total || 0} projects`);
-          setListings(data.listings || []);
-          setTotalCount(data.total || 0);
-          setStatistics({});
+          setListings(data.listings || []); setTotalCount(data.total || 0); setStatistics({});
         }
       } else {
         const body = buildRequestBody(filters);
-        console.log(`[CondoWizard] Tab: ${filters.tab}, calling: /api/repliers/listings`);
-        console.log('[CondoWizard] Active filters:', JSON.stringify(filters, null, 2));
-        console.log('[CondoWizard] Request body:', JSON.stringify(body, null, 2));
+        console.log(`[FETCH #${fetchId}] Request body:`, JSON.stringify(body));
 
         const res = await fetch('/api/repliers/listings', {
           method: 'POST',
@@ -221,22 +200,24 @@ function SearchContent() {
           body: JSON.stringify(body),
         });
 
-        if (res.ok) {
+        // Only apply results if this is still the latest fetch
+        if (res.ok && fetchId === fetchCounter.current) {
           const data = await res.json();
           const unique = dedup(data.listings || []);
-          console.log(`[CondoWizard] Got ${data.total} total, ${unique.length} unique listings`);
-          setListings(unique);
-          setTotalCount(data.total || 0);
+          console.log(`[FETCH #${fetchId}] Got ${data.total} total, ${unique.length} unique`);
+          setListings(unique); setTotalCount(data.total || 0);
           if (data.statistics) setStatistics(data.statistics);
+        } else if (fetchId !== fetchCounter.current) {
+          console.log(`[FETCH #${fetchId}] DISCARDED (stale — current is #${fetchCounter.current})`);
         } else {
           const err = await res.text();
-          console.error(`[CondoWizard] API error ${res.status}:`, err.slice(0, 300));
+          console.error(`[FETCH #${fetchId}] API error ${res.status}:`, err.slice(0, 300));
         }
       }
     } catch (error) {
-      console.error('[CondoWizard] Fetch error:', error);
+      console.error(`[FETCH #${fetchCounter.current}] Error:`, error);
     } finally {
-      setLoading(false);
+      if (fetchId === fetchCounter.current) setLoading(false);
     }
   }, [filters]);
 
@@ -258,16 +239,15 @@ function SearchContent() {
   }, [filters, router]);
 
   const handleFilterChange = useCallback((partial: Partial<ListingFilters>) => {
+    console.log('[FILTER-CHANGE]', JSON.stringify(partial));
     setFilters((prev) => {
       if (partial.tab && partial.tab !== prev.tab) {
-        // Tab switch: reset everything except location
         const base: ListingFilters = {
           tab: partial.tab, page: 1, pageSize: 24, sortBy: 'newest',
           area: prev.area, municipality: prev.municipality, neighborhood: prev.neighborhood,
         };
         if (partial.tab === 'sold') {
-          base.soldDateRange = '90';
-          base.soldDateMin = daysAgo(90);
+          base.soldDateRange = '90'; base.soldDateMin = daysAgo(90);
         }
         return base;
       }
@@ -276,20 +256,26 @@ function SearchContent() {
   }, []);
 
   const handleCommunityClick = useCallback((code: string, name: string) => {
-    console.log(`[CondoWizard] Neighbourhood clicked: ${name}`);
-    // Set neighbourhood, clear class/propertyType to avoid 0-result, clear bounds
+    console.log(`[COMMUNITY-CLICK] Setting neighborhood to: ${name}`);
     setFilters((prev) => ({
       ...prev,
       neighborhood: name,
       class: undefined,
       propertyType: undefined,
-      bounds: undefined,
       page: 1,
     }));
   }, []);
 
+  // Bounds change from map pan/zoom — DISABLED when neighbourhood is active.
+  // This prevents the race condition where fitBounds() → onMoveEnd → bounds overwrite.
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
-    setFilters((prev) => ({ ...prev, bounds }));
+    setFilters((prev) => {
+      if (prev.neighborhood) {
+        // Neighbourhood filter is active — don't overwrite with bounds
+        return prev;
+      }
+      return { ...prev, bounds };
+    });
   }, []);
 
   const isPrecon = filters.tab === 'precon';
@@ -321,9 +307,7 @@ function SearchContent() {
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               {isPrecon ? (
                 <>
-                  <div className="w-16 h-16 bg-bt-precon/20 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-2xl">🏗</span>
-                  </div>
+                  <div className="w-16 h-16 bg-bt-precon/20 rounded-full flex items-center justify-center mb-4"><span className="text-2xl">🏗</span></div>
                   <h3 className="text-lg font-semibold text-text-primary">No pre-construction projects found</h3>
                   <p className="text-sm text-text-muted mt-1">Add projects via <a href="/admin/projects" className="text-accent-blue hover:underline">/admin/projects</a></p>
                 </>
