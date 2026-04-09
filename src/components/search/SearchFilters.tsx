@@ -75,12 +75,13 @@ export default function SearchFilters({ filters, onFilterChange, onMlsLookup, to
 
   function handleClassToggle(cls: string) {
     if (classValue === cls) {
-      // Deselect
+      // Deselect — clear class and any propertyType the user may have set
       onFilterChange({ class: undefined, propertyType: undefined, page: 1 });
     } else {
-      // Select class and set default property types
-      const types = cls === 'residential' ? FREEHOLD_TYPES : cls === 'condo' ? CONDO_TYPES : cls === 'commercial' ? COMMERCIAL_TYPES : undefined;
-      onFilterChange({ class: cls, propertyType: types, page: 1 });
+      // Set class only — don't auto-set propertyType (it over-filters).
+      // class=condo already restricts to condos in Repliers.
+      // User can further narrow with the Type dropdown if needed.
+      onFilterChange({ class: cls, propertyType: undefined, page: 1 });
     }
   }
 
