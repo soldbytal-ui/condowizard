@@ -27,6 +27,8 @@ interface SearchMapProps {
   selectedNeighbourhood?: string;
   onPinClick?: (listing: UnifiedListing) => void;
   onCommunitiesLoaded?: (communities: CommunityBoundary[]) => void;
+  onMapBackgroundClick?: () => void;
+  panelCollapsed?: boolean;
 }
 
 // Static paint — stable references
@@ -67,7 +69,7 @@ function polygonArea(ring: number[][]): number {
   return Math.abs(area / 2);
 }
 
-export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick, selectedNeighbourhood, onPinClick, onCommunitiesLoaded }: SearchMapProps) {
+export default function SearchMap({ listings, highlightedId, onMarkerHover, onBoundsChange, isSoldView, onCommunityClick, selectedNeighbourhood, onPinClick, onCommunitiesLoaded, onMapBackgroundClick, panelCollapsed }: SearchMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [boundaries, setBoundaries] = useState<CommunityBoundary[]>([]);
   const [hoveredCommunity, setHoveredCommunity] = useState<string | null>(null);
@@ -158,6 +160,14 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     })),
   }), [listings, isSoldView]);
 
+  // Resize map when panel collapses/expands
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      mapRef.current?.getMap()?.resize();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [panelCollapsed]);
+
   // ===== Event handlers =====
 
   const handleMoveEnd = useCallback(() => {
@@ -192,8 +202,6 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     if (community) {
       console.log(`[Map] Point-in-polygon match: ${community.name}`);
       onCommunityClick?.(community.name, community.name);
-
-      // Zoom to bbox
       const ring = community.boundary[0];
       let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
       for (const [lng, lat] of ring) {
@@ -201,8 +209,11 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
         if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
       }
       mapRef.current?.getMap().fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 800 });
+    } else {
+      // 3. Clicked on empty map background — close preview panel
+      onMapBackgroundClick?.();
     }
-  }, [findCommunityAtPoint, onCommunityClick]);
+  }, [findCommunityAtPoint, onCommunityClick, onMapBackgroundClick, listings, onPinClick]);
 
   // Hover: listing pins via Mapbox, communities via point-in-polygon
   const handleMouseMove = useCallback((e: MapLayerMouseEvent) => {

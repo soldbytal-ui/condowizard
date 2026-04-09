@@ -251,9 +251,14 @@ function SearchContent() {
     setFilters((prev) => prev.neighborhood ? prev : { ...prev, bounds });
   }, []);
 
-  // FIX 4: Map pin click → show preview panel instead of navigating
+  // Pin CLICK → persistent preview panel (stays open until closed)
   const handlePinClick = useCallback((listing: UnifiedListing) => {
     setPreviewListing(listing);
+  }, []);
+
+  // Map background click → close preview panel
+  const handleMapBackgroundClick = useCallback(() => {
+    setPreviewListing(null);
   }, []);
 
   // Receive communities from SearchMap
@@ -268,10 +273,13 @@ function SearchContent() {
         totalCount={totalCount} avgPrice={statistics.averagePrice} avgDom={statistics.averageDom} medianSoldPrice={statistics.medianSoldPrice}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* FIX 3: Collapsible left panel */}
-        <div className={`transition-all duration-300 overflow-hidden bg-bg ${panelCollapsed ? 'w-0' : 'w-full lg:w-[55%]'}`}>
-          <div className="h-full overflow-y-auto">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Collapsible left panel — inline style for smooth transition */}
+        <div
+          className="bg-bg border-r border-border overflow-hidden flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out"
+          style={{ width: panelCollapsed ? '0px' : '55%', minWidth: panelCollapsed ? '0px' : '400px' }}
+        >
+          {!panelCollapsed && <div className="h-full overflow-y-auto">
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
                 {Array.from({ length: 12 }).map((_, i) => (
@@ -305,31 +313,32 @@ function SearchContent() {
               <p>Tal Shelef, Sales Representative | Rare Real Estate Inc., Brokerage | 1701 Avenue Rd, Toronto, ON M5M 3Y3 | 647-890-4082</p>
               <p className="mt-1">Data provided by the Toronto Regional Real Estate Board (TRREB). All information is deemed reliable but not guaranteed.</p>
             </div>
-          </div>
+          </div>}
         </div>
 
-        {/* FIX 3: Collapse/expand toggle */}
+        {/* Collapse/expand toggle */}
         <button onClick={() => setPanelCollapsed(!panelCollapsed)}
-          className="hidden lg:flex items-center justify-center w-6 bg-white border-x border-border hover:bg-surface2 cursor-pointer z-10 flex-shrink-0"
-          title={panelCollapsed ? 'Show listings' : 'Full map'}>
-          <svg className={`w-4 h-4 text-gray-400 transition-transform ${panelCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          className="hidden lg:flex items-center justify-center w-6 bg-white border-x border-border hover:bg-gray-50 cursor-pointer z-20 flex-shrink-0"
+          title={panelCollapsed ? 'Show listings' : 'Expand map'}>
+          <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-300 ${panelCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
-        {/* Map — full width when collapsed */}
-        <div className={`relative transition-all duration-300 ${panelCollapsed ? 'w-full' : 'hidden lg:block lg:flex-1'}`}>
+        {/* Map — flex-1 fills remaining space */}
+        <div className="flex-1 relative min-w-0">
           <SearchMap
             listings={listings} highlightedId={highlightedId} onMarkerHover={setHighlightedId}
             onBoundsChange={handleBoundsChange} isSoldView={filters.tab === 'sold'}
             onCommunityClick={handleCommunityClick} selectedNeighbourhood={filters.neighborhood}
             onPinClick={handlePinClick} onCommunitiesLoaded={handleCommunitiesLoaded}
+            onMapBackgroundClick={handleMapBackgroundClick} panelCollapsed={panelCollapsed}
           />
 
           {/* FIX 4: Listing preview panel */}
           {previewListing && (
-            <div className="absolute bottom-0 left-0 right-0 lg:left-4 lg:bottom-4 lg:right-auto lg:w-[380px] bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl z-30 max-h-[60%] overflow-y-auto animate-slideUp">
-              <button onClick={() => setPreviewListing(null)} className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full shadow flex items-center justify-center z-10 hover:bg-surface2">
+            <div className="absolute bottom-4 left-4 w-[360px] bg-white rounded-xl shadow-2xl z-30 overflow-hidden animate-slideUp max-h-[calc(100%-2rem)]">
+              <button onClick={(e) => { e.stopPropagation(); setPreviewListing(null); }} className="absolute top-3 right-3 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center z-10 text-sm">
                 <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
               <div className="relative">
