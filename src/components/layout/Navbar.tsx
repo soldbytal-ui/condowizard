@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 const NEIGHBORHOODS = [
   { name: 'Downtown Core', slug: 'downtown-core' },
@@ -98,9 +99,7 @@ export default function Navbar() {
           </div>
           <Link href="/market" className="btn-ghost text-sm">Market Stats</Link>
           <Link href="/blog" className="btn-ghost text-sm">Blog</Link>
-          <Link href="/contact-us" className="bg-accent-blue text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-accent-blue/90 transition-colors ml-2">
-            Contact
-          </Link>
+          <NavAuthButtons />
         </div>
 
         <button className="md:hidden text-text-primary" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -134,5 +133,41 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+  );
+}
+
+function NavAuthButtons() {
+  const { user, isAuthenticated, setShowAuthModal, signOut } = useAuth();
+  const [dropOpen, setDropOpen] = useState(false);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center gap-2 ml-2">
+        <button onClick={() => setShowAuthModal(true)} className="text-sm text-text-muted hover:text-text-primary transition-colors">Log In</button>
+        <button onClick={() => setShowAuthModal(true)} className="bg-accent-blue text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-accent-blue/90 transition-colors">Sign Up</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative ml-2">
+      <button onClick={() => setDropOpen(!dropOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface2 transition-colors">
+        <div className="w-7 h-7 rounded-full bg-accent-blue/10 flex items-center justify-center">
+          <span className="text-accent-blue text-xs font-bold">{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+        </div>
+        <svg className="w-3.5 h-3.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {dropOpen && (
+        <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-border py-2 min-w-[180px] z-50">
+          <div className="px-3 py-2 border-b border-border">
+            <p className="text-sm font-medium text-text-primary">{user?.firstName} {user?.lastName}</p>
+            <p className="text-xs text-text-muted">{user?.email}</p>
+          </div>
+          <Link href="/dashboard" className="block px-3 py-2 text-sm text-text-muted hover:text-text-primary hover:bg-surface2" onClick={() => setDropOpen(false)}>Dashboard</Link>
+          <Link href="/dashboard" className="block px-3 py-2 text-sm text-text-muted hover:text-text-primary hover:bg-surface2" onClick={() => setDropOpen(false)}>Saved Listings</Link>
+          <button onClick={() => { signOut(); setDropOpen(false); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50">Sign Out</button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ChatWidget from '@/components/chat/ChatWidget';
+import { AuthProvider } from '@/contexts/AuthContext';
+import AuthModal from '@/components/auth/AuthModal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -62,10 +64,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="bg-bg text-text-primary">
-        <Navbar />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
-        <ChatWidget />
+        <AuthProvider>
+          <Navbar />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
+          <ChatWidget />
+          <AuthModal />
+        </AuthProvider>
       </body>
     </html>
   );

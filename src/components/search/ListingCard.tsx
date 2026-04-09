@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ListingCardProps {
   listing: UnifiedListing;
@@ -95,15 +96,8 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
             PRE-CONSTRUCTION
           </div>
         )}
-        {/* Heart */}
-        <button
-          className="absolute bottom-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 rounded-full hover:bg-white transition-colors"
-          onClick={(e) => { e.preventDefault(); }}
-        >
-          <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
+        {/* Heart / Save */}
+        <SaveButton listingId={listing.id} listingType={listing.source} />
       </div>
 
       {/* Info */}
@@ -169,5 +163,21 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
         )}
       </div>
     </Link>
+  );
+}
+
+function SaveButton({ listingId, listingType }: { listingId: string; listingType: 'mls' | 'precon' }) {
+  const { savedListingIds, toggleSaveListing } = useAuth();
+  const isSaved = savedListingIds.has(listingId);
+
+  return (
+    <button
+      className="absolute bottom-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 rounded-full hover:bg-white transition-colors"
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaveListing(listingId, listingType); }}
+    >
+      <svg className={`w-4 h-4 ${isSaved ? 'text-red-500 fill-red-500' : 'text-text-muted'}`} fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      </svg>
+    </button>
   );
 }
