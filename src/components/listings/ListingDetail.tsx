@@ -129,39 +129,105 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
 
   // Lazy-load data per tab
   const fetchTabData = useCallback(async (tab: string) => {
-    if (tab === 'estimate' && !estimate) {
-      try {
-        const res = await fetch('/api/repliers/estimates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mlsNumber: listing.mlsNumber }) });
-        if (res.ok) setEstimate(await res.json());
-      } catch {}
-    }
+    const post = async (body: any) => {
+      const res = await fetch('/api/repliers/listings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      return res.ok ? res.json() : null;
+    };
+
+    // SOLD COMPS — no sqft filter (TREB sqft ranges break the query)
     if (tab === 'comparables' && !comps) {
       try {
-        const sqft = parseInt(listing.sqft) || 800;
-        const res = await fetch('/api/repliers/listings', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city: listing.city || 'Toronto', status: 'U', lastStatus: 'Sld', neighborhood: listing.neighborhood, propertyType: pd.propertyType, minBeds: Math.max(1, listing.beds - 1), maxBeds: listing.beds + 1, minSqft: Math.max(0, sqft - 300), maxSqft: sqft + 300, resultsPerPage: 10, sortBy: 'soldDateDesc', minSoldDate: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0] }),
-        });
-        if (res.ok) { const d = await res.json(); setComps(d.listings || []); }
-      } catch {}
+        const body: any = {
+          city: listing.city || 'Toronto', status: 'U', lastStatus: 'Sld',
+          neighborhood: listing.neighborhood || undefined,
+          minBeds: Math.max(1, listing.beds - 1), maxBeds: listing.beds + 1,
+          resultsPerPage: 10, sortBy: 'soldDateDesc',
+          minSoldDate: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0],
+        };
+        if (pd.propertyType) body.propertyType = pd.propertyType;
+        console.log('[ListingDetail] Fetching comps:', body);
+        let d = await post(body);
+        // If 0 results, broaden: drop propertyType and beds filter
+        if (d && (d.total === 0 || !d.listings?.length) && listing.neighborhood) {
+          console.log('[ListingDetail] 0 comps, broadening search');
+          const broader = { city: listing.city || 'Toronto', status: 'U', lastStatus: 'Sld', neighborhood: listing.neighborhood, resultsPerPage: 10, sortBy: 'soldDateDesc', minSoldDate: new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0] };
+          d = await post(broader);
+        }
+        setComps(d?.listings || []);
+      } catch (e) { console.error('[ListingDetail] Comps error:', e); setComps([]); }
     }
+
+    // AI ESTIMATE — try Repliers first, then fallback to comps-based calculation
+    if (tab === 'estimate' && !estimate) {
+      try {
+        // Try Repliers RESTimates
+        const res = await fetch('/api/repliers/estimates', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mlsNumber: listing.mlsNumber }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.estimatedValue) { setEstimate(data); return; }
+        }
+      } catch {}
+
+      // Fallback: calculate from comps
+      try {
+        // Fetch sold comps if not already loaded
+        let compData = comps;
+        if (!compData) {
+          const d = await post({
+            city: listing.city || 'Toronto', status: 'U', lastStatus: 'Sld',
+            neighborhood: listing.neighborhood || undefined,
+            minBeds: Math.max(1, listing.beds - 1), maxBeds: listing.beds + 1,
+            resultsPerPage: 10, sortBy: 'soldDateDesc',
+            minSoldDate: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0],
+          });
+          compData = d?.listings || [];
+        }
+
+        if (compData.length >= 2) {
+          const avgCompPrice = Math.round(compData.reduce((s: number, c: any) => s + (c.soldPrice || c.price), 0) / compData.length);
+          const confidence = compData.length >= 5 ? 'High' : compData.length >= 3 ? 'Medium' : 'Low';
+          const rangePct = confidence === 'High' ? 0.05 : confidence === 'Medium' ? 0.08 : 0.12;
+
+          const signals = [
+            { source: 'Comparable Sales', value: avgCompPrice, weight: 0.6, detail: `Based on ${compData.length} sold properties` },
+            { source: 'List Price Analysis', value: listing.price, weight: 0.4, detail: 'Current asking price' },
+          ];
+          const est = Math.round(signals.reduce((s, sig) => s + sig.value * sig.weight, 0));
+
+          setEstimate({
+            estimatedValue: est, low: Math.round(est * (1 - rangePct)), high: Math.round(est * (1 + rangePct)),
+            confidence, signals, compCount: compData.length, source: 'CondoWizard',
+          });
+        } else {
+          setEstimate({ error: 'Not enough comparable sales data to generate an estimate.' });
+        }
+      } catch { setEstimate({ error: 'Unable to generate estimate.' }); }
+    }
+
+    // NEARBY
     if (tab === 'nearby' && !nearby) {
       try {
-        const res = await fetch('/api/repliers/listings', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city: listing.city || 'Toronto', status: 'A', type: 'sale', neighborhood: listing.neighborhood, resultsPerPage: 8, sortBy: 'updatedOnDesc' }),
-        });
-        if (res.ok) { const d = await res.json(); setNearby((d.listings || []).filter((l: any) => l.mlsNumber !== listing.mlsNumber)); }
-      } catch {}
+        const d = await post({ city: listing.city || 'Toronto', status: 'A', type: 'sale', neighborhood: listing.neighborhood, resultsPerPage: 8, sortBy: 'updatedOnDesc' });
+        setNearby((d?.listings || []).filter((l: any) => l.mlsNumber !== listing.mlsNumber));
+      } catch { setNearby([]); }
     }
+
+    // INVESTMENT (rental comps)
     if (tab === 'investment' && !rentalComps) {
       try {
-        const res = await fetch('/api/repliers/listings', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city: listing.city || 'Toronto', status: 'A', type: 'lease', neighborhood: listing.neighborhood, minBeds: listing.beds, resultsPerPage: 5, sortBy: 'listPriceDesc' }),
-        });
-        if (res.ok) { const d = await res.json(); setRentalComps(d.listings || []); }
-      } catch {}
+        const d = await post({ city: listing.city || 'Toronto', status: 'A', type: 'lease', neighborhood: listing.neighborhood, minBeds: listing.beds, resultsPerPage: 5, sortBy: 'listPriceDesc' });
+        setRentalComps(d?.listings || []);
+      } catch { setRentalComps([]); }
+    }
+
+    // NEIGHBOURHOOD stats
+    if (tab === 'neighbourhood' && listing.neighborhood) {
+      // Stats will be shown inline — no separate fetch needed since we just link to search
     }
   }, [listing, pd, estimate, comps, nearby, rentalComps]);
 
@@ -354,57 +420,87 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                 </div>
               )}
 
-              {activeTab === 'history' && (
+              {activeTab === 'history' && (() => {
+                // Always show at least the current listing as an event
+                const allHistory = history.length > 0 ? history : [{
+                  mlsNumber: listing.mlsNumber, listDate: listing.listDate,
+                  listPrice: listing.price, status: listing.status || 'A', lastStatus: 'New',
+                }];
+                return (
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Listing History</h3>
-                  {history.length === 0 ? <p className="text-text-muted text-sm">No history available.</p> : (
-                    <div className="relative pl-6">
-                      <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-border" />
-                      {history.map((h, i) => (
-                        <div key={i} className="relative mb-4 last:mb-0">
-                          <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-accent-blue border-2 border-white" />
-                          <div className="bg-white rounded-lg border border-border p-3">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-sm font-medium">{h.lastStatus || h.status || 'Event'}</p>
-                                <p className="text-xs text-text-muted">{h.listDate?.split('T')[0] || 'N/A'}</p>
-                              </div>
-                              <div className="text-right">
-                                {h.listPrice && <p className="text-sm font-medium">${h.listPrice.toLocaleString()}</p>}
-                                {h.soldPrice && <p className="text-xs text-accent-green font-medium">Sold ${h.soldPrice.toLocaleString()}</p>}
-                              </div>
+                  <div className="relative pl-6">
+                    <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-border" />
+                    {allHistory.map((h, i) => (
+                      <div key={i} className="relative mb-4 last:mb-0">
+                        <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-accent-blue border-2 border-white" />
+                        <div className="bg-white rounded-lg border border-border p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm font-medium">{h.lastStatus || h.status || 'Listed'}</p>
+                              <p className="text-xs text-text-muted">{h.listDate?.split('T')[0] || 'N/A'}</p>
+                            </div>
+                            <div className="text-right">
+                              {h.listPrice && <p className="text-sm font-medium">${h.listPrice.toLocaleString()}</p>}
+                              {h.soldPrice && <p className="text-xs text-accent-green font-medium">Sold ${h.soldPrice.toLocaleString()}</p>}
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
+                );
+              })()}
 
               {activeTab === 'estimate' && (
                 <div>
                   <h3 className="font-semibold text-lg mb-4">CondoWizard AI Estimate</h3>
-                  {!estimate ? <p className="text-text-muted text-sm">Loading estimate...</p> : !estimate.estimatedValue ? <p className="text-text-muted text-sm">Estimate not available for this property.</p> : (
+                  {!estimate ? <p className="text-text-muted text-sm">Loading estimate...</p> : estimate.error ? <p className="text-text-muted text-sm">{estimate.error}</p> : !estimate.estimatedValue ? <p className="text-text-muted text-sm">Estimate not available for this property.</p> : (
                     <div className="space-y-4">
                       <div className="bg-white rounded-xl border border-border p-6 text-center">
-                        <p className="text-xs text-text-muted uppercase mb-1">Estimated Value</p>
+                        <p className="text-xs text-text-muted uppercase mb-1">{estimate.source === 'CondoWizard' ? 'CondoWizard Estimate' : 'AI Estimated Value'}</p>
                         <p className="font-serif text-4xl font-bold text-accent-blue">${estimate.estimatedValue.toLocaleString()}</p>
-                        {estimate.confidenceScore && <p className="text-sm text-text-muted mt-1">Confidence: {Math.round(estimate.confidenceScore * 100)}%</p>}
+                        {estimate.confidence && (
+                          <span className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded-full ${estimate.confidence === 'High' ? 'bg-green-100 text-green-700' : estimate.confidence === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {estimate.confidence} Confidence{estimate.compCount ? ` (${estimate.compCount} comps)` : ''}
+                          </span>
+                        )}
                         <div className="flex items-center justify-center gap-4 mt-3 text-sm">
-                          <span className="text-text-muted">Low: ${(estimate.low || estimate.estimatedValue * 0.9).toLocaleString()}</span>
-                          <span className="text-text-muted">High: ${(estimate.high || estimate.estimatedValue * 1.1).toLocaleString()}</span>
+                          <span className="text-text-muted">Low: ${estimate.low.toLocaleString()}</span>
+                          <span className="text-text-muted">High: ${estimate.high.toLocaleString()}</span>
+                        </div>
+                        {/* Range bar */}
+                        <div className="mt-3 h-2 bg-surface2 rounded-full relative">
+                          <div className="absolute inset-y-0 bg-accent-blue/30 rounded-full" style={{ left: '15%', right: '15%' }} />
+                          <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-accent-blue rounded-full" style={{ left: '50%', transform: 'translate(-50%, -50%)' }} />
                         </div>
                       </div>
                       {listing.price > 0 && (
                         <div className="bg-white rounded-xl border border-border p-4">
                           <p className="text-sm text-text-muted">vs. Asking Price (${listing.price.toLocaleString()})</p>
-                          <p className={`text-lg font-bold mt-1 ${estimate.estimatedValue > listing.price ? 'text-accent-green' : estimate.estimatedValue < listing.price * 0.95 ? 'text-red-500' : 'text-text-primary'}`}>
+                          <p className={`text-lg font-bold mt-1 ${estimate.estimatedValue > listing.price * 1.05 ? 'text-accent-green' : estimate.estimatedValue < listing.price * 0.95 ? 'text-red-500' : 'text-text-primary'}`}>
                             {estimate.estimatedValue > listing.price * 1.05 ? 'Undervalued' : estimate.estimatedValue < listing.price * 0.95 ? 'Overpriced' : 'Fairly Priced'}
                             {' '}({((estimate.estimatedValue - listing.price) / listing.price * 100).toFixed(1)}%)
                           </p>
                         </div>
                       )}
+                      {/* Signal breakdown */}
+                      {estimate.signals && (
+                        <div className="bg-white rounded-xl border border-border p-4">
+                          <h4 className="font-medium text-sm mb-3">How this estimate was calculated</h4>
+                          {estimate.signals.map((s: any, i: number) => (
+                            <div key={i} className="flex justify-between py-2 border-b border-border last:border-0 text-sm">
+                              <div>
+                                <p className="font-medium text-text-primary">{s.source} ({Math.round(s.weight * 100)}%)</p>
+                                <p className="text-xs text-text-muted">{s.detail}</p>
+                              </div>
+                              <p className="font-medium">${s.value.toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-text-muted">This estimate is generated by CondoWizard using recent comparable sales and market data. It is not an appraisal. Contact Tal Shelef for a professional market evaluation.</p>
                     </div>
                   )}
                 </div>
