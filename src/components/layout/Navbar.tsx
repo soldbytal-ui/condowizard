@@ -97,6 +97,7 @@ export default function Navbar() {
               </div>
             )}
           </div>
+          <Link href="/airbnb-friendly" className="btn-ghost text-sm">Airbnb Condos</Link>
           <Link href="/market" className="btn-ghost text-sm">Market Stats</Link>
           <Link href="/blog" className="btn-ghost text-sm">Blog</Link>
           <NavAuthButtons />
