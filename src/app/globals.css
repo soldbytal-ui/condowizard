@@ -49,12 +49,12 @@
   opacity: 0.3;
 }
 .mapboxgl-popup-content {
-  background: rgba(17, 19, 23, 0.92) !important;
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  color: #F0EDE8;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #1A1A2E;
   border-radius: 12px;
   padding: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .mapboxgl-popup-tip {
   display: none;
