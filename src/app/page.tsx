@@ -24,10 +24,11 @@ export default async function HomePage() {
     .from('projects')
     .select('*, neighborhood:neighborhoods(*), developer:developers(*)')
     .eq('featured', true)
+    .neq('status', 'COMPLETED')
     .order('priceMin', { ascending: false })
     .limit(6);
 
-  const countRes = await supabase.from('projects').select('*', { count: 'exact', head: true });
+  const countRes = await supabase.from('projects').select('*', { count: 'exact', head: true }).neq('status', 'COMPLETED');
 
   const featured = featuredRes.data || [];
   const projectCount = countRes.count || 0;

@@ -22,6 +22,7 @@ export default async function NewCondosPage() {
     supabase
       .from('projects')
       .select('*, neighborhood:neighborhoods(*), developer:developers(*)')
+      .neq('status', 'COMPLETED')
       .order('createdAt', { ascending: false }),
     supabase.from('neighborhoods').select('*').order('name'),
   ]);

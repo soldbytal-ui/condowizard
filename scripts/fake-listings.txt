@@ -1,0 +1,50 @@
+Lux Park | 193 Bloor St W, Toronto, ON | Dev: none
+Crest 269 Lofts | 21 Lake Shore Blvd W, Toronto, ON | Dev: none
+Apex Lofts | 53 Gerrard St E, Toronto, ON | Dev: none
+Arc Park | 983 Richmond St W, Toronto, ON | Dev: none
+Novo 242 Place | 185 Birchmount Rd, Markham, ON | Dev: none
+Alto Residences | 768 Dundas St E, Toronto, ON | Dev: none
+Cloud Living | 254 Lake Shore Blvd E, Toronto, ON | Dev: none
+Summit Suites | 775 Vodden St, Brampton, ON | Dev: none
+Lux Living | 289 Adelaide St W, Toronto, ON | Dev: none
+Sola Residences | 689 Empress Walk, Toronto, ON | Dev: none
+Crest Suites | 405 Keele St, Toronto, ON | Dev: none
+Brio 214 Lofts | 621 Hanna Ave, Toronto, ON | Dev: none
+Rise Towers | 920 James St S, Hamilton, ON | Dev: none
+Cloud 232 Condos | 354 Donlands Ave, Toronto, ON | Dev: none
+Apex Collection | 132 Adelaide St W, Toronto, ON | Dev: none
+Brio Living | 397 Hurontario St, Mississauga, ON | Dev: none
+Vantage 144 Condos | 479 Ossington Ave, Toronto, ON | Dev: none
+Rise Living | 827 Eglinton Ave E, Toronto, ON | Dev: none
+Sola 278 Towers | 493 James St S, Hamilton, ON | Dev: none
+Zen 216 Park | 557 Yonge St, Toronto, ON | Dev: none
+Skyline 207 Residences | 571 Park Lawn Rd, Toronto, ON | Dev: none
+Arc 189 Living | 309 King St W, Hamilton, ON | Dev: none
+Lux 151 Suites | 62 Bremner Blvd, Toronto, ON | Dev: none
+Summit Collection | 202 Redpath Ave, Toronto, ON | Dev: none
+Crest 179 Towers | 523 Atlantic Ave, Toronto, ON | Dev: none
+Alto 243 Condos | 958 Iceboat Terr, Toronto, ON | Dev: none
+Zen Square | 709 Stavebank Rd, Mississauga, ON | Dev: none
+Brio 124 Towers | 245 Dundas St W, Toronto, ON | Dev: none
+Alto Park | 205 Mimico Ave, Toronto, ON | Dev: none
+Sola 188 Condos | 138 Highway 7, Richmond Hill, ON | Dev: none
+Aura Suites | 213 Iceboat Terr, Toronto, ON | Dev: none
+Summit 178 Living | 820 Lake Shore Blvd E, Toronto, ON | Dev: none
+Zen Collection | 646 Danforth Ave, Toronto, ON | Dev: none
+Vantage Residences | 704 St. Clair Ave W, Toronto, ON | Dev: none
+Lux Lofts | 747 Main St W, Hamilton, ON | Dev: none
+Arc 279 Square | 467 Danforth Ave, Toronto, ON | Dev: none
+Aura Towers | 430 Garden Ave, Richmond Hill, ON | Dev: none
+Alto 153 Collection | 16 Dufferin St, Toronto, ON | Dev: none
+Vantage 234 Towers | 757 The Queensway, Toronto, ON | Dev: none
+Aura 187 Place | 863 Yonge St, Toronto, ON | Dev: none
+Skyline Square | 649 Lawrence Ave E, Toronto, ON | Dev: none
+Zen 126 Lofts | 399 Hurontario St, Mississauga, ON | Dev: none
+Skyline 117 Park | 489 Woodbine Ave, Toronto, ON | Dev: none
+Arc Suites | 154 Ellesmere Rd, Toronto, ON | Dev: none
+Cloud Square | 521 Stavebank Rd, Mississauga, ON | Dev: none
+Alto Living | 90 Brunswick Ave, Toronto, ON | Dev: none
+Sola Square | 851 Eastern Ave, Toronto, ON | Dev: none
+Apex Towers | 572 Shuter St, Toronto, ON | Dev: none
+Arc Lofts | 728 Yonge St, Toronto, ON | Dev: none
+Cloud Residences | 600 Brunel Ct, Toronto, ON | Dev: none

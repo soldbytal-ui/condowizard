@@ -1,0 +1,658 @@
+{
+  "timestamp": "2026-04-12T05:49:51.507Z",
+  "total": 803,
+  "verified": 687,
+  "suspect": 66,
+  "fake": 50,
+  "fakeProjects": [
+    {
+      "name": "Lux Park",
+      "address": "193 Bloor St W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Crest 269 Lofts",
+      "address": "21 Lake Shore Blvd W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Apex Lofts",
+      "address": "53 Gerrard St E, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Arc Park",
+      "address": "983 Richmond St W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Novo 242 Place",
+      "address": "185 Birchmount Rd, Markham, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Alto Residences",
+      "address": "768 Dundas St E, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Cloud Living",
+      "address": "254 Lake Shore Blvd E, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Summit Suites",
+      "address": "775 Vodden St, Brampton, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Lux Living",
+      "address": "289 Adelaide St W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Sola Residences",
+      "address": "689 Empress Walk, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Crest Suites",
+      "address": "405 Keele St, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Brio 214 Lofts",
+      "address": "621 Hanna Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Rise Towers",
+      "address": "920 James St S, Hamilton, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Cloud 232 Condos",
+      "address": "354 Donlands Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Apex Collection",
+      "address": "132 Adelaide St W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Brio Living",
+      "address": "397 Hurontario St, Mississauga, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Vantage 144 Condos",
+      "address": "479 Ossington Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Rise Living",
+      "address": "827 Eglinton Ave E, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Sola 278 Towers",
+      "address": "493 James St S, Hamilton, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Zen 216 Park",
+      "address": "557 Yonge St, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Skyline 207 Residences",
+      "address": "571 Park Lawn Rd, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Arc 189 Living",
+      "address": "309 King St W, Hamilton, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Lux 151 Suites",
+      "address": "62 Bremner Blvd, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Summit Collection",
+      "address": "202 Redpath Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Crest 179 Towers",
+      "address": "523 Atlantic Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Alto 243 Condos",
+      "address": "958 Iceboat Terr, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Zen Square",
+      "address": "709 Stavebank Rd, Mississauga, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Brio 124 Towers",
+      "address": "245 Dundas St W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Alto Park",
+      "address": "205 Mimico Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Sola 188 Condos",
+      "address": "138 Highway 7, Richmond Hill, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Aura Suites",
+      "address": "213 Iceboat Terr, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Summit 178 Living",
+      "address": "820 Lake Shore Blvd E, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Zen Collection",
+      "address": "646 Danforth Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Vantage Residences",
+      "address": "704 St. Clair Ave W, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Lux Lofts",
+      "address": "747 Main St W, Hamilton, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Arc 279 Square",
+      "address": "467 Danforth Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Aura Towers",
+      "address": "430 Garden Ave, Richmond Hill, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Alto 153 Collection",
+      "address": "16 Dufferin St, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Vantage 234 Towers",
+      "address": "757 The Queensway, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Aura 187 Place",
+      "address": "863 Yonge St, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Skyline Square",
+      "address": "649 Lawrence Ave E, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Zen 126 Lofts",
+      "address": "399 Hurontario St, Mississauga, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Skyline 117 Park",
+      "address": "489 Woodbine Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Arc Suites",
+      "address": "154 Ellesmere Rd, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Cloud Square",
+      "address": "521 Stavebank Rd, Mississauga, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Alto Living",
+      "address": "90 Brunswick Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Sola Square",
+      "address": "851 Eastern Ave, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Apex Towers",
+      "address": "572 Shuter St, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Arc Lofts",
+      "address": "728 Yonge St, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    },
+    {
+      "name": "Cloud Residences",
+      "address": "600 Brunel Ct, Toronto, ON",
+      "reason": "AI-generated name pattern, no image, unknown developer"
+    }
+  ],
+  "suspectProjects": [
+    {
+      "name": "Grand Collection",
+      "address": "75 Royal York Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "CityPlace Towers",
+      "address": "641 Fort York Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "West Condos",
+      "address": "402 Iceboat Terr, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "The Condos",
+      "address": "971 Brunswick Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Sky Towers",
+      "address": "617 McCowan Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Vaughan Lofts",
+      "address": "635 Hwy 7, Vaughan, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "South 108 Residences",
+      "address": "342 Doris Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Upper Place",
+      "address": "690 Ellesmere Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Junction Towers",
+      "address": "742 Runnymede Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Port Condos",
+      "address": "434 Lakeshore Rd E, Mississauga, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Harbour Park",
+      "address": "942 Rees St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Downtown Lofts",
+      "address": "607 Main St S, Brampton, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "CityPlace Collection",
+      "address": "728 Fort York Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "South Suites",
+      "address": "446 Runnymede Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Bayview Towers",
+      "address": "175 Spring Garden Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Upper Tower",
+      "address": "632 Don Mills Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "West 196 Residences",
+      "address": "178 Keele St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Scarborough Square",
+      "address": "549 Brimley Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Downtown Living",
+      "address": "470 Vodden St, Brampton, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Upper 223 Towers",
+      "address": "193 John St S, Hamilton, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Bayview Collection",
+      "address": "209 Finch Ave E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "CityPlace Residences",
+      "address": "176 Fort York Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "North Suites",
+      "address": "51 Sheppard Ave E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Upper 133 Condos",
+      "address": "362 Bremner Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Regent Lofts",
+      "address": "982 Shuter St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Brio Place",
+      "address": "718 Third Line, Oakville, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Sky 171 Tower",
+      "address": "431 Fort York Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Skyline Tower",
+      "address": "36 Eglinton Ave E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Oakville Suites",
+      "address": "287 Dundas St E, Oakville, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Park 252 Collection",
+      "address": "485 Queens Quay E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Crest Place",
+      "address": "441 Dupont St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "North Square",
+      "address": "165 Bathurst St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "CityPlace Tower",
+      "address": "553 Fort York Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "West Towers",
+      "address": "987 Bremner Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Rise 206 Suites",
+      "address": "666 Spring Garden Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Harbour Collection",
+      "address": "584 Brunswick Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Vantage Tower",
+      "address": "236 Eglinton Ave E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "West Square",
+      "address": "903 Stavebank Rd, Mississauga, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "CityPlace Place",
+      "address": "414 Bremner Blvd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Park Living",
+      "address": "706 Queen St E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "One Collection",
+      "address": "883 Empress Walk, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Rise Place",
+      "address": "730 Runnymede Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Upper Square",
+      "address": "159 Bathurst St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Harbour Condos",
+      "address": "201 Lawrence Ave E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "One Condos",
+      "address": "274 Queen St E, Brampton, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Sky Residences",
+      "address": "543 Bayview Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Harbour 259 Tower",
+      "address": "631 University Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Grand 134 Living",
+      "address": "152 Richmond St W, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Yorkville Place",
+      "address": "514 Bloor St W, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "One 251 Residences",
+      "address": "80 Parliament St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Upper Suites",
+      "address": "118 Bloor St W, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "CityPlace Square",
+      "address": "365 Brunel Ct, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "South Towers",
+      "address": "704 Royal York Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "West 106 Park",
+      "address": "78 Dundas St E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Harbour Residences",
+      "address": "821 Church St, Brampton, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Junction Living",
+      "address": "529 Dupont St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Novo Tower",
+      "address": "682 Queens Quay E, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Bayview Residences",
+      "address": "769 Leslie St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Aura Tower",
+      "address": "262 Hanna Ave, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "North Lofts",
+      "address": "551 Lakeshore Rd E, Oakville, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Vantage Place",
+      "address": "95 Station Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "One Tower",
+      "address": "489 Park Lawn Rd, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Park Lofts",
+      "address": "809 Yonge St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Richmond Condos",
+      "address": "669 Bayview Ave, Richmond Hill, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Queen Square",
+      "address": "864 Shaw St, Toronto, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    },
+    {
+      "name": "Vaughan Tower",
+      "address": "290 Jane St, Vaughan, ON",
+      "developer": "",
+      "reason": "Unknown project, no image, unrecognized developer"
+    }
+  ],
+  "verifiedCount": 687
+}
