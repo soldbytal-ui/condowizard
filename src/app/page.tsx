@@ -183,6 +183,53 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Staging promo */}
+      <section className="py-16 md:py-20 px-6 bg-footer-bg text-white border-t border-border">
+        <div className="max-w-7xl mx-auto">
+          <div className="max-w-3xl mb-10">
+            <span className="inline-block px-3 py-1 bg-accent-green/15 text-accent-green text-xs font-bold rounded-full mb-4 border border-accent-green/25">
+              Included with your listing
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold leading-tight">
+              Sell with CondoWizard. We stage your property.
+            </h2>
+            <p className="text-white/70 mt-4 text-lg max-w-2xl">
+              Professional staging included at no additional cost when you list with us — condos, homes, and vacant properties.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            {[
+              { value: '5-10%', label: 'higher sale price' },
+              { value: '17 days', label: 'faster to sell' },
+              { value: '3x', label: 'more showings' },
+              { value: '$0', label: 'cost to you' },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm"
+              >
+                <p className="font-serif text-3xl md:text-4xl font-bold text-white">{s.value}</p>
+                <p className="text-xs md:text-sm text-white/65 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/staging"
+              className="bg-accent-blue text-white font-semibold px-7 py-4 rounded-lg hover:brightness-110 transition-all inline-flex items-center justify-center"
+            >
+              Learn about staging
+            </Link>
+            <Link
+              href="/contact"
+              className="border border-white/25 bg-white/5 text-white font-semibold px-7 py-4 rounded-lg hover:bg-white/10 transition-all inline-flex items-center justify-center"
+            >
+              Book a call
+            </Link>
+          </div>
+        </div>
+      </section>
     </>
   );
 }

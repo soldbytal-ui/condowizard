@@ -32,11 +32,20 @@ const NEIGHBORHOODS = [
   { name: 'Markham', slug: 'markham' },
 ];
 
+const EXPLORE_LINKS = [
+  { href: '/staging', label: 'Staging', desc: 'Sell faster for more' },
+  { href: '/airbnb-friendly', label: 'Airbnb Condos', desc: 'STR-friendly buildings' },
+  { href: '/market', label: 'Market Stats', desc: 'TRREB data & trends' },
+  { href: '/blog', label: 'Blog', desc: 'Guides & insights' },
+];
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoodOpen, setHoodOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const hoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exploreTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
   const isHome = pathname === '/';
   const isSearch = pathname?.startsWith('/search');
@@ -50,6 +59,7 @@ export default function Navbar() {
   useEffect(() => {
     setMobileOpen(false);
     setHoodOpen(false);
+    setExploreOpen(false);
   }, [pathname]);
 
   // On search page, always show solid bg
@@ -97,9 +107,44 @@ export default function Navbar() {
               </div>
             )}
           </div>
-          <Link href="/airbnb-friendly" className="btn-ghost text-sm">Airbnb Condos</Link>
-          <Link href="/market" className="btn-ghost text-sm">Market Stats</Link>
-          <Link href="/blog" className="btn-ghost text-sm">Blog</Link>
+          <div
+            className="relative"
+            onMouseEnter={() => { if (exploreTimeoutRef.current) clearTimeout(exploreTimeoutRef.current); setExploreOpen(true); }}
+            onMouseLeave={() => { exploreTimeoutRef.current = setTimeout(() => setExploreOpen(false), 150); }}
+          >
+            <button
+              type="button"
+              onClick={() => setExploreOpen((v) => !v)}
+              aria-expanded={exploreOpen}
+              aria-haspopup="menu"
+              className="btn-ghost text-sm flex items-center gap-1 pb-3 -mb-3"
+            >
+              Explore
+              <svg className={`w-3.5 h-3.5 transition-transform ${exploreOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {exploreOpen && (
+              <div className="absolute top-full left-0 pt-0 -mt-1" role="menu">
+                <div className="h-3" />
+                <div className="bg-white rounded-xl shadow-lg border border-border py-2 min-w-[260px]">
+                  {EXPLORE_LINKS.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      role="menuitem"
+                      onClick={() => setExploreOpen(false)}
+                      className="block px-4 py-2.5 hover:bg-surface2 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-text-primary">{link.label}</p>
+                      <p className="text-xs text-text-muted mt-0.5">{link.desc}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <Link href="/staging" className="btn-ghost text-sm text-accent-blue font-semibold">Staging</Link>
           <NavAuthButtons />
         </div>
 
@@ -119,8 +164,13 @@ export default function Navbar() {
             <Link href="/search?tab=rent" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Rent</Link>
             <Link href="/search?tab=sold" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Sold Data</Link>
             <Link href="/new-condos" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Pre-Construction</Link>
-            <Link href="/market" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Market Stats</Link>
-            <Link href="/blog" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Blog</Link>
+            <div className="pt-2 border-t border-border mt-2">
+              <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Explore</p>
+              <Link href="/staging" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Staging</Link>
+              <Link href="/airbnb-friendly" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Airbnb Condos</Link>
+              <Link href="/market" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Market Stats</Link>
+              <Link href="/blog" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Blog</Link>
+            </div>
             <div className="pt-2 border-t border-border mt-2">
               <p className="text-xs text-text-muted uppercase tracking-wider mb-2">Neighbourhoods</p>
               <div className="grid grid-cols-2 gap-1">
