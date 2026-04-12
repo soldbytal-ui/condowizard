@@ -87,6 +87,14 @@ export default async function PropertyDetailPage({ params }: Props) {
   } else if (typeof project.amenities === 'string') {
     try { amenities = JSON.parse(project.amenities); } catch { amenities = []; }
   }
+
+  // Parse faqJson — could be array or JSON string
+  let parsedFaqs: { question: string; answer: string }[] = [];
+  if (Array.isArray(project.faqJson)) {
+    parsedFaqs = project.faqJson;
+  } else if (typeof project.faqJson === 'string') {
+    try { parsedFaqs = JSON.parse(project.faqJson); } catch {}
+  }
   const projectImages = (project.images as any) || {};
   const galleryImages = Array.isArray(projectImages.gallery) ? projectImages.gallery as { url: string; alt?: string; type?: string }[] : [];
   const floorPlanImages = Array.isArray(projectImages.floorPlans) ? projectImages.floorPlans as { url: string; label?: string }[] : [];
@@ -173,36 +181,52 @@ export default async function PropertyDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Description — single unified content section */}
-            {(project.longDescription || project.description) && (
-              <div className="prose prose-invert prose-sm max-w-none
-                prose-headings:text-text-primary prose-headings:font-semibold
-                prose-h2:text-lg prose-h2:mt-10 prose-h2:mb-3 prose-h2:pl-4 prose-h2:border-l-[3px] prose-h2:border-accent-blue/60
-                prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2
-                prose-p:text-text-muted prose-p:leading-relaxed prose-p:mb-4
-                prose-li:text-text-muted prose-li:leading-relaxed
-                prose-strong:text-text-primary prose-strong:font-semibold
-                prose-a:text-accent-blue prose-a:font-medium prose-a:no-underline hover:prose-a:underline
-                prose-hr:border-border prose-hr:my-8
-                prose-ul:space-y-1 prose-ul:mb-4
-              ">
-                <Markdown
-                  components={{
-                    a: ({ href, children }) => {
-                      if (href?.startsWith('/')) {
-                        return <a href={href}>{children}</a>;
-                      }
-                      return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-                    },
-                    h2: ({ children }) => (
-                      <h2 className="text-lg font-semibold text-text-primary mt-10 mb-3 pl-4 border-l-[3px] border-accent-blue/60">{children}</h2>
-                    ),
-                  }}
-                >
-                  {project.longDescription || project.description}
-                </Markdown>
-              </div>
-            )}
+            {/* Description — structured sections with blue left-border */}
+            {(project.longDescription || project.description) && (() => {
+              // Try to parse structured JSON content
+              let structured = null;
+              try {
+                const parsed = JSON.parse(project.longDescription || '');
+                if (parsed.about || parsed.location || parsed.investment || parsed.developer) {
+                  structured = parsed;
+                }
+              } catch {}
+
+              if (structured) {
+                const devName = project.developer?.name || 'the Developer';
+                const sections = [
+                  { key: 'about', title: `About ${project.name}`, content: structured.about },
+                  { key: 'location', title: 'Location & Transit', content: structured.location },
+                  { key: 'investment', title: 'Investment Potential', content: structured.investment },
+                  { key: 'developer', title: `About ${devName}`, content: structured.developer },
+                ].filter(s => s.content);
+
+                return (
+                  <div className="space-y-6">
+                    {sections.map(s => (
+                      <div key={s.key} className="border-l-[3px] border-accent-blue pl-5">
+                        <h2 className="text-lg font-semibold text-text-primary mb-2">{s.title}</h2>
+                        <p className="text-sm text-text-muted leading-relaxed">{s.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              // Fallback: render as Markdown
+              return (
+                <div className="prose prose-sm max-w-none prose-headings:text-text-primary prose-p:text-text-muted prose-p:leading-relaxed">
+                  <Markdown
+                    components={{
+                      a: ({ href, children }) => href?.startsWith('/') ? <a href={href}>{children}</a> : <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
+                      h2: ({ children }) => <h2 className="text-lg font-semibold text-text-primary mt-8 mb-3 pl-4 border-l-[3px] border-accent-blue/60">{children}</h2>,
+                    }}
+                  >
+                    {project.longDescription || project.description}
+                  </Markdown>
+                </div>
+              );
+            })()}
 
             {/* Amenities */}
             {amenities.length > 0 && (
@@ -234,13 +258,13 @@ export default async function PropertyDetailPage({ params }: Props) {
             )}
 
             {/* FAQ Section */}
-            {project.faqJson && Array.isArray(project.faqJson) && project.faqJson.length > 0 && (
+            {parsedFaqs.length > 0 && (
               <div>
                 <h2 className="text-2xl font-semibold text-text-primary mb-4">
                   Frequently Asked Questions
                 </h2>
                 <div className="space-y-3">
-                  {(project.faqJson as { question: string; answer: string }[]).map((faq, i) => (
+                  {parsedFaqs.map((faq, i) => (
                     <details key={i} className="glass-panel rounded-xl group">
                       <summary className="cursor-pointer p-4 flex items-center justify-between text-text-primary font-medium hover:text-accent-blue transition-colors">
                         {faq.question}
@@ -260,7 +284,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                     __html: JSON.stringify({
                       '@context': 'https://schema.org',
                       '@type': 'FAQPage',
-                      mainEntity: (project.faqJson as { question: string; answer: string }[]).map(faq => ({
+                      mainEntity: parsedFaqs.map(faq => ({
                         '@type': 'Question',
                         name: faq.question,
                         acceptedAnswer: { '@type': 'Answer', text: faq.answer },
