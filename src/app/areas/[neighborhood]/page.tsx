@@ -9,7 +9,7 @@ import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/seo';
 import ProjectCard from '@/components/projects/ProjectCard';
 import InquiryForm from '@/components/projects/InquiryForm';
 import DynamicNeighborhoodMap from '@/components/map/DynamicNeighborhoodMap';
-import { getAreaSearchParams } from '@/lib/area-mappings';
+import { getAreaSearchParams, getAreaSearchHref } from '@/lib/area-mappings';
 import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
 import AreaResaleSection from '@/components/neighbourhood/AreaResaleSection';
@@ -226,10 +226,10 @@ export default async function NeighborhoodPage({ params }: Props) {
         />
       </section>
 
-      {/* MLS Resale Section */}
+      {/* MLS Resale Section — cards only, no map */}
       {mlsListings.length > 0 && (
         <section className="container-main mt-10">
-          <AreaResaleSection listings={mlsListings} areaName={neighborhood.name} totalActive={mlsStats.totalActive || 0} avgPrice={mlsStats.avgPrice || 0} slug={slug} />
+          <AreaResaleSection listings={mlsListings} areaName={neighborhood.name} totalActive={mlsStats.totalActive || 0} avgPrice={mlsStats.avgPrice || 0} searchHref={getAreaSearchHref(slug)} />
         </section>
       )}
 
@@ -329,7 +329,7 @@ export default async function NeighborhoodPage({ params }: Props) {
               </div>
             </section>
 
-            {/* Top Developers in this Neighbourhood */}
+            {/* Developers in this Neighbourhood */}
             {(() => {
               const devCounts: Record<string, { name: string; slug: string; count: number }> = {};
               for (const p of projectList) {
@@ -344,7 +344,7 @@ export default async function NeighborhoodPage({ params }: Props) {
               return (
                 <section>
                   <h2 className="text-2xl font-bold text-text-primary mb-6">
-                    Top Developers in {neighborhood.name}
+                    Developers in {neighborhood.name}
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {topDevs.map((d) => (

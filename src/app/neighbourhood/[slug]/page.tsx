@@ -8,8 +8,7 @@ import { mapMLSToUnified } from '@/lib/data-merge';
 import ListingCard from '@/components/search/ListingCard';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 
-const ResaleMiniMap = dynamic(() => import('@/components/neighbourhood/ResaleMiniMap'), { ssr: false });
-const PreconMiniMap = dynamic(() => import('@/components/neighbourhood/PreconMiniMap'), { ssr: false });
+const ToggleMap = dynamic(() => import('@/components/neighbourhood/ToggleMap'), { ssr: false });
 
 interface Props { params: { slug: string }; }
 
@@ -165,45 +164,33 @@ export default async function NeighbourhoodPage({ params }: Props) {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════ */}
-          {/* SECTION 1: Resale Properties + MLS Mini Map     */}
-          {/* ═══════════════════════════════════════════════ */}
+          {/* Single map with Resale / Pre-Construction toggle */}
           <section className="mt-12">
+            <h2 className="text-2xl font-bold text-text-primary mb-4">{name} Map</h2>
+            <ToggleMap listings={forSale} preconProjects={preconProjects} boundary={boundary} neighbourhoodName={name} />
+          </section>
+
+          {/* Resale listings tabs */}
+          <section className="mt-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-text-primary">Resale Properties in {name}</h2>
               <Link href={`/search?neighborhood=${encodeURIComponent(name)}`} className="text-sm text-accent-blue hover:underline">View all on map &rarr;</Link>
             </div>
-
-            {/* MLS Mini Map — light style, boundary highlighted, listing pins */}
-            <ResaleMiniMap listings={forSale} boundary={boundary} neighbourhoodName={name} />
-
-            {/* Tabs: For Sale / For Rent / Sold */}
             <NeighbourhoodListingTabs forSale={forSale} forRent={forRent} sold={sold} name={name} />
           </section>
 
-          {/* ═══════════════════════════════════════════════ */}
-          {/* SECTION 2: New Developments + Pre-con Mini Map   */}
-          {/* ═══════════════════════════════════════════════ */}
+          {/* Pre-con project cards */}
           {preconProjects.length > 0 && (
-            <section className="mt-12">
+            <section className="mt-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-text-primary">New Developments in {name}</h2>
-                <Link href={`/new-condos`} className="text-sm text-accent-blue hover:underline">Browse all projects &rarr;</Link>
+                <Link href="/new-condos" className="text-sm text-accent-blue hover:underline">Browse all &rarr;</Link>
               </div>
-
-              {/* Pre-con Mini Map — dark style, 3D extrusions, boundary highlighted */}
-              <PreconMiniMap projects={preconProjects} boundary={boundary} neighbourhoodName={name} />
-
-              {/* Pre-con project cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {preconProjects.map((p: any) => (
                   <Link key={p.slug} href={`/properties/${p.slug}`} className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-md transition-all">
                     <div className="relative aspect-[4/3] bg-surface2 overflow-hidden">
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text-muted text-sm">No Image</div>
-                      )}
+                      {p.image ? <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-text-muted text-sm">No Image</div>}
                       <div className="absolute top-2 left-2 bg-bt-precon text-black text-[10px] font-bold rounded px-2 py-0.5">PRE-CONSTRUCTION</div>
                     </div>
                     <div className="p-3">

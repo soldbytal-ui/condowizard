@@ -44,6 +44,24 @@ export const AREA_TO_CITY: Record<string, string> = {
   'brampton': 'Brampton',
 };
 
+// Build the search page URL for an area
+export function getAreaSearchHref(areaSlug: string): string {
+  const hoods = AREA_TO_NEIGHBOURHOODS[areaSlug];
+  if (hoods && hoods.length === 1) {
+    return `/search?neighborhood=${encodeURIComponent(hoods[0])}`;
+  }
+  if (hoods && hoods.length > 1) {
+    // Use the first neighbourhood as the primary filter
+    return `/search?neighborhood=${encodeURIComponent(hoods[0])}`;
+  }
+  const city = AREA_TO_CITY[areaSlug];
+  if (city) {
+    return `/search?neighborhood=${encodeURIComponent(city)}`;
+  }
+  const name = areaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return `/search?neighborhood=${encodeURIComponent(name)}`;
+}
+
 // Get the Repliers query params for an area slug
 export function getAreaSearchParams(areaSlug: string): { neighborhoods?: string[]; city?: string } {
   const neighbourhoods = AREA_TO_NEIGHBOURHOODS[areaSlug];
