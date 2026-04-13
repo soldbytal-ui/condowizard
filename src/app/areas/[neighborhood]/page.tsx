@@ -9,6 +9,10 @@ import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/seo';
 import ProjectCard from '@/components/projects/ProjectCard';
 import InquiryForm from '@/components/projects/InquiryForm';
 import DynamicNeighborhoodMap from '@/components/map/DynamicNeighborhoodMap';
+import { getAreaSearchParams } from '@/lib/area-mappings';
+import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
+import { mapMLSToUnified } from '@/lib/data-merge';
+import AreaResaleSection from '@/components/neighbourhood/AreaResaleSection';
 
 type Props = { params: Promise<{ neighborhood: string }> };
 
@@ -65,8 +69,40 @@ export default async function NeighborhoodPage({ params }: Props) {
       .limit(12),
   ]);
 
-  const projectList = projects || [];
+  const projectList = (projects || []).filter((p: any) => p.status !== 'COMPLETED');
   const projectCount = projectList.length;
+
+  // Fetch MLS resale listings for this area using neighbourhood mapping
+  let mlsListings: any[] = [];
+  let mlsStats: any = {};
+  let mlsRentCount = 0;
+  try {
+    const searchParams = getAreaSearchParams(slug);
+    const body: Record<string, any> = { status: 'A', type: 'sale', resultsPerPage: 12, sortBy: 'updatedOnDesc', statistics: 'avg-listPrice,med-listPrice,cnt-available' };
+    if (searchParams.neighborhoods?.length) {
+      // Fetch for each neighbourhood and combine (Repliers doesn't support multiple neighbourhood params)
+      const allListings: any[] = [];
+      let totalCount = 0;
+      for (const hood of searchParams.neighborhoods.slice(0, 3)) { // Limit to 3 to avoid too many API calls
+        const data = await repliersRequest<RepliersListingsResponse>({
+          path: '/listings', body: { ...body, city: 'Toronto', neighborhood: hood, resultsPerPage: 6 }, revalidate: 600,
+        });
+        allListings.push(...(data.listings || []).map(mapMLSToUnified));
+        totalCount += data.count || 0;
+        const rs = data.statistics as Record<string, any> || {};
+        if (rs.listPrice?.avg) mlsStats.avgPrice = rs.listPrice.avg;
+      }
+      mlsListings = allListings.slice(0, 12);
+      mlsStats.totalActive = totalCount;
+    } else if (searchParams.city) {
+      const data = await repliersRequest<RepliersListingsResponse>({
+        path: '/listings', body: { ...body, city: searchParams.city, resultsPerPage: 12 }, revalidate: 600,
+      });
+      mlsListings = (data.listings || []).map(mapMLSToUnified);
+      const rs = data.statistics as Record<string, any> || {};
+      mlsStats = { avgPrice: rs.listPrice?.avg, totalActive: data.count };
+    }
+  } catch (e) { console.error('Area MLS fetch error:', e); }
 
   const allWithCount = (allNeighborhoods || []).map((n: any) => ({
     ...n,
@@ -190,7 +226,14 @@ export default async function NeighborhoodPage({ params }: Props) {
         />
       </section>
 
-      <div className="container-main pt-24 pb-10">
+      {/* MLS Resale Section */}
+      {mlsListings.length > 0 && (
+        <section className="container-main mt-10">
+          <AreaResaleSection listings={mlsListings} areaName={neighborhood.name} totalActive={mlsStats.totalActive || 0} avgPrice={mlsStats.avgPrice || 0} slug={slug} />
+        </section>
+      )}
+
+      <div className="container-main pt-12 pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-10">
             {/* About This Neighborhood */}
