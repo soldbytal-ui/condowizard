@@ -27,7 +27,17 @@ export default async function NewCondosPage() {
     supabase.from('neighborhoods').select('*').order('name'),
   ]);
 
+  // Sort: featured first, then real images, then Unsplash, then no image
   const allProjects = (projects || []).sort((a: any, b: any) => {
+    // Featured always first
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    // Then real renderings (non-Unsplash images)
+    const aReal = a.mainImageUrl && !a.mainImageUrl.includes('unsplash');
+    const bReal = b.mainImageUrl && !b.mainImageUrl.includes('unsplash');
+    if (aReal && !bReal) return -1;
+    if (!aReal && bReal) return 1;
+    // Then any image vs no image
     if (a.mainImageUrl && !b.mainImageUrl) return -1;
     if (!a.mainImageUrl && b.mainImageUrl) return 1;
     return 0;
