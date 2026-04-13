@@ -121,6 +121,21 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     })();
   }, []);
 
+  // Zoom to selected neighbourhood when boundaries load (e.g. from URL param)
+  useEffect(() => {
+    if (!selectedNeighbourhood || !mapRef.current || boundaries.length === 0) return;
+    const community = boundaries.find(c => c.name === selectedNeighbourhood);
+    if (community?.boundary?.[0]) {
+      const ring = community.boundary[0];
+      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      for (const [lng, lat] of ring) {
+        if (lng < minLng) minLng = lng; if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
+      }
+      mapRef.current.getMap().fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 800 });
+    }
+  }, [selectedNeighbourhood, boundaries.length]);
+
   const findCommunityAtPoint = useCallback((lng: number, lat: number): CommunityBoundary | null => {
     const pt: [number, number] = [lng, lat];
     for (const c of boundaries) { if (pointInPolygon(pt, c.boundary[0])) return c; }

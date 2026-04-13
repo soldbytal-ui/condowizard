@@ -130,32 +130,35 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
                   onMouseEnter={() => setHighlightedSlug(p.slug)}
                   onMouseLeave={() => setHighlightedSlug(null)}
                 >
-                  <div className="relative aspect-[4/3] bg-surface2 overflow-hidden">
+                  {/* Image — matches MLS ListingCard aspect ratio */}
+                  <div className="relative aspect-[4/3] bg-surface2 overflow-hidden rounded-t-xl">
                     {(p.mainImageUrl || p.images?.[0]) ? (
                       <img src={p.mainImageUrl || p.images![0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-text-muted text-sm">No Image</div>
                     )}
-                    <div className="absolute top-2 left-2 bg-bt-precon text-black text-[10px] font-bold rounded px-2 py-0.5">
-                      {STATUS_LABELS[p.status] || p.status}
+                    {/* Status badge — same position as building type badge on MLS cards */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1">
+                      <span className="w-2 h-2 rounded-full bg-bt-precon" />
+                      <span className="text-[10px] text-white font-medium">{STATUS_LABELS[p.status] || 'Pre-Con'}</span>
                     </div>
                     {p.featured && (
-                      <div className="absolute top-2 right-2 bg-accent-blue text-white text-[10px] font-bold rounded px-2 py-0.5">FEATURED</div>
+                      <div className="absolute top-2 right-2 bg-accent-blue/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-full px-2 py-1">FEATURED</div>
                     )}
                   </div>
+                  {/* Info — matches MLS ListingCard padding and font sizes */}
                   <div className="p-3">
-                    <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-blue transition-colors leading-tight">{p.name}</h3>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      {p.neighborhood?.name || 'Toronto'}{p.developer?.name ? ` · ${p.developer.name}` : ''}
-                    </p>
-                    <p className="font-serif text-base font-bold text-text-primary mt-1.5">
+                    <p className="font-serif text-lg font-bold text-text-primary leading-tight">
                       {p.priceMin ? `From ${formatPrice(p.priceMin)}` : 'Contact for pricing'}
                     </p>
-                    <div className="flex items-center gap-2 text-[11px] text-text-muted mt-1">
+                    <p className="text-sm text-text-muted mt-1 truncate">{p.name}</p>
+                    {p.developer?.name && <p className="text-xs text-text-muted">by {p.developer.name}</p>}
+                    <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
                       {p.totalUnits && <span>{p.totalUnits} units</span>}
                       {p.floors && <span>{p.floors} floors</span>}
                       {p.estCompletion && <span>Est. {p.estCompletion}</span>}
                     </div>
+                    {p.neighborhood?.name && <p className="text-xs text-accent-blue mt-1">{p.neighborhood.name}</p>}
                   </div>
                 </Link>
               ))}

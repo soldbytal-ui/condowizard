@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -7,54 +8,80 @@ import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
 import ListingCard from '@/components/search/ListingCard';
 import { generateBreadcrumbSchema } from '@/lib/seo';
+import NeighbourhoodTabsClient from './NeighbourhoodTabs';
 
 const ToggleMap = dynamic(() => import('@/components/neighbourhood/ToggleMap'), { ssr: false });
 
 interface Props { params: { slug: string }; }
 
-function slugToName(slug: string): string {
-  return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+// Resolve slug to exact Repliers community name + boundary
+async function resolveNeighbourhood(slug: string) {
+  // Fetch all communities from Repliers (cached 24h at API layer)
+  try {
+    const data = await repliersRequest<any>({
+      path: '/locations',
+      query: { city: 'Toronto', resultsPerPage: '200' },
+      revalidate: 86400,
+    });
+    const locations = data.locations || [];
+
+    // Also fetch page 2 if needed
+    let allLocations = [...locations];
+    if (data.numPages > 1) {
+      const p2 = await repliersRequest<any>({
+        path: '/locations',
+        query: { city: 'Toronto', resultsPerPage: '200', pageNum: '2' },
+        revalidate: 86400,
+      });
+      allLocations.push(...(p2.locations || []));
+    }
+
+    // Match slug against all community names
+    const match = allLocations.find((c: any) => slugify(c.name) === slug);
+    if (match) {
+      return {
+        name: match.name,
+        boundary: match.map?.boundary || null,
+        city: match.address?.city || 'Toronto',
+        lat: parseFloat(match.map?.latitude) || 0,
+        lng: parseFloat(match.map?.longitude) || 0,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to resolve neighbourhood:', e);
+  }
+
+  // Fallback: try naive slug-to-name (works for simple names like "annex")
+  const fallbackName = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return { name: fallbackName, boundary: null, city: 'Toronto', lat: 0, lng: 0 };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const name = slugToName(params.slug);
+  const hood = await resolveNeighbourhood(params.slug);
   return {
-    title: `${name} Real Estate — Condos, Homes & Pre-Construction | CondoWizard`,
-    description: `Browse MLS listings and pre-construction projects in ${name}, Toronto. Resale condos, homes for sale, rentals, sold data, and new developments.`,
+    title: `${hood.name} Real Estate — Condos, Homes & Pre-Construction | CondoWizard`,
+    description: `Browse MLS listings and pre-construction projects in ${hood.name}, Toronto. Resale condos, homes for sale, rentals, sold data, and new developments.`,
     alternates: { canonical: `https://condowizard.ca/neighbourhood/${params.slug}` },
   };
 }
 
 export default async function NeighbourhoodPage({ params }: Props) {
-  const name = slugToName(params.slug);
+  const hood = await resolveNeighbourhood(params.slug);
+  const name = hood.name;
+  const boundary = hood.boundary;
+  const city = hood.city;
 
-  // Fetch boundary polygon from Repliers communities API
-  let boundary: number[][][] | null = null;
-  try {
-    const commRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL ? '' : 'http://localhost:3000'}/api/repliers/communities`, { next: { revalidate: 86400 } });
-    if (commRes.ok) {
-      const commData = await commRes.json();
-      const match = (commData.locations || []).find((c: any) => c.name.toLowerCase() === name.toLowerCase());
-      if (match?.boundary) boundary = match.boundary;
-    }
-  } catch {}
-
-  // Fallback: try fetching boundary directly from Repliers
-  if (!boundary) {
-    try {
-      const locData = await repliersRequest<any>({ path: '/locations', query: { city: 'Toronto', type: 'neighborhood' }, revalidate: 86400 });
-      const match = (locData.locations || []).find((l: any) => l.name.toLowerCase() === name.toLowerCase());
-      if (match?.map?.boundary) boundary = match.map.boundary;
-    } catch {}
-  }
-
-  // Fetch MLS listings — For Sale
+  // Fetch MLS — For Sale
   let forSale: any[] = [];
   let stats: any = {};
   try {
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
-      body: { city: 'Toronto', neighborhood: name, status: 'A', type: 'sale', resultsPerPage: 24, sortBy: 'updatedOnDesc', statistics: 'avg-listPrice,med-listPrice,cnt-available' },
+      body: { city, neighborhood: name, status: 'A', type: 'sale', resultsPerPage: 24, sortBy: 'updatedOnDesc', statistics: 'avg-listPrice,med-listPrice,cnt-available' },
       revalidate: 300,
     });
     forSale = (data.listings || []).map(mapMLSToUnified);
@@ -68,7 +95,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
   try {
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
-      body: { city: 'Toronto', neighborhood: name, status: 'A', type: 'lease', resultsPerPage: 12, sortBy: 'updatedOnDesc' },
+      body: { city, neighborhood: name, status: 'A', type: 'lease', resultsPerPage: 12, sortBy: 'updatedOnDesc' },
       revalidate: 300,
     });
     forRent = (data.listings || []).map(mapMLSToUnified);
@@ -79,46 +106,43 @@ export default async function NeighbourhoodPage({ params }: Props) {
   let sold: any[] = [];
   let soldCount = 0;
   try {
-    const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
-      body: { city: 'Toronto', neighborhood: name, status: 'U', lastStatus: 'Sld', resultsPerPage: 12, sortBy: 'soldDateDesc', minSoldDate: sixMonthsAgo },
+      body: { city, neighborhood: name, status: 'U', lastStatus: 'Sld', resultsPerPage: 12, sortBy: 'soldDateDesc', minSoldDate: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0] },
       revalidate: 600,
     });
     sold = (data.listings || []).map(mapMLSToUnified);
     soldCount = data.count || 0;
   } catch {}
 
-  // Fetch Pre-con projects from Supabase (projects table — the original Prisma table)
+  // Fetch Pre-con projects from Supabase
   const { data: preconRaw } = await supabase
     .from('projects')
     .select('*, neighborhood:neighborhoods(*), developer:developers(*)')
-    .neq('status', 'COMPLETED')
-    .or(`neighborhood.name.ilike.%${name}%`);
+    .neq('status', 'COMPLETED');
 
-  // Also try the precon_projects table
-  const { data: precon2 } = await supabase
-    .from('precon_projects')
-    .select('*')
-    .ilike('neighborhood', `%${name}%`)
-    .eq('is_published', true);
+  // Filter precon by name match (neighbourhood name in either the Supabase hood name or address)
+  const preconProjects = (preconRaw || [])
+    .filter((p: any) => {
+      const hoodName = p.neighborhood?.name?.toLowerCase() || '';
+      const addr = (p.address || '').toLowerCase();
+      const searchName = name.toLowerCase();
+      return hoodName.includes(searchName) || addr.includes(searchName);
+    })
+    .map((p: any) => ({
+      name: p.name, slug: p.slug,
+      lat: p.latitude || 0, lng: p.longitude || 0,
+      floors: p.floors, priceMin: p.priceMin,
+      developer: p.developer?.name || null,
+      image: p.mainImageUrl || null,
+      units: p.totalUnits, estCompletion: p.estCompletion,
+    }));
 
-  const preconProjects = (preconRaw || []).map((p: any) => ({
-    name: p.name, slug: p.slug,
-    lat: p.latitude || 0, lng: p.longitude || 0,
-    floors: p.floors, priceMin: p.priceMin,
-    developer: p.developer?.name || null,
-    image: p.mainImageUrl || null,
-    units: p.totalUnits,
-    estCompletion: p.estCompletion,
-  }));
-
-  // Neighbourhood info from Supabase
   const { data: hoodInfo } = await supabase.from('neighborhoods').select('*').eq('slug', params.slug).single();
 
   const breadcrumb = generateBreadcrumbSchema([
     { name: 'Home', url: 'https://condowizard.ca' },
-    { name: name, url: `https://condowizard.ca/neighbourhood/${params.slug}` },
+    { name, url: `https://condowizard.ca/neighbourhood/${params.slug}` },
   ]);
 
   return (
@@ -127,7 +151,6 @@ export default async function NeighbourhoodPage({ params }: Props) {
 
       <div className="pt-14 bg-bg min-h-screen">
         <div className="container-main py-10">
-          {/* Breadcrumbs */}
           <nav className="flex items-center gap-2 text-sm text-text-muted mb-4">
             <Link href="/" className="hover:text-accent-blue">Home</Link><span>/</span>
             <span className="text-text-primary">{name}</span>
@@ -140,7 +163,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
             <p className="text-text-muted mt-2">MLS listings, pre-construction projects, sold data and market stats for {name}</p>
           )}
 
-          {/* Market stats */}
+          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8">
             <div className="bg-white rounded-xl border border-border p-4 text-center">
               <p className="font-serif text-xl font-bold text-accent-blue">{stats.totalActive || forSale.length}</p>
@@ -164,22 +187,21 @@ export default async function NeighbourhoodPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Single map with Resale / Pre-Construction toggle */}
-          <section className="mt-12">
-            <h2 className="text-2xl font-bold text-text-primary mb-4">{name} Map</h2>
+          {/* Map with toggle */}
+          <section className="mt-10">
             <ToggleMap listings={forSale} preconProjects={preconProjects} boundary={boundary} neighbourhoodName={name} />
           </section>
 
-          {/* Resale listings tabs */}
+          {/* Resale tabs */}
           <section className="mt-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-text-primary">Resale Properties in {name}</h2>
+              <h2 className="text-2xl font-bold text-text-primary">Properties in {name}</h2>
               <Link href={`/search?neighborhood=${encodeURIComponent(name)}`} className="text-sm text-accent-blue hover:underline">View all on map &rarr;</Link>
             </div>
-            <NeighbourhoodListingTabs forSale={forSale} forRent={forRent} sold={sold} name={name} />
+            <NeighbourhoodTabsClient forSale={forSale} forRent={forRent} sold={sold} name={name} />
           </section>
 
-          {/* Pre-con project cards */}
+          {/* Pre-con cards */}
           {preconProjects.length > 0 && (
             <section className="mt-10">
               <div className="flex items-center justify-between mb-4">
@@ -189,7 +211,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {preconProjects.map((p: any) => (
                   <Link key={p.slug} href={`/properties/${p.slug}`} className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-md transition-all">
-                    <div className="relative aspect-[4/3] bg-surface2 overflow-hidden">
+                    <div className="relative aspect-[16/10] bg-surface2 overflow-hidden">
                       {p.image ? <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-text-muted text-sm">No Image</div>}
                       <div className="absolute top-2 left-2 bg-bt-precon text-black text-[10px] font-bold rounded px-2 py-0.5">PRE-CONSTRUCTION</div>
                     </div>
@@ -238,11 +260,3 @@ export default async function NeighbourhoodPage({ params }: Props) {
     </>
   );
 }
-
-// Client component for the listing tabs
-function NeighbourhoodListingTabs({ forSale, forRent, sold, name }: { forSale: any[]; forRent: any[]; sold: any[]; name: string }) {
-  return <NeighbourhoodTabsClient forSale={forSale} forRent={forRent} sold={sold} name={name} />;
-}
-
-// We need a separate client component for the tabs since this is a server component page
-import NeighbourhoodTabsClient from './NeighbourhoodTabs';
