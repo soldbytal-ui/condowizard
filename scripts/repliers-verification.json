@@ -1,0 +1,361 @@
+{
+  "timestamp": "2026-04-13T02:52:19.571Z",
+  "checked": 671,
+  "completed": 24,
+  "precon": 647,
+  "unknown": 0,
+  "completedProjects": [
+    {
+      "id": "4c7646e043154593ae93ab914ddd5ca5",
+      "name": "245 Queen Street East Condos",
+      "address": "245 Queen Street East, Toronto ON",
+      "developer": "ONE Properties",
+      "neighbourhood": "Riverside",
+      "featured": false,
+      "resaleCount": 4,
+      "reason": "4 active resale listings found"
+    },
+    {
+      "id": "300425e299bb429fbfa4c3a558fb0327",
+      "name": "Alto Square",
+      "address": "800 Dundas St E, Oakville, ON",
+      "developer": "Tribute Communities",
+      "neighbourhood": "Oakville",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "d7c7e513ea4840e1984be40871f59303",
+      "name": "Centre on the Park",
+      "address": "16 Centre Avenue, Toronto ON",
+      "developer": "Trolleybus Urban Development",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "1f3054dc7f9a49468dddf08a26133f1f",
+      "name": "119-127 Church Street & 89 Queen Street East",
+      "address": "89 Queen Street East, Toronto ON",
+      "developer": "Spotlight Development",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "1e9ca9fa9e4143969f4767b83c20af5b",
+      "name": "Grand Park",
+      "address": "833 Leslie St, Toronto, ON",
+      "developer": "Greenland Group",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "f8742d2af17c49fdab98f371cf9f85fb",
+      "name": "Burbank Heights",
+      "address": "720 Sheppard Avenue East, Toronto ON",
+      "developer": "Sky Property Group",
+      "neighbourhood": "North York",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "59059eecb01c40dbbac60d2a99a2bfe9",
+      "name": "Agincourt Mall Redevelopment",
+      "address": "3850 Sheppard Avenue East, Toronto ON",
+      "developer": "North American Development Group",
+      "neighbourhood": "North York",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "515088d4873849059d5f4327dee35d21",
+      "name": "55 Mercer",
+      "address": "55 Mercer St, Toronto, ON",
+      "neighbourhood": "King West",
+      "featured": true,
+      "resaleCount": 21,
+      "reason": "21 active resale listings found"
+    },
+    {
+      "id": "382ff00ef8464dab8da21ebf7d1f810f",
+      "name": "Framework Condos",
+      "address": "736 Dundas St W, Toronto, ON",
+      "developer": "Tridel",
+      "neighbourhood": "Queen West",
+      "featured": false,
+      "resaleCount": 10,
+      "reason": "10 sold listings found"
+    },
+    {
+      "id": "c0f3c9f2e5f84972af5c6b2d117e9234",
+      "name": "The One",
+      "address": "1 Bloor St W, Toronto, ON M4W 1A9",
+      "neighbourhood": "Yorkville",
+      "featured": true,
+      "resaleCount": 13,
+      "reason": "13 active resale listings found"
+    },
+    {
+      "id": "f14003e8966541d2a19367ff22e5ea64",
+      "name": "660 Eglinton Avenue East Condos",
+      "address": "660 Eglinton Avenue East, Toronto ON",
+      "developer": "Concert Properties",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 2,
+      "reason": "2 active resale listings found"
+    },
+    {
+      "id": "cfe03d42a7174a44907ca290d49928d7",
+      "name": "The Sterling Automotive",
+      "address": "1405 Bloor Street West, Toronto ON",
+      "developer": "Lamb Development Corp",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "92122aa9ed4e4736a625d66c69a9e6f5",
+      "name": "Fairview Mall Redevelopment",
+      "address": "1800 Sheppard Avenue East, Toronto ON",
+      "developer": "Cadillac Fairview",
+      "neighbourhood": "North York",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "1b1c745ba7124fa1946b43c03ee2e4ca",
+      "name": "3300 Dufferin Street Condos",
+      "address": "3300 Dufferin Street, Toronto ON",
+      "developer": "Terracap",
+      "neighbourhood": "North York",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "3139d26f042e4f73a5335b8c72bb2d36",
+      "name": "1507-1545 Avenue Road Condos",
+      "address": "284 Lawrence Avenue West, Toronto ON",
+      "developer": "First Capital",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "4613d5d0be384d9e815a46b29b26d328",
+      "name": "56-60 Yonge Street Condos",
+      "address": "56 Yonge Street, Toronto ON",
+      "developer": "Kingsett Capital",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "02904b0445f447ecb05e619f9ea8a867",
+      "name": "400 Front Street West Condos",
+      "address": "400 Front Street West, Toronto ON",
+      "developer": "State Building Group",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 2,
+      "reason": "2 active resale listings found"
+    },
+    {
+      "id": "4ff7a34e3ba24c0098f1670f46baa953",
+      "name": "296-300 King Street East Condos",
+      "address": "296 King Street East, Toronto ON",
+      "developer": "Lamb Development Corp",
+      "neighbourhood": "Riverside",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "d8610b2949424ed79fcc62b741e23eb7",
+      "name": "55 Eglinton Avenue East Condos",
+      "address": "55 Eglinton Avenue East, Toronto ON",
+      "developer": "State Building Group",
+      "neighbourhood": "Yonge & Eglinton",
+      "featured": false,
+      "resaleCount": 2,
+      "reason": "2 active resale listings found"
+    },
+    {
+      "id": "0311648106ef4651a9dde8e9b9240d21",
+      "name": "2485 Eglinton Avenue West Condos",
+      "address": "2485 Eglinton Avenue West, Toronto ON",
+      "developer": "Tercot Communities",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 7,
+      "reason": "7 active resale listings found"
+    },
+    {
+      "id": "46e27bb6448744cba0a14e983dd5d32b",
+      "name": "882 Broadview Avenue Condos",
+      "address": "882 Broadview Avenue, Toronto ON",
+      "neighbourhood": "Leslieville",
+      "featured": false,
+      "resaleCount": 2,
+      "reason": "2 active resale listings found"
+    },
+    {
+      "id": "6894577b7acf4b698514b4dd7253d3d2",
+      "name": "91-101 Raglan Avenue Condos",
+      "address": "91 Raglan Avenue, Toronto ON",
+      "developer": "Camrost Felcorp",
+      "neighbourhood": "Downtown Core",
+      "featured": false,
+      "resaleCount": 3,
+      "reason": "3 active resale listings found"
+    },
+    {
+      "id": "97c7558b9e7a433cb7ce97eddd48f9ba",
+      "name": "King Toronto",
+      "address": "489 King St W, Toronto, ON",
+      "neighbourhood": "King West",
+      "featured": false,
+      "resaleCount": 1,
+      "reason": "1 active resale listings found"
+    },
+    {
+      "id": "83faf1a83ca045cca88b59a58c88066e",
+      "name": "Via Bloor",
+      "address": "1 Valhalla Inn Rd, Toronto, ON",
+      "developer": "Tridel",
+      "featured": true,
+      "resaleCount": 2,
+      "reason": "2 active resale listings found"
+    }
+  ],
+  "survivorSample": [
+    {
+      "id": "f0ba3213195e46a3b4bc450ecf59e27f",
+      "name": "Skyline Towers",
+      "address": "605 Sheppard Ave E, Toronto, ON",
+      "developer": "Great Gulf"
+    },
+    {
+      "id": "14e82395d60e4bc38881db25c8222be1",
+      "name": "77 Roehampton Avenue Condos",
+      "address": "77 Roehampton Avenue, Toronto ON",
+      "developer": "Westdale Properties"
+    },
+    {
+      "id": "e536e7b3a14d4ae59a5fe35c141c2bda",
+      "name": "228 Winona",
+      "address": "228 Winona Dr, Toronto, ON"
+    },
+    {
+      "id": "7d96311d572d49a499a01ec3f2c53ec1",
+      "name": "North Living",
+      "address": "478 Queen St W, Toronto, ON",
+      "developer": "Pinnacle International"
+    },
+    {
+      "id": "eaaf640db883432ab64ee3694d2b9fe4",
+      "name": "Artworks Tower",
+      "address": "75 Regent Park Blvd, Toronto, ON"
+    },
+    {
+      "id": "2eaafdfd0b8f42cbbb73062892c932b8",
+      "name": "1012-1018 Gerrard Street East",
+      "address": "1012 Gerrard Street East, Toronto ON"
+    },
+    {
+      "id": "e438a4ac496347329f80685af47f7bf4",
+      "name": "Dragon Centre Condominiums",
+      "address": "23 Glen Watford Drive, Toronto ON",
+      "developer": "Shiu Pong Group"
+    },
+    {
+      "id": "89a6d51ae5ce4da185cb2b53421f8f95",
+      "name": "48 Grenoble Drive Condos",
+      "address": "48 Grenoble Drive, Toronto ON",
+      "developer": "Tenblock"
+    },
+    {
+      "id": "133cffa4f4c04160be89045fe78f70ad",
+      "name": "Sky Place",
+      "address": "56 Hurontario St, Brampton, ON",
+      "developer": "Canderel"
+    },
+    {
+      "id": "03b13f58cf414a6f94c73def87315569",
+      "name": "190 Sterling Road Block 3B",
+      "address": "150 Sterling Road, Toronto ON",
+      "developer": "Marlin Spring Developments"
+    },
+    {
+      "id": "d0192190d6bd43f990fbaf4ada75f32f",
+      "name": "6167 Yonge Street Condos",
+      "address": "6167 Yonge Street, Toronto ON",
+      "developer": "Republic Developments"
+    },
+    {
+      "id": "6967dbb4c2bd4fda9b543b01e9a87f4b",
+      "name": "685 Warden Avenue Condos",
+      "address": "685 Warden Avenue, Toronto ON",
+      "developer": "Choice Properties"
+    },
+    {
+      "id": "5ff4f2a8138e4bf387f6355f288a900b",
+      "name": "155 Balliol Infill",
+      "address": "155 Balliol Street, Toronto ON",
+      "developer": "Amelin Properties"
+    },
+    {
+      "id": "b0f9209a990247f98917df1d03be4d8d",
+      "name": "1650 Military Trail Condos",
+      "address": "1650 Military Trail, Toronto ON",
+      "developer": "Altree Developments"
+    },
+    {
+      "id": "033651de3839499aac02ef492216209e",
+      "name": "309 Cherry Street Condos",
+      "address": "309 Cherry Street, Toronto ON",
+      "developer": "Castlepoint Numa"
+    },
+    {
+      "id": "cc8a587399074d7fa756eca4f583b306",
+      "name": "Don Valley Reconnects",
+      "address": "155 Saint Dennis Drive, Toronto ON",
+      "developer": "Cityzen"
+    },
+    {
+      "id": "3210190cb99e4618857b4942ea2f5742",
+      "name": "505 University Avenue Condos",
+      "address": "505 University Avenue, Toronto ON",
+      "developer": "Cartareal Corporation"
+    },
+    {
+      "id": "68dd17e7308144f58d386aaac15a13bf",
+      "name": "3309-3317 Dufferin Street Condos",
+      "address": "3309 Dufferin Street, Toronto ON",
+      "developer": "Dash Developments"
+    },
+    {
+      "id": "c67a88bf5f7946438f6f004a0ba209d4",
+      "name": "892 Yorkville",
+      "address": "892 Yorkville Ave, Toronto, ON"
+    },
+    {
+      "id": "d68a203ec32b4558b64548f1949ed4c4",
+      "name": "321-355 Symington Avenue Condos",
+      "address": "339 Symington Avenue, Toronto ON",
+      "developer": "European Bakery Supply"
+    }
+  ]
+}
