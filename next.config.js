@@ -32,6 +32,9 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Neighbourhood canonical redirect (American → Canadian spelling)
+      { source: '/neighborhood/:slug', destination: '/neighbourhood/:slug', permanent: true },
+
       // Existing redirects
       { source: '/pre-construction', destination: '/new-condos', permanent: true },
       { source: '/pre-construction/:slug', destination: '/properties/:slug', permanent: true },
