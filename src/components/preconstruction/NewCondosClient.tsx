@@ -121,12 +121,12 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
               <p className="text-sm text-text-muted mt-1">Try adjusting your filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {filtered.map((p) => (
                 <Link
                   key={p.id}
                   href={`/properties/${p.slug}`}
-                  className={`group bg-white rounded-xl border overflow-hidden hover:shadow-md transition-all ${highlightedSlug === p.slug ? 'border-accent-blue ring-2 ring-accent-blue/20' : 'border-border'}`}
+                  className={`block bg-white rounded-xl border overflow-hidden hover:shadow-md transition-all ${highlightedSlug === p.slug ? 'border-accent-blue ring-2 ring-accent-blue/20' : 'border-border'}`}
                   onMouseEnter={() => setHighlightedSlug(p.slug)}
                   onMouseLeave={() => setHighlightedSlug(null)}
                 >
