@@ -130,8 +130,8 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
                   onMouseEnter={() => setHighlightedSlug(p.slug)}
                   onMouseLeave={() => setHighlightedSlug(null)}
                 >
-                  {/* Image — matches MLS ListingCard aspect ratio */}
-                  <div className="relative aspect-[4/3] bg-surface2 overflow-hidden rounded-t-xl">
+                  {/* Image — fixed height to match MLS ListingCard visual size */}
+                  <div className="relative h-[180px] bg-surface2 overflow-hidden rounded-t-xl">
                     {(p.mainImageUrl || p.images?.[0]) ? (
                       <img src={p.mainImageUrl || p.images![0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                     ) : (
