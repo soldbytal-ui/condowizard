@@ -2,7 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { AirbnbBuilding } from '@/data/airbnb-buildings';
+
+const AirbnbMap = dynamic(() => import('./AirbnbMap'), {
+  ssr: false,
+  loading: () => <div className="h-[500px] rounded-xl bg-surface2 animate-pulse" />,
+});
 
 interface Props { buildings: AirbnbBuilding[]; }
 
@@ -25,6 +31,7 @@ export default function AirbnbClient({ buildings }: Props) {
   const [ward, setWard] = useState('');
   const [minReg, setMinReg] = useState(0);
   const [sort, setSort] = useState('registrations');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const wards = useMemo(() => [...new Set(buildings.map((b) => b.ward))].sort(), [buildings]);
 
@@ -53,11 +60,7 @@ export default function AirbnbClient({ buildings }: Props) {
           </select>
           <select value={minReg} onChange={(e) => setMinReg(parseInt(e.target.value))} className="px-3 py-2 text-sm border border-border rounded-lg text-text-muted">
             <option value={0}>Any registrations</option>
-            <option value={5}>5+ registrations</option>
-            <option value={10}>10+ registrations</option>
-            <option value={25}>25+ registrations</option>
-            <option value={50}>50+ registrations</option>
-            <option value={100}>100+ registrations</option>
+            <option value={5}>5+</option><option value={10}>10+</option><option value={25}>25+</option><option value={50}>50+</option><option value={100}>100+</option>
           </select>
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2 text-sm border border-border rounded-lg text-text-muted">
             <option value="registrations">Most Registrations</option>
@@ -66,43 +69,52 @@ export default function AirbnbClient({ buildings }: Props) {
           <span className="text-sm text-text-muted">{filtered.length} buildings</span>
         </div>
 
-        {/* Building cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((b, i) => (
-            <Link key={b.slug} href={`/airbnb-friendly/${b.slug}`} className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-accent-blue/30 transition-all">
-              {/* Static map image as building photo fallback */}
-              <div className="relative h-36 bg-surface2 overflow-hidden">
-                <img
-                  src={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-s+FBBF24(${b.lng},${b.lat})/${b.lng},${b.lat},15,0/400x200@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
-                  alt={b.address}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute top-2 left-2">
-                  <span className="text-xs font-bold text-white bg-black/60 backdrop-blur-sm px-2 py-1 rounded">#{i + 1}</span>
-                </div>
-                <div className="absolute top-2 right-2">
-                  <span className={`text-xs font-bold text-white ${regColor(b.registrations)} px-2 py-1 rounded`}>{b.registrations} STR</span>
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-text-primary group-hover:text-accent-blue transition-colors">
-                  {b.buildingName || b.address}
-                </h3>
-                {b.buildingName && <p className="text-xs text-text-muted">{b.address}</p>}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs text-text-muted">{b.neighbourhood}</span>
-                  <span className="text-xs text-text-muted">·</span>
-                  <span className="text-xs text-text-muted">{b.ward}</span>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <span className={`font-serif text-lg font-bold ${regTextColor(b.registrations)}`}>{b.registrations}</span>
-                  <span className="text-xs text-text-muted">Airbnb registrations</span>
-                </div>
-              </div>
-            </Link>
-          ))}
+        {/* View toggle */}
+        <div className="flex border-b border-border mb-6">
+          <button onClick={() => setViewMode('list')}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${viewMode === 'list' ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-muted hover:text-text-primary'}`}>
+            List View
+          </button>
+          <button onClick={() => setViewMode('map')}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${viewMode === 'map' ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-muted hover:text-text-primary'}`}>
+            Map View
+          </button>
         </div>
+
+        {/* Map View */}
+        {viewMode === 'map' && (
+          <AirbnbMap buildings={filtered} />
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((b, i) => (
+              <Link key={b.slug} href={`/airbnb-friendly/${b.slug}`} className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-accent-blue/30 transition-all">
+                <div className="relative h-36 bg-surface2 overflow-hidden">
+                  <img
+                    src={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/pin-s+FBBF24(${b.lng},${b.lat})/${b.lng},${b.lat},15,0/400x200@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
+                    alt={b.address} className="w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute top-2 left-2"><span className="text-xs font-bold text-white bg-black/60 backdrop-blur-sm px-2 py-1 rounded">#{i + 1}</span></div>
+                  <div className="absolute top-2 right-2"><span className={`text-xs font-bold text-white ${regColor(b.registrations)} px-2 py-1 rounded`}>{b.registrations} STR</span></div>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-text-primary group-hover:text-accent-blue transition-colors">{b.buildingName || b.address}</h3>
+                  {b.buildingName && <p className="text-xs text-text-muted">{b.address}</p>}
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-text-muted">{b.neighbourhood}</span>
+                    <span className="text-xs text-text-muted">·</span>
+                    <span className="text-xs text-text-muted">{b.ward}</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className={`font-serif text-lg font-bold ${regTextColor(b.registrations)}`}>{b.registrations}</span>
+                    <span className="text-xs text-text-muted">Airbnb registrations</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
