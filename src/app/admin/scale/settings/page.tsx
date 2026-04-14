@@ -93,6 +93,13 @@ const S = {
 
 interface TestResult { ok: boolean; message: string; latency: number }
 interface CostEstimate { perProject: number; tenProjects: number }
+interface GoogleAdsStatus {
+  connected: boolean;
+  email?: string | null;
+  customerId?: string | null;
+  loginCustomerId?: string | null;
+  developerTokenConfigured?: boolean;
+}
 
 export default function ModelRouter() {
   const [config, setConfig] = useState<ScaleModelConfig>({
@@ -106,11 +113,52 @@ export default function ModelRouter() {
   const [saved, setSaved] = useState(false);
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState<GoogleAdsStatus | null>(null);
+  const [googleFlash, setGoogleFlash] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
 
   useEffect(() => {
     setConfig(loadScaleConfig());
     setHydrated(true);
+
+    // Surface a flash from the OAuth callback if the URL has one
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('ga_connected') === '1') {
+        setGoogleFlash({ kind: 'ok', message: 'Google Ads connected.' });
+      } else if (params.get('ga_error')) {
+        setGoogleFlash({ kind: 'err', message: `Google Ads connection failed: ${decodeURIComponent(params.get('ga_error') || '')}` });
+      }
+      if (params.has('ga_connected') || params.has('ga_error')) {
+        const clean = new URL(window.location.href);
+        clean.searchParams.delete('ga_connected');
+        clean.searchParams.delete('ga_error');
+        window.history.replaceState({}, '', clean.toString());
+      }
+    }
+
+    refreshGoogleStatus();
   }, []);
+
+  const refreshGoogleStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/scale/google/status', { cache: 'no-store' });
+      const data = await res.json();
+      setGoogleStatus(data);
+    } catch {
+      setGoogleStatus({ connected: false });
+    }
+  };
+
+  const disconnectGoogle = async () => {
+    try {
+      await fetch('/api/admin/scale/google/status', { method: 'DELETE' });
+      setGoogleFlash({ kind: 'ok', message: 'Disconnected.' });
+      refreshGoogleStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setGoogleFlash({ kind: 'err', message });
+    }
+  };
 
   // Auto-persist any config change so switching tabs never loses the API key.
   useEffect(() => {
@@ -393,6 +441,96 @@ export default function ModelRouter() {
               <div style={{ fontSize: 13, color: testResult.ok ? '#6EE7B7' : '#FCA5A5', fontFamily: S.mono, lineHeight: 1.6 }}>
                 {testResult.message}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Google Ads */}
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>Google Ads</h2>
+          <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
+            Connect your Google Ads account so Scale can push generated campaigns live with one click. Campaigns are created in a PAUSED state — you un-pause from the Google Ads UI.
+          </p>
+
+          {googleFlash && (
+            <div style={{
+              marginBottom: 16, padding: '12px 16px', borderRadius: 10,
+              background: googleFlash.kind === 'ok' ? S.greenSoft : 'rgba(239,68,68,0.08)',
+              border: `1px solid ${googleFlash.kind === 'ok' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.25)'}`,
+              color: googleFlash.kind === 'ok' ? S.green : S.red,
+              fontSize: 14, fontFamily: S.mono,
+            }}>
+              {googleFlash.message}
+            </div>
+          )}
+
+          {!googleStatus ? (
+            <div style={{ fontSize: 14, color: S.textMuted }}>Checking Google Ads status…</div>
+          ) : googleStatus.connected ? (
+            <div style={{
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12, background: S.greenSoft,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.green,
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.white, marginBottom: 3 }}>
+                    Connected{googleStatus.email ? <> as <span style={{ color: '#C8CBD3' }}>{googleStatus.email}</span></> : ''}
+                  </div>
+                  <div style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono }}>
+                    Customer ID: {googleStatus.customerId || '—'}
+                    {googleStatus.loginCustomerId && googleStatus.loginCustomerId !== googleStatus.customerId && (
+                      <> · MCC: {googleStatus.loginCustomerId}</>
+                    )}
+                    {!googleStatus.developerTokenConfigured && (
+                      <span style={{ color: '#F59E0B', marginLeft: 8 }}>· developer token missing</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={disconnectGoogle}
+                style={{
+                  padding: '10px 20px', borderRadius: 9,
+                  background: 'transparent', border: `1px solid ${S.border}`,
+                  color: S.textSecondary, fontSize: 14, fontWeight: 500,
+                  cursor: 'pointer', fontFamily: S.font,
+                }}
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
+            }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: S.white, marginBottom: 4 }}>Not connected</div>
+                <div style={{ fontSize: 14, color: S.textMuted, lineHeight: 1.6 }}>
+                  You&apos;ll be redirected to Google to authorize Scale. You&apos;ll need the Google account that owns the Ads customer ID
+                  <code style={{ fontFamily: S.mono, fontSize: 13, padding: '2px 7px', borderRadius: 5, background: S.surfaceHover, marginLeft: 6 }}>
+                    {googleStatus.customerId || 'not set'}
+                  </code>.
+                </div>
+              </div>
+              <a
+                href="/api/admin/scale/google/auth"
+                style={{
+                  padding: '12px 22px', borderRadius: 10,
+                  background: S.accent, color: S.white, border: 'none',
+                  fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: S.font,
+                  display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-6.1-4.9-11-11-11S0 5.9 0 12s4.9 11 11 11 11-4.9 11-11zM11 5.5c1.6 0 3 .6 4.1 1.6l-1.7 1.7C12.8 8.2 12 8 11 8c-2.2 0-4 1.8-4 4s1.8 4 4 4c1.9 0 3.3-1.2 3.7-2.8H11v-2.4h6.1c.1.4.1.9.1 1.4 0 3.8-2.6 6.4-6.2 6.4-3.6 0-6.5-2.9-6.5-6.5s2.9-6.6 6.5-6.6z" /></svg>
+                Connect Google Ads
+              </a>
             </div>
           )}
         </div>

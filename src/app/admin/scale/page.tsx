@@ -738,6 +738,7 @@ export default function CampaignsWizard() {
     'Choose Channel',
     'Configure',
     'Review Output',
+    'Push to Ads',
   ];
 
   return (
@@ -847,6 +848,18 @@ export default function CampaignsWizard() {
             exportJson={exportJson}
             copyCsv={copyCsv}
             onBack={() => setStep(4)}
+            onContinue={() => setStep(6)}
+          />
+        )}
+
+        {step === 6 && campaignMeta && (
+          <StepPushAds
+            channel={channel}
+            campaignMeta={campaignMeta}
+            targets={selectedTargets}
+            results={results}
+            budget={budget}
+            onBack={() => setStep(5)}
           />
         )}
       </div>
@@ -1563,12 +1576,13 @@ function StepReview(props: {
   exportJson: () => void;
   copyCsv: () => void;
   onBack: () => void;
+  onContinue: () => void;
 }) {
   const {
     targets, results, channel, campaignMeta,
     activeResultId, setActiveResultId,
     activeVariant, setActiveVariant,
-    copiedKey, copy, regenerate, exportJson, copyCsv, onBack,
+    copiedKey, copy, regenerate, exportJson, copyCsv, onBack, onContinue,
   } = props;
 
   const active = targets.find((t) => t.id === activeResultId) || targets[0];
@@ -1731,15 +1745,469 @@ function StepReview(props: {
       </div>
 
       <BottomBar>
-        <button onClick={onBack} className="s-btn" style={navButtonStyle('ghost')}>
-          <ArrowLeft /> Back
-        </button>
-        <div style={{ color: S.textMuted, fontSize: 13, fontFamily: S.mono }}>
-          {okCount} / {targets.length} OK
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button onClick={onBack} className="s-btn" style={navButtonStyle('ghost')}>
+            <ArrowLeft /> Back
+          </button>
+          <span style={{ color: S.textMuted, fontSize: 13, fontFamily: S.mono }}>
+            {okCount} / {targets.length} OK
+          </span>
         </div>
+        <button
+          onClick={onContinue}
+          disabled={okCount === 0}
+          className="s-btn"
+          style={navButtonStyle('primary', okCount === 0)}
+        >
+          Continue <ArrowRight />
+        </button>
       </BottomBar>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Step 6 — Push to Google Ads
+// ═══════════════════════════════════════════════════════════════
+interface PushState {
+  kind: 'idle' | 'pushing' | 'success' | 'error';
+  response?: {
+    campaignId: string;
+    adGroupId: string;
+    adId: string;
+    customerId: string;
+    note?: string;
+  };
+  error?: string;
+}
+
+function StepPushAds({
+  channel, campaignMeta, targets, results, budget, onBack,
+}: {
+  channel: Channel;
+  campaignMeta: CampaignTypeMeta;
+  targets: TargetRef[];
+  results: ResultMap;
+  budget: number;
+  onBack: () => void;
+}) {
+  const isGoogle = channel.id === 'google_search' || channel.id === 'google_display';
+  const pushable = targets.filter((t) => results[t.id]?.ok);
+
+  // Campaign names are auto-generated per target but editable.
+  const today = new Date().toISOString().slice(0, 10);
+  const autoName = (t: TargetRef) =>
+    `Scale_${t.displayName.replace(/[^A-Za-z0-9]/g, '')}_${channel.id === 'google_display' ? 'Display' : 'Search'}_${today}`;
+
+  const [names, setNames] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    pushable.forEach((t) => { map[t.id] = autoName(t); });
+    return map;
+  });
+
+  const [pushStates, setPushStates] = useState<Record<string, PushState>>({});
+  const [googleStatus, setGoogleStatus] = useState<{ connected: boolean; email?: string | null; customerId?: string | null } | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/scale/google/status', { cache: 'no-store' });
+        setGoogleStatus(await res.json());
+      } catch {
+        setGoogleStatus({ connected: false });
+      }
+    })();
+  }, []);
+
+  const updateName = (id: string, v: string) =>
+    setNames((n) => ({ ...n, [id]: v }));
+
+  const pushOne = async (target: TargetRef) => {
+    const result = results[target.id];
+    if (!result?.ok || !result.data) return;
+    setPushStates((p) => ({ ...p, [target.id]: { kind: 'pushing' } }));
+
+    const a = result.data.variant_a as Record<string, unknown>;
+    const b = result.data.variant_b as Record<string, unknown>;
+    const headlines = dedupStrings([
+      ...toStringArray(a?.headlines),
+      ...toStringArray(b?.headlines),
+      ...singletonString(a?.headline),
+      ...singletonString(b?.headline),
+    ]);
+    const descriptions = dedupStrings([
+      ...toStringArray(a?.descriptions),
+      ...toStringArray(b?.descriptions),
+      ...singletonString(a?.tagline),
+      ...singletonString(b?.tagline),
+      ...singletonString(a?.primaryText),
+      ...singletonString(b?.primaryText),
+      ...singletonString(a?.description),
+      ...singletonString(b?.description),
+    ]);
+    const [neighborhood] = (target.subtitle || '').split('·').map((s) => s.trim());
+    const finalUrl = inferFinalUrl(campaignMeta, target);
+
+    try {
+      const res = await fetch('/api/admin/scale/google/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignName: names[target.id] || autoName(target),
+          projectName: target.displayName,
+          neighborhood,
+          dailyBudget: budget,
+          finalUrl,
+          headlines,
+          descriptions,
+          channelType: channel.id === 'google_display' ? 'DISPLAY' : 'SEARCH',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPushStates((p) => ({
+          ...p,
+          [target.id]: { kind: 'error', error: data.error || `HTTP ${res.status}` },
+        }));
+        return;
+      }
+      setPushStates((p) => ({
+        ...p,
+        [target.id]: {
+          kind: 'success',
+          response: {
+            campaignId: data.campaignId,
+            adGroupId: data.adGroupId,
+            adId: data.adId,
+            customerId: data.customerId,
+            note: data.note,
+          },
+        },
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPushStates((p) => ({ ...p, [target.id]: { kind: 'error', error: message } }));
+    }
+  };
+
+  const confirmAndPush = (target: TargetRef) => {
+    setConfirming(null);
+    pushOne(target);
+  };
+
+  if (!isGoogle) {
+    return (
+      <div style={{ animation: 'sSlideIn 0.25s ease' }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+          Push to Ads
+        </h1>
+        <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 24px', lineHeight: 1.6 }}>
+          Ad platform integration for <strong style={{ color: S.white }}>{channel.name}</strong> is not wired up yet.
+        </p>
+        <div style={{
+          background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 36, textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>✦</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: S.white, marginBottom: 8 }}>
+            Coming soon — Meta Ads integration
+          </div>
+          <div style={{ fontSize: 14, color: S.textSecondary, lineHeight: 1.6, maxWidth: 460, margin: '0 auto' }}>
+            For now, copy the JSON from Review and paste into Meta Ads Manager. Scale will push directly once the Meta Graph API integration ships.
+          </div>
+        </div>
+        <BottomBar>
+          <button onClick={onBack} className="s-btn" style={navButtonStyle('ghost')}>
+            <ArrowLeft /> Back to review
+          </button>
+        </BottomBar>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ animation: 'sSlideIn 0.25s ease' }}>
+      <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+        Push to Google Ads
+      </h1>
+      <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 24px', lineHeight: 1.6 }}>
+        Creates a real campaign in your Google Ads account. Campaigns are created in <strong style={{ color: S.white }}>PAUSED</strong> state — you un-pause from the Google Ads UI.
+      </p>
+
+      {googleStatus && !googleStatus.connected && (
+        <div style={{
+          padding: 22, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+          color: '#FDE68A', borderRadius: 12, fontSize: 14, lineHeight: 1.6, marginBottom: 24,
+        }}>
+          You&apos;re not connected to Google Ads yet.{' '}
+          <a href="/admin/scale/settings" style={{ color: '#FDE68A', textDecoration: 'underline' }}>
+            Connect in Settings
+          </a>{' '}
+          before pushing.
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+        {pushable.map((target) => {
+          const state = pushStates[target.id] || { kind: 'idle' } as PushState;
+          const result = results[target.id];
+          const a = (result?.data?.variant_a || {}) as Record<string, unknown>;
+          const b = (result?.data?.variant_b || {}) as Record<string, unknown>;
+          const headlines = dedupStrings([
+            ...toStringArray(a?.headlines), ...toStringArray(b?.headlines),
+            ...singletonString(a?.headline), ...singletonString(b?.headline),
+          ]);
+          const descriptions = dedupStrings([
+            ...toStringArray(a?.descriptions), ...toStringArray(b?.descriptions),
+            ...singletonString(a?.tagline), ...singletonString(b?.tagline),
+            ...singletonString(a?.primaryText), ...singletonString(b?.primaryText),
+            ...singletonString(a?.description), ...singletonString(b?.description),
+          ]);
+          const finalUrl = inferFinalUrl(campaignMeta, target);
+
+          return (
+            <div key={target.id} style={{
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 24,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, marginBottom: 18 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: S.white, letterSpacing: '-0.01em', marginBottom: 4 }}>
+                    {target.displayName}
+                  </div>
+                  {target.subtitle && (
+                    <div style={{ fontSize: 13, color: S.textMuted, marginBottom: 12 }}>{target.subtitle}</div>
+                  )}
+
+                  <div style={{ ...sectionLabelStyle, marginTop: 10 }}>Campaign name</div>
+                  <input
+                    type="text"
+                    value={names[target.id] || ''}
+                    onChange={(e) => updateName(target.id, e.target.value)}
+                    disabled={state.kind === 'pushing' || state.kind === 'success'}
+                    style={{
+                      width: '100%', padding: '12px 14px', borderRadius: 10,
+                      background: S.surfaceHover, border: `1px solid ${S.border}`,
+                      color: S.textPrimary, fontSize: 14, fontFamily: S.mono, outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16,
+                padding: 16, background: S.surfaceHover, borderRadius: 10, marginBottom: 18,
+              }}>
+                <Stat label="Daily budget" value={`$${budget}`} />
+                <Stat label="Ad groups" value="1" />
+                <Stat label="Headlines" value={headlines.length.toString()} />
+                <Stat label="Descriptions" value={descriptions.length.toString()} />
+              </div>
+
+              <div style={{ fontSize: 13, color: S.textMuted, marginBottom: 18, fontFamily: S.mono, wordBreak: 'break-all' }}>
+                Final URL: {finalUrl}
+              </div>
+
+              {state.kind === 'idle' && (
+                <button
+                  onClick={() => setConfirming(target.id)}
+                  disabled={!googleStatus?.connected || headlines.length < 3 || descriptions.length < 2}
+                  className="s-btn"
+                  style={{
+                    padding: '12px 28px', borderRadius: 11,
+                    background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
+                    color: S.white, border: 'none', fontSize: 15, fontWeight: 600,
+                    cursor: !googleStatus?.connected ? 'not-allowed' : 'pointer',
+                    opacity: !googleStatus?.connected ? 0.5 : 1,
+                    display: 'inline-flex', alignItems: 'center', gap: 10, fontFamily: S.font,
+                    boxShadow: '0 6px 20px rgba(0,102,255,0.25)',
+                  }}
+                >
+                  Push live →
+                </button>
+              )}
+
+              {state.kind === 'pushing' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: S.textSecondary, fontSize: 14 }}>
+                  <span style={{
+                    display: 'inline-block', width: 16, height: 16,
+                    border: `2.5px solid ${S.border}`, borderTopColor: S.accent, borderRadius: '50%',
+                    animation: 'sSpin 0.9s linear infinite',
+                  }} />
+                  Creating campaign in Google Ads…
+                </div>
+              )}
+
+              {state.kind === 'success' && state.response && (
+                <div style={{
+                  padding: 18, background: S.greenSoft, border: '1px solid rgba(16,185,129,0.3)',
+                  borderRadius: 11, color: '#D1FAE5', fontSize: 14, lineHeight: 1.6,
+                }}>
+                  <div style={{ fontWeight: 700, color: S.green, fontSize: 15, marginBottom: 6 }}>
+                    Campaign created!
+                  </div>
+                  <div style={{ fontFamily: S.mono, fontSize: 13, marginBottom: 10 }}>
+                    Campaign ID: {state.response.campaignId}
+                  </div>
+                  {state.response.note && (
+                    <div style={{ fontSize: 13, color: '#A7F3D0', marginBottom: 10 }}>
+                      {state.response.note}
+                    </div>
+                  )}
+                  <a
+                    href={`https://ads.google.com/aw/campaigns?campaignId=${state.response.campaignId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      fontSize: 13, color: S.green, fontWeight: 500,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Open in Google Ads →
+                  </a>
+                </div>
+              )}
+
+              {state.kind === 'error' && (
+                <div style={{
+                  padding: 18, background: S.redSoft, border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: 11,
+                }}>
+                  <div style={{ fontWeight: 700, color: S.red, fontSize: 14, marginBottom: 6 }}>
+                    Push failed
+                  </div>
+                  <div style={{ fontFamily: S.mono, fontSize: 13, color: '#FCA5A5', lineHeight: 1.6, marginBottom: 12, wordBreak: 'break-word' }}>
+                    {state.error}
+                  </div>
+                  <button
+                    onClick={() => pushOne(target)}
+                    className="s-btn"
+                    style={navButtonStyle('primary')}
+                  >
+                    <Refresh /> Retry
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <BottomBar>
+        <button onClick={onBack} className="s-btn" style={navButtonStyle('ghost')}>
+          <ArrowLeft /> Back
+        </button>
+        <span style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono }}>
+          {Object.values(pushStates).filter((s) => s.kind === 'success').length} / {pushable.length} pushed
+        </span>
+      </BottomBar>
+
+      {confirming && (() => {
+        const target = pushable.find((t) => t.id === confirming);
+        if (!target) return null;
+        return (
+          <ConfirmModal
+            title="Push live to Google Ads?"
+            body={
+              <>
+                This will create a real campaign in your Google Ads account
+                {googleStatus?.customerId && <> (<span style={{ fontFamily: S.mono }}>{googleStatus.customerId}</span>)</>}.
+                <br /><br />
+                <strong style={{ color: S.white }}>{names[target.id] || autoName(target)}</strong>
+                <br />
+                Daily budget: <strong style={{ color: S.white }}>${budget}</strong>
+                <br /><br />
+                Campaign will be created in <strong style={{ color: S.white }}>PAUSED</strong> state.
+              </>
+            }
+            onCancel={() => setConfirming(null)}
+            onConfirm={() => confirmAndPush(target)}
+          />
+        );
+      })()}
+    </div>
+  );
+}
+
+function ConfirmModal({
+  title, body, onCancel, onConfirm,
+}: {
+  title: string;
+  body: React.ReactNode;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10001,
+      background: 'rgba(11,13,17,0.8)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: S.font,
+    }}>
+      <div style={{
+        width: 480, maxWidth: '92vw',
+        background: S.bg, border: `1px solid ${S.border}`, borderRadius: 16,
+        padding: 32, boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+      }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: S.white, marginBottom: 12 }}>{title}</div>
+        <div style={{ fontSize: 14, color: S.textSecondary, lineHeight: 1.65, marginBottom: 24 }}>{body}</div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onCancel} className="s-btn" style={navButtonStyle('ghost')}>
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="s-btn"
+            style={{
+              padding: '12px 28px', borderRadius: 11,
+              background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
+              color: S.white, border: 'none', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', fontFamily: S.font,
+            }}
+          >
+            Yes, push live
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helpers for Step 6
+function toStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => (typeof x === 'string' ? x : '')).filter(Boolean);
+}
+function singletonString(v: unknown): string[] {
+  return typeof v === 'string' && v.trim() ? [v] : [];
+}
+function dedupStrings(xs: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  xs.forEach((x) => {
+    const k = x.trim();
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push(k);
+  });
+  return out;
+}
+function inferFinalUrl(campaignMeta: CampaignTypeMeta, target: TargetRef): string {
+  if (campaignMeta.targetKind === 'projects') {
+    return `https://condowizard.ca/pre-construction/${slugify(target.displayName)}`;
+  }
+  if (campaignMeta.targetKind === 'neighborhoods') {
+    // subtitle is the full landing URL
+    if (target.subtitle?.startsWith('condowizard.ca')) {
+      return `https://${target.subtitle}`;
+    }
+    return `https://condowizard.ca/areas/${slugify(target.displayName)}`;
+  }
+  if (campaignMeta.targetKind === 'communities') {
+    return `https://condowizard.ca/communities/${slugify(target.displayName)}`;
+  }
+  if (campaignMeta.id === 'condo_staging') return 'https://condowizard.ca/staging';
+  return 'https://condowizard.ca';
 }
 
 // ═══════════════════════════════════════════════════════════════
