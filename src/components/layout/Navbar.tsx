@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import NavSearch from './NavSearch';
 
 const NEIGHBORHOODS = [
   { name: 'Downtown Core', slug: 'downtown-core' },
@@ -77,6 +78,8 @@ export default function Navbar() {
           <span className="text-text-primary font-bold text-lg">WIZARD</span>
           <span className="text-text-muted font-light text-sm">.CA</span>
         </Link>
+
+        <NavSearch />
 
         <div className="hidden md:flex items-center gap-1">
           <Link href="/search" className={`btn-ghost text-sm ${isSearch ? 'text-accent-blue' : ''}`}>Buy</Link>
