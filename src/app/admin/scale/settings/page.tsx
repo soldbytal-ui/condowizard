@@ -236,7 +236,7 @@ export default function ModelRouter() {
             <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
               Model router
             </h1>
-            <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 0', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 0', lineHeight: 1.6 }}>
               Choose which AI provider and model power Scale. Saved locally in your browser.
             </p>
           </div>
@@ -248,7 +248,7 @@ export default function ModelRouter() {
 
         {/* Provider selection */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>AI provider</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>AI provider</h2>
           <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Choose where Scale sends API requests. Switch anytime without changing anything else.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {PROVIDERS.map((prov) => (
@@ -265,9 +265,9 @@ export default function ModelRouter() {
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: `${prov.color}18`, color: prov.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                   {prov.id === 'anthropic' ? <Shield /> : prov.id === 'openrouter' ? <Globe /> : <Zap />}
                 </div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: S.white, marginBottom: 6 }}>{prov.name}</div>
-                <div style={{ fontSize: 14, color: S.textMuted, lineHeight: 1.6 }}>{prov.description}</div>
-                <div style={{ marginTop: 14, fontSize: 13, color: prov.color, fontWeight: 500 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: S.white, marginBottom: 8 }}>{prov.name}</div>
+                <div style={{ fontSize: 15, color: S.textMuted, lineHeight: 1.6 }}>{prov.description}</div>
+                <div style={{ marginTop: 14, fontSize: 14, color: prov.color, fontWeight: 500 }}>
                   {prov.models.length} model{prov.models.length !== 1 ? 's' : ''} available
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function ModelRouter() {
         {/* Model selection */}
         {activeProvider && (
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>Model</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Model</h2>
             <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Pick the model for ad generation. Higher quality = better copy but costs more.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {activeProvider.models.map((model) => (
@@ -299,7 +299,7 @@ export default function ModelRouter() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: S.white }}>{model.name}</span>
+                      <span style={{ fontSize: 17, fontWeight: 700, color: S.white }}>{model.name}</span>
                       {model.badge && (
                         <span style={{
                           fontSize: 12, padding: '3px 10px', borderRadius: 5, fontWeight: 500,
@@ -339,7 +339,7 @@ export default function ModelRouter() {
         {/* API Key */}
         {activeProvider && activeProvider.id !== 'openrouter_free' && (
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>API key</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>API key</h2>
             <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
               Your key is stored locally and never sent anywhere except {activeProvider.name}.{' '}
               <a href={activeProvider.docs} target="_blank" rel="noreferrer" style={{ color: S.accent, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -354,9 +354,9 @@ export default function ModelRouter() {
                   onChange={(e) => setConfig((c) => ({ ...c, apiKey: e.target.value }))}
                   placeholder={activeProvider.keyPlaceholder}
                   style={{
-                    width: '100%', padding: '14px 44px 14px 16px', borderRadius: 10,
+                    width: '100%', padding: '15px 48px 15px 18px', borderRadius: 11,
                     background: S.surface, border: `1px solid ${S.border}`,
-                    color: S.textPrimary, fontSize: 14, fontFamily: S.mono, outline: 'none',
+                    color: S.textPrimary, fontSize: 15, fontFamily: S.mono, outline: 'none',
                   }}
                 />
                 <button onClick={() => setShowKey(!showKey)}
@@ -380,23 +380,23 @@ export default function ModelRouter() {
         {/* Cost estimate */}
         {costEstimate && (
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>Cost estimate</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Cost estimate</h2>
             <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Estimated API cost for ad generation (does not include ad spend).</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
               <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
                   {costEstimate.perProject === 0 ? 'Free' : `$${costEstimate.perProject.toFixed(4)}`}
                 </div>
                 <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>Per project</div>
               </div>
               <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
                   {costEstimate.tenProjects === 0 ? 'Free' : `$${costEstimate.tenProjects.toFixed(3)}`}
                 </div>
                 <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>10 projects</div>
               </div>
               <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
                   {costEstimate.tenProjects === 0 ? 'Free' : `$${(costEstimate.tenProjects * 30).toFixed(2)}`}
                 </div>
                 <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>Daily × 30 days</div>
@@ -407,7 +407,7 @@ export default function ModelRouter() {
 
         {/* Test connection */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>Test connection</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Test connection</h2>
           <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Send a test request to verify your configuration works.</p>
           <button onClick={testConnection} disabled={testing || (activeProvider?.id !== 'openrouter_free' && !config.apiKey)}
             style={{
@@ -447,7 +447,7 @@ export default function ModelRouter() {
 
         {/* Google Ads */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: '0 0 8px', letterSpacing: '-0.015em' }}>Google Ads</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Google Ads</h2>
           <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
             Connect your Google Ads account so Scale can push generated campaigns live with one click. Campaigns are created in a PAUSED state — you un-pause from the Google Ads UI.
           </p>
@@ -479,10 +479,10 @@ export default function ModelRouter() {
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: S.white, marginBottom: 3 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.white, marginBottom: 5 }}>
                     Connected{googleStatus.email ? <> as <span style={{ color: '#C8CBD3' }}>{googleStatus.email}</span></> : ''}
                   </div>
-                  <div style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono }}>
+                  <div style={{ fontSize: 14, color: S.textMuted, fontFamily: S.mono, lineHeight: 1.55 }}>
                     Customer ID: {googleStatus.customerId || '—'}
                     {googleStatus.loginCustomerId && googleStatus.loginCustomerId !== googleStatus.customerId && (
                       <> · MCC: {googleStatus.loginCustomerId}</>
@@ -511,10 +511,10 @@ export default function ModelRouter() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
             }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: S.white, marginBottom: 4 }}>Not connected</div>
-                <div style={{ fontSize: 14, color: S.textMuted, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 17, fontWeight: 600, color: S.white, marginBottom: 6 }}>Not connected</div>
+                <div style={{ fontSize: 15, color: S.textMuted, lineHeight: 1.6 }}>
                   You&apos;ll be redirected to Google to authorize Scale. You&apos;ll need the Google account that owns the Ads customer ID
-                  <code style={{ fontFamily: S.mono, fontSize: 13, padding: '2px 7px', borderRadius: 5, background: S.surfaceHover, marginLeft: 6 }}>
+                  <code style={{ fontFamily: S.mono, fontSize: 14, padding: '3px 8px', borderRadius: 6, background: S.surfaceHover, marginLeft: 6 }}>
                     {googleStatus.customerId || 'not set'}
                   </code>.
                 </div>
@@ -522,9 +522,9 @@ export default function ModelRouter() {
               <a
                 href="/api/admin/scale/google/auth"
                 style={{
-                  padding: '12px 22px', borderRadius: 10,
+                  padding: '13px 26px', borderRadius: 11,
                   background: S.accent, color: S.white, border: 'none',
-                  fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: S.font,
+                  fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: S.font,
                   display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none',
                 }}
               >

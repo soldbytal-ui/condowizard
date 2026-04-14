@@ -58,8 +58,8 @@ const S = {
 };
 
 const sectionLabelStyle: React.CSSProperties = {
-  fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em',
-  color: S.textMuted, fontWeight: 600, marginBottom: 14,
+  fontSize: 20, letterSpacing: '-0.01em',
+  color: S.white, fontWeight: 600, marginBottom: 18,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -161,21 +161,21 @@ export default function ScaleDashboard() {
 
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '32px 40px 96px', animation: 'sSlideIn 0.25s ease' }}>
         {/* Header */}
-        <div style={{ marginBottom: 36 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+        <div style={{ marginBottom: 40 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             Scale
           </h1>
-          <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 0', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 0', lineHeight: 1.6 }}>
             AI-powered ad automation for CondoWizard.ca
           </p>
         </div>
 
         {/* Section 1 — Metrics */}
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: 40 }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 16,
+            gap: 20,
           }}>
             <MetricCard
               label="Active Campaigns"
@@ -202,17 +202,17 @@ export default function ScaleDashboard() {
         </section>
 
         {/* Section 2 — Quick actions */}
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: 40 }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={sectionLabelStyle}>Quick actions</div>
-            <Link href="/admin/scale/campaigns" style={{ fontSize: 13, color: S.accent, fontWeight: 500 }}>
+            <Link href="/admin/scale/campaigns" style={{ fontSize: 15, color: S.accent, fontWeight: 500 }}>
               Open wizard →
             </Link>
           </div>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: 14,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 20,
           }}>
             {QUICK_ACTIONS.map((a) => (
               <Link
@@ -220,8 +220,8 @@ export default function ScaleDashboard() {
                 href={`/admin/scale/campaigns?type=${a.type}`}
                 className="s-action"
                 style={{
-                  display: 'flex', flexDirection: 'column', gap: 10,
-                  padding: 18, borderRadius: 14,
+                  display: 'flex', flexDirection: 'column', gap: 14,
+                  padding: 24, borderRadius: 14,
                   background: S.surface,
                   border: `1px solid ${S.border}`,
                   transition: 'all 0.15s',
@@ -229,16 +229,16 @@ export default function ScaleDashboard() {
                 }}
               >
                 <div style={{
-                  width: 40, height: 40, borderRadius: 10,
+                  width: 48, height: 48, borderRadius: 12,
                   background: `${a.color}1a`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <InlineIcon path={a.iconPath} color={a.color} size={22} />
+                  <InlineIcon path={a.iconPath} color={a.color} size={26} />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: S.white, letterSpacing: '-0.01em' }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: S.white, letterSpacing: '-0.01em' }}>
                   {a.title}
                 </div>
-                <div style={{ fontSize: 13, color: S.textSecondary, lineHeight: 1.55 }}>
+                <div style={{ fontSize: 14, color: S.textSecondary, lineHeight: 1.6 }}>
                   {a.description}
                 </div>
               </Link>
@@ -247,10 +247,10 @@ export default function ScaleDashboard() {
         </section>
 
         {/* Section 3 — Recent campaigns */}
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: 40 }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={sectionLabelStyle}>Recent campaigns</div>
-            <Link href="/admin/scale/campaigns" style={{ fontSize: 13, color: S.accent, fontWeight: 500 }}>
+            <Link href="/admin/scale/campaigns" style={{ fontSize: 15, color: S.accent, fontWeight: 500 }}>
               View all →
             </Link>
           </div>
@@ -273,9 +273,9 @@ export default function ScaleDashboard() {
                     <tr style={{ borderBottom: `1px solid ${S.border}` }}>
                       {['Campaign', 'Type', 'Channel', 'Projects', 'Budget', 'Status', 'Date'].map((h) => (
                         <th key={h} style={{
-                          textAlign: 'left', fontSize: 12, fontWeight: 600,
-                          color: S.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em',
-                          padding: '14px 18px',
+                          textAlign: 'left', fontSize: 13, fontWeight: 600,
+                          color: S.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          padding: '14px 16px',
                         }}>
                           {h}
                         </th>
@@ -289,25 +289,25 @@ export default function ScaleDashboard() {
                         className="s-row"
                         style={{ borderBottom: `1px solid ${S.border}`, cursor: 'default' }}
                       >
-                        <td style={{ padding: '16px 18px', fontSize: 14, fontWeight: 500, color: S.white, fontFamily: S.mono, whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '14px 16px', fontSize: 15, fontWeight: 500, color: S.white, fontFamily: S.mono, whiteSpace: 'nowrap' }}>
                           {h.campaignName}
                         </td>
-                        <td style={{ padding: '16px 18px', fontSize: 13, color: S.textSecondary }}>
+                        <td style={{ padding: '14px 16px', fontSize: 15, color: S.textSecondary }}>
                           {h.campaignTypeLabel}
                         </td>
-                        <td style={{ padding: '16px 18px', fontSize: 13, color: S.textSecondary }}>
+                        <td style={{ padding: '14px 16px', fontSize: 15, color: S.textSecondary }}>
                           {h.channelName}
                         </td>
-                        <td style={{ padding: '16px 18px', fontSize: 13, color: S.textSecondary }}>
+                        <td style={{ padding: '14px 16px', fontSize: 15, color: S.textSecondary }}>
                           {h.projects.length} · {h.projects.slice(0, 2).join(', ')}{h.projects.length > 2 ? '…' : ''}
                         </td>
-                        <td style={{ padding: '16px 18px', fontSize: 13, color: '#C8CBD3', fontFamily: S.mono }}>
+                        <td style={{ padding: '14px 16px', fontSize: 15, color: '#C8CBD3', fontFamily: S.mono }}>
                           ${h.budget}/day
                         </td>
-                        <td style={{ padding: '16px 18px' }}>
+                        <td style={{ padding: '14px 16px' }}>
                           <StatusBadge status={h.status} />
                         </td>
-                        <td style={{ padding: '16px 18px', fontSize: 12, color: S.textMuted, fontFamily: S.mono, whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '14px 16px', fontSize: 14, color: S.textMuted, fontFamily: S.mono, whiteSpace: 'nowrap' }}>
                           {formatRelativeDate(h.date)}
                         </td>
                       </tr>
@@ -320,7 +320,7 @@ export default function ScaleDashboard() {
         </section>
 
         {/* Section 4 — Split row: brain status + connections */}
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: 40 }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -333,22 +333,22 @@ export default function ScaleDashboard() {
               subtitle={`${activeBrainRules} of ${totalBrainRules} rules active`}
             >
               {brainCategories.length === 0 ? (
-                <div style={{ fontSize: 14, color: S.textMuted, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 15, color: S.textMuted, lineHeight: 1.6 }}>
                   No rules yet. Open Agent Brain to teach Scale your tone, legal, and brand rules.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {brainCategories.map((c) => {
                     const active = c.entries?.filter((e) => e.active).length || 0;
                     const total = c.entries?.length || 0;
                     return (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                         <span style={{
-                          width: 10, height: 10, borderRadius: 3,
+                          width: 11, height: 11, borderRadius: 3,
                           background: c.color || S.accent, flexShrink: 0,
                         }} />
-                        <span style={{ flex: 1, fontSize: 14, color: S.textPrimary }}>{c.label}</span>
-                        <span style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono }}>
+                        <span style={{ flex: 1, fontSize: 15, color: S.textPrimary }}>{c.label}</span>
+                        <span style={{ fontSize: 14, color: S.textMuted, fontFamily: S.mono }}>
                           {active} / {total}
                         </span>
                       </div>
@@ -450,22 +450,21 @@ function MetricCard({
 }: { label: string; value: string; subtitle: string; mono?: boolean }) {
   return (
     <div style={{
-      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 22,
+      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28,
     }}>
       <div style={{
-        fontSize: 12, fontWeight: 600, color: S.textMuted,
-        textTransform: 'uppercase', letterSpacing: '0.06em',
-        marginBottom: 12,
+        fontSize: 15, fontWeight: 500, color: S.textSecondary,
+        marginBottom: 14, letterSpacing: '-0.005em',
       }}>
         {label}
       </div>
       <div style={{
-        fontSize: 32, fontWeight: 700, color: S.white, letterSpacing: '-0.02em',
-        marginBottom: 6, fontFamily: mono ? S.mono : S.font, lineHeight: 1.1,
+        fontSize: 36, fontWeight: 700, color: S.white, letterSpacing: '-0.02em',
+        marginBottom: 8, fontFamily: mono ? S.mono : S.font, lineHeight: 1.1,
       }}>
         {value}
       </div>
-      <div style={{ fontSize: 13, color: S.textMuted, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 14, color: S.textMuted, lineHeight: 1.55 }}>
         {subtitle}
       </div>
     </div>
@@ -483,22 +482,22 @@ function SplitCard({
 }) {
   return (
     <div style={{
-      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 22,
+      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28,
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: subtitle ? 4 : 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: subtitle ? 6 : 20 }}>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: S.white, letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: S.white, letterSpacing: '-0.01em' }}>
             {title}
           </div>
           {subtitle && (
-            <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>{subtitle}</div>
+            <div style={{ fontSize: 14, color: S.textMuted, marginTop: 6 }}>{subtitle}</div>
           )}
         </div>
-        <Link href={href} style={{ fontSize: 13, color: S.accent, fontWeight: 500, whiteSpace: 'nowrap' }}>
+        <Link href={href} style={{ fontSize: 14, color: S.accent, fontWeight: 500, whiteSpace: 'nowrap' }}>
           {linkLabel}
         </Link>
       </div>
-      {subtitle && <div style={{ height: 16 }} />}
+      {subtitle && <div style={{ height: 20 }} />}
       {children}
     </div>
   );
@@ -513,18 +512,18 @@ function ConnectionRow({
     { color: S.textMuted, bg: 'rgba(255,255,255,0.04)' };
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 14,
-      padding: '10px 12px', borderRadius: 9,
+      display: 'flex', alignItems: 'center', gap: 16,
+      padding: '14px 16px', borderRadius: 10,
       background: S.surfaceHover,
     }}>
       <span style={{
-        width: 10, height: 10, borderRadius: '50%',
+        width: 11, height: 11, borderRadius: '50%',
         background: dot.color, boxShadow: `0 0 0 4px ${dot.bg}`,
         flexShrink: 0,
       }} />
-      <span style={{ fontSize: 14, fontWeight: 500, color: S.textSecondary, minWidth: 110 }}>{label}</span>
+      <span style={{ fontSize: 16, fontWeight: 500, color: S.textSecondary, minWidth: 130 }}>{label}</span>
       <span style={{
-        flex: 1, fontSize: 13,
+        flex: 1, fontSize: 14,
         color: status === 'pending' ? S.textMuted : S.textPrimary,
         fontFamily: status === 'pending' ? S.font : S.mono,
         textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -545,9 +544,9 @@ function StatusBadge({ status }: { status: HistoryStatus }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '4px 10px', borderRadius: 100,
+      padding: '6px 14px', borderRadius: 100,
       background: c.bg, border: `1px solid ${c.border}`,
-      color: c.color, fontSize: 12, fontWeight: 600,
+      color: c.color, fontSize: 13, fontWeight: 600,
     }}>
       {status}
     </span>
@@ -557,22 +556,22 @@ function StatusBadge({ status }: { status: HistoryStatus }) {
 function InsightCard({ icon, title, body }: { icon: string; title: string; body: React.ReactNode }) {
   return (
     <div style={{
-      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 18,
-      display: 'flex', gap: 14, alignItems: 'flex-start',
+      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 24,
+      display: 'flex', gap: 16, alignItems: 'flex-start',
     }}>
       <div style={{
-        width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
         background: S.accentSoft, color: S.accent,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 16, fontWeight: 700,
+        fontSize: 18, fontWeight: 700,
       }}>
         {icon}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+        <div style={{ fontSize: 14, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
           {title}
         </div>
-        <div style={{ fontSize: 14, color: S.textPrimary, lineHeight: 1.55 }}>{body}</div>
+        <div style={{ fontSize: 15, color: S.textPrimary, lineHeight: 1.6 }}>{body}</div>
       </div>
     </div>
   );

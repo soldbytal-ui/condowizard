@@ -22,18 +22,18 @@ function ScaleMark() {
   return (
     <div
       style={{
-        width: 30,
-        height: 30,
-        borderRadius: 8,
+        width: 36,
+        height: 36,
+        borderRadius: 9,
         background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: '0 4px 12px rgba(0,102,255,0.25)',
+        boxShadow: '0 4px 14px rgba(0,102,255,0.28)',
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8 1.5L14 4.5v3c0 4-2.7 6.7-6 7-3.3-.3-6-3-6-7v-3L8 1.5z" />
         <path d="M6 8l1.5 1.5L10.5 6.5" />
       </svg>
@@ -80,19 +80,19 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
           style={{
             flexShrink: 0,
             borderBottom: `1px solid ${BORDER}`,
-            padding: '0 28px',
+            padding: '0 32px',
             display: 'flex',
             alignItems: 'center',
-            height: 60,
-            gap: 24,
+            height: 64,
+            gap: 28,
             background: BG,
           }}
         >
-          <Link href="/admin/scale" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link href="/admin/scale" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <ScaleMark />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-              <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>Scale</span>
-              <span style={{ fontSize: 10, color: TEXT_MUTED, fontWeight: 500, letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>Scale</span>
+              <span style={{ fontSize: 13, color: TEXT_MUTED, fontWeight: 500, letterSpacing: '0.04em' }}>
                 by CondoWizard
               </span>
             </div>
@@ -100,7 +100,7 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
 
           <div style={{ flex: 1 }} />
 
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {TABS.map((tab) => {
               const active = tab.match(pathname);
               return (
@@ -108,9 +108,9 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
                   key={tab.href}
                   href={tab.href}
                   style={{
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    fontSize: 13,
+                    padding: '10px 22px',
+                    borderRadius: 10,
+                    fontSize: 16,
                     fontWeight: 500,
                     color: active ? '#fff' : TEXT_MUTED,
                     background: active ? ACCENT_SOFT : 'transparent',
@@ -127,12 +127,12 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
           <Link
             href="/admin"
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: TEXT_MUTED,
-              padding: '7px 12px',
-              borderRadius: 7,
+              padding: '9px 16px',
+              borderRadius: 9,
               border: `1px solid ${BORDER}`,
-              marginLeft: 8,
+              marginLeft: 10,
             }}
           >
             ← Back to Admin

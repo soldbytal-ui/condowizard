@@ -308,8 +308,8 @@ const S = {
 };
 
 const sectionLabelStyle: React.CSSProperties = {
-  fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em',
-  color: S.textMuted, fontWeight: 600, marginBottom: 10,
+  fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.08em',
+  color: S.textMuted, fontWeight: 600, marginBottom: 14,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -454,33 +454,33 @@ function StepIndicator({ current, stepLabels, skipStep2 }: { current: number; st
   const labels = skipStep2 ? stepLabels.filter((_, i) => i !== 1) : stepLabels;
   const logicalCurrent = skipStep2 && current > 2 ? current - 1 : current;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '20px 0 32px', maxWidth: 900 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '24px 0 40px', maxWidth: 1000 }}>
       {labels.map((label, i) => {
         const step = i + 1;
         const completed = step < logicalCurrent;
         const active = step === logicalCurrent;
         return (
           <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i === labels.length - 1 ? '0 0 auto' : 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 9,
                 background: completed ? S.accent : active ? 'transparent' : 'rgba(255,255,255,0.04)',
                 border: `1.5px solid ${completed ? S.accent : active ? S.accent : S.border}`,
                 color: completed ? '#fff' : active ? S.accent : S.textMuted,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700, fontFamily: S.mono,
+                fontSize: 14, fontWeight: 700, fontFamily: S.mono,
                 transition: 'all 0.2s',
               }}>
-                {completed ? <Check size={14} /> : step}
+                {completed ? <Check size={15} /> : step}
               </div>
               <span style={{
-                fontSize: 14, fontWeight: 500,
+                fontSize: 15, fontWeight: 500,
                 color: active ? S.white : completed ? S.textSecondary : S.textMuted,
                 whiteSpace: 'nowrap',
               }}>{label}</span>
             </div>
             {i < labels.length - 1 && (
-              <div style={{ flex: 1, height: 1.5, background: completed ? S.accent : S.border, margin: '0 18px', minWidth: 20 }} />
+              <div style={{ flex: 1, height: 1.5, background: completed ? S.accent : S.border, margin: '0 20px', minWidth: 24 }} />
             )}
           </div>
         );
@@ -969,10 +969,10 @@ function StepCampaignType({
 }) {
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Choose campaign type
       </h1>
-      <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 28px', lineHeight: 1.6, maxWidth: 680 }}>
+      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 28px', lineHeight: 1.6, maxWidth: 680 }}>
         Scale adapts to what you&apos;re advertising. Pick the kind of campaign and we&apos;ll tailor the data source, targeting, and AI prompt.
       </p>
 
@@ -1090,10 +1090,10 @@ function StepTarget(props: {
     const allSelected = projects.length > 0 && projects.every((p) => selectedIds.has(p.id));
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           {campaignMeta.id === 'short_term_rentals' ? 'Select investment projects' : 'Select projects to advertise'}
         </h1>
-        <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 22px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 22px', lineHeight: 1.6 }}>
           {campaignMeta.id === 'short_term_rentals'
             ? 'Pick projects that work as short-term rentals or furnished income properties. Scale tailors the copy to investors.'
             : 'Pick one or more active projects. Scale generates on-brand ad copy for every one you select.'}
@@ -1157,7 +1157,7 @@ function StepTarget(props: {
                     }}
                   >
                     <div style={{
-                      height: 140,
+                      height: 160,
                       backgroundColor: S.surfaceHover,
                       backgroundImage: p.image
                         ? `linear-gradient(to bottom, rgba(11,13,17,0) 40%, rgba(11,13,17,0.55) 100%), url(${p.image})`
@@ -1191,15 +1191,15 @@ function StepTarget(props: {
                         {statusLabel(p.status)}
                       </div>
                     </div>
-                    <div style={{ padding: 20 }}>
-                      <div style={{ fontSize: 17, fontWeight: 700, color: S.white, letterSpacing: '-0.01em', marginBottom: 6 }}>
+                    <div style={{ padding: 24 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: S.white, letterSpacing: '-0.01em', marginBottom: 8 }}>
                         {p.name}
                       </div>
-                      <div style={{ fontSize: 14, color: S.textSecondary, marginBottom: 10 }}>
+                      <div style={{ fontSize: 14, color: S.textSecondary, marginBottom: 12 }}>
                         {p.neighborhood} · {p.developer}
                       </div>
-                      <div style={{ fontSize: 14, color: '#C8CBD3', fontFamily: S.mono, marginBottom: 12 }}>{p.price}</div>
-                      <div style={{ fontSize: 12, color: S.textMuted, display: 'flex', gap: 10, flexWrap: 'wrap', lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 15, color: '#C8CBD3', fontFamily: S.mono, marginBottom: 14 }}>{p.price}</div>
+                      <div style={{ fontSize: 13, color: S.textMuted, display: 'flex', gap: 10, flexWrap: 'wrap', lineHeight: 1.6 }}>
                         <span>Completion {p.completion}</span>
                         <span>·</span>
                         <span>{p.floors ?? '—'} floors</span>
@@ -1234,10 +1234,10 @@ function StepTarget(props: {
     const allSelected = neighborhoods.length > 0 && neighborhoods.every((n) => selectedIds.has(n.id));
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           Select neighborhoods
         </h1>
-        <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 22px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 22px', lineHeight: 1.6 }}>
           Each neighborhood ad links to its own hub page at <code style={{ fontFamily: S.mono, fontSize: 14 }}>condowizard.ca/areas/[slug]</code>.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -1301,10 +1301,10 @@ function StepTarget(props: {
     const allSelected = communities.length > 0 && communities.every((c) => selectedIds.has(c.id));
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           Select communities
         </h1>
-        <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 22px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 22px', lineHeight: 1.6 }}>
           Each ad links to live MLS listings for that community, powered by Repliers.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -1386,10 +1386,10 @@ function StepCustomBrief({
 }) {
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease', maxWidth: 820 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Write your campaign brief
       </h1>
-      <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 24px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 24px', lineHeight: 1.6 }}>
         Describe what you want to advertise, who it&apos;s for, and any key angles. Scale will follow your brief and your Agent Brain rules.
       </p>
 
@@ -1440,10 +1440,10 @@ function StepChannel(props: {
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Choose ad channel
       </h1>
-      <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 28px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 28px', lineHeight: 1.6 }}>
         Pick where these ads will run. Scale tailors the format and length to each channel&apos;s spec.
       </p>
 
@@ -1472,19 +1472,19 @@ function StepChannel(props: {
                 </div>
               )}
               <div style={{
-                width: 44, height: 44, borderRadius: 11,
+                width: 52, height: 52, borderRadius: 13,
                 background: `${ch.color}20`, color: ch.color,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 20, fontWeight: 700, fontFamily: S.mono, marginBottom: 16,
+                fontSize: 22, fontWeight: 700, fontFamily: S.mono, marginBottom: 18,
               }}>
                 {ch.icon}
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: S.white, marginBottom: 6 }}>{ch.name}</div>
-              <div style={{ fontSize: 14, color: S.textSecondary, marginBottom: selected ? 12 : 0, lineHeight: 1.55 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: S.white, marginBottom: 8, letterSpacing: '-0.01em' }}>{ch.name}</div>
+              <div style={{ fontSize: 15, color: S.textSecondary, marginBottom: selected ? 14 : 0, lineHeight: 1.6 }}>
                 {ch.subtitle}
               </div>
               {selected && (
-                <div style={{ fontSize: 13, color: '#C8CBD3', lineHeight: 1.65, paddingTop: 12, borderTop: `1px solid ${S.border}`, marginTop: 2 }}>
+                <div style={{ fontSize: 14, color: '#C8CBD3', lineHeight: 1.7, paddingTop: 14, borderTop: `1px solid ${S.border}`, marginTop: 4 }}>
                   {ch.description}
                 </div>
               )}
@@ -1524,10 +1524,10 @@ function StepConfigure(props: {
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Configure campaign
       </h1>
-      <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 28px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 28px', lineHeight: 1.6 }}>
         Final review before Scale calls the AI.
       </p>
 
@@ -1559,9 +1559,9 @@ function StepConfigure(props: {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 22 }}>
           <div>
             <div style={sectionLabelStyle}>Daily budget per campaign</div>
-            <div style={{ fontSize: 40, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 36, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
               ${budget}
-              <span style={{ fontSize: 16, color: S.textMuted, fontWeight: 500, marginLeft: 8 }}>/ day</span>
+              <span style={{ fontSize: 17, color: S.textMuted, fontWeight: 500, marginLeft: 8 }}>/ day</span>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -1623,13 +1623,13 @@ function StepConfigure(props: {
           disabled={!config || total === 0}
           className="s-btn"
           style={{
-            padding: '14px 30px', borderRadius: 11,
+            padding: '16px 36px', borderRadius: 12,
             background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
-            color: S.white, border: 'none', fontSize: 15, fontWeight: 600,
+            color: S.white, border: 'none', fontSize: 17, fontWeight: 600,
             cursor: !config || total === 0 ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 10, fontFamily: S.font,
+            display: 'flex', alignItems: 'center', gap: 12, fontFamily: S.font,
             opacity: !config || total === 0 ? 0.5 : 1,
-            boxShadow: '0 6px 20px rgba(0,102,255,0.3)',
+            boxShadow: '0 6px 22px rgba(0,102,255,0.3)',
           }}
         >
           <Sparkle /> Generate {total} campaign{total === 1 ? '' : 's'}
@@ -1675,7 +1675,7 @@ function StepReview(props: {
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             Review output
           </h1>
           <p style={{ fontSize: 15, color: S.textSecondary, margin: '10px 0 0' }}>
@@ -1746,15 +1746,15 @@ function StepReview(props: {
                         key={v}
                         onClick={() => setActiveVariant(v)}
                         style={{
-                          padding: '10px 18px', borderRadius: 8,
+                          padding: '11px 22px', borderRadius: 9,
                           background: isActiveV ? S.accent : 'transparent',
                           color: isActiveV ? S.white : S.textSecondary,
-                          border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: S.font,
+                          border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: S.font,
                           display: 'flex', alignItems: 'center', gap: 8,
                         }}
                       >
                         Variant {isA ? 'A' : 'B'}
-                        <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>
                           · {isA ? 'benefit' : 'urgency'}
                         </span>
                       </button>
@@ -1984,10 +1984,10 @@ function StepPushAds({
   if (!isGoogle) {
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           Push to Ads
         </h1>
-        <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 24px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 24px', lineHeight: 1.6 }}>
           Ad platform integration for <strong style={{ color: S.white }}>{channel.name}</strong> is not wired up yet.
         </p>
         <div style={{
@@ -2012,10 +2012,10 @@ function StepPushAds({
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Push to Google Ads
       </h1>
-      <p style={{ fontSize: 16, color: S.textSecondary, margin: '10px 0 24px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 24px', lineHeight: 1.6 }}>
         Creates a real campaign in your Google Ads account. Campaigns are created in <strong style={{ color: S.white }}>PAUSED</strong> state — you un-pause from the Google Ads UI.
       </p>
 
@@ -2060,27 +2060,27 @@ function StepPushAds({
                     {target.displayName}
                   </div>
                   {target.subtitle && (
-                    <div style={{ fontSize: 13, color: S.textMuted, marginBottom: 12 }}>{target.subtitle}</div>
+                    <div style={{ fontSize: 14, color: S.textMuted, marginBottom: 14 }}>{target.subtitle}</div>
                   )}
 
-                  <div style={{ ...sectionLabelStyle, marginTop: 10 }}>Campaign name</div>
+                  <div style={{ ...sectionLabelStyle, marginTop: 12 }}>Campaign name</div>
                   <input
                     type="text"
                     value={names[target.id] || ''}
                     onChange={(e) => updateName(target.id, e.target.value)}
                     disabled={state.kind === 'pushing' || state.kind === 'success'}
                     style={{
-                      width: '100%', padding: '12px 14px', borderRadius: 10,
+                      width: '100%', padding: '14px 16px', borderRadius: 10,
                       background: S.surfaceHover, border: `1px solid ${S.border}`,
-                      color: S.textPrimary, fontSize: 14, fontFamily: S.mono, outline: 'none',
+                      color: S.textPrimary, fontSize: 16, fontFamily: S.mono, outline: 'none',
                     }}
                   />
                 </div>
               </div>
 
               <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16,
-                padding: 16, background: S.surfaceHover, borderRadius: 10, marginBottom: 18,
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 20,
+                padding: 22, background: S.surfaceHover, borderRadius: 12, marginBottom: 20,
               }}>
                 <Stat label="Daily budget" value={`$${budget}`} />
                 <Stat label="Ad groups" value="1" />
@@ -2088,7 +2088,7 @@ function StepPushAds({
                 <Stat label="Descriptions" value={descriptions.length.toString()} />
               </div>
 
-              <div style={{ fontSize: 13, color: S.textMuted, marginBottom: 18, fontFamily: S.mono, wordBreak: 'break-all' }}>
+              <div style={{ fontSize: 14, color: S.textMuted, marginBottom: 20, fontFamily: S.mono, wordBreak: 'break-all', lineHeight: 1.6 }}>
                 Final URL: {finalUrl}
               </div>
 
@@ -2098,13 +2098,13 @@ function StepPushAds({
                   disabled={!googleStatus?.connected || headlines.length < 3 || descriptions.length < 2}
                   className="s-btn"
                   style={{
-                    padding: '12px 28px', borderRadius: 11,
+                    padding: '14px 32px', borderRadius: 12,
                     background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
-                    color: S.white, border: 'none', fontSize: 15, fontWeight: 600,
+                    color: S.white, border: 'none', fontSize: 17, fontWeight: 600,
                     cursor: !googleStatus?.connected ? 'not-allowed' : 'pointer',
                     opacity: !googleStatus?.connected ? 0.5 : 1,
                     display: 'inline-flex', alignItems: 'center', gap: 10, fontFamily: S.font,
-                    boxShadow: '0 6px 20px rgba(0,102,255,0.25)',
+                    boxShadow: '0 6px 22px rgba(0,102,255,0.3)',
                   }}
                 >
                   Push live →
@@ -2112,9 +2112,9 @@ function StepPushAds({
               )}
 
               {state.kind === 'pushing' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: S.textSecondary, fontSize: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, color: S.textSecondary, fontSize: 15 }}>
                   <span style={{
-                    display: 'inline-block', width: 16, height: 16,
+                    display: 'inline-block', width: 18, height: 18,
                     border: `2.5px solid ${S.border}`, borderTopColor: S.accent, borderRadius: '50%',
                     animation: 'sSpin 0.9s linear infinite',
                   }} />
@@ -2124,17 +2124,17 @@ function StepPushAds({
 
               {state.kind === 'success' && state.response && (
                 <div style={{
-                  padding: 18, background: S.greenSoft, border: '1px solid rgba(16,185,129,0.3)',
-                  borderRadius: 11, color: '#D1FAE5', fontSize: 14, lineHeight: 1.6,
+                  padding: 22, background: S.greenSoft, border: '1px solid rgba(16,185,129,0.3)',
+                  borderRadius: 12, color: '#D1FAE5', fontSize: 15, lineHeight: 1.6,
                 }}>
-                  <div style={{ fontWeight: 700, color: S.green, fontSize: 15, marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, color: S.green, fontSize: 17, marginBottom: 8 }}>
                     Campaign created!
                   </div>
-                  <div style={{ fontFamily: S.mono, fontSize: 13, marginBottom: 10 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 14, marginBottom: 12 }}>
                     Campaign ID: {state.response.campaignId}
                   </div>
                   {state.response.note && (
-                    <div style={{ fontSize: 13, color: '#A7F3D0', marginBottom: 10 }}>
+                    <div style={{ fontSize: 14, color: '#A7F3D0', marginBottom: 12 }}>
                       {state.response.note}
                     </div>
                   )}
@@ -2144,7 +2144,7 @@ function StepPushAds({
                     rel="noreferrer"
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
-                      fontSize: 13, color: S.green, fontWeight: 500,
+                      fontSize: 14, color: S.green, fontWeight: 500,
                       textDecoration: 'underline',
                     }}
                   >
@@ -2155,13 +2155,13 @@ function StepPushAds({
 
               {state.kind === 'error' && (
                 <div style={{
-                  padding: 18, background: S.redSoft, border: '1px solid rgba(239,68,68,0.25)',
-                  borderRadius: 11,
+                  padding: 22, background: S.redSoft, border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: 12,
                 }}>
-                  <div style={{ fontWeight: 700, color: S.red, fontSize: 14, marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, color: S.red, fontSize: 16, marginBottom: 8 }}>
                     Push failed
                   </div>
-                  <div style={{ fontFamily: S.mono, fontSize: 13, color: '#FCA5A5', lineHeight: 1.6, marginBottom: 12, wordBreak: 'break-word' }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 14, color: '#FCA5A5', lineHeight: 1.7, marginBottom: 14, wordBreak: 'break-word' }}>
                     {state.error}
                   </div>
                   <button
@@ -2387,25 +2387,25 @@ function CopyableRow({
       className="s-field"
       onClick={onCopy}
       style={{
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14,
-        padding: '14px 16px', borderRadius: 10,
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
+        padding: '16px 18px', borderRadius: 11,
         background: S.surfaceHover, border: `1px solid ${S.border}`,
       }}
     >
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         {index != null && (
-          <span style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono, paddingTop: 2, flexShrink: 0 }}>{index}.</span>
+          <span style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono, paddingTop: 2, flexShrink: 0 }}>{index}.</span>
         )}
-        <div style={{ fontSize: 14, color: '#E2E4E9', lineHeight: 1.6, fontFamily: S.mono, wordBreak: 'break-word' }}>
+        <div style={{ fontSize: 15, color: '#E2E4E9', lineHeight: 1.65, fontFamily: S.mono, wordBreak: 'break-word' }}>
           {text}
         </div>
       </div>
       <span style={{
-        fontSize: 12, padding: '4px 10px', borderRadius: 6, flexShrink: 0, fontFamily: S.mono,
+        fontSize: 13, padding: '5px 12px', borderRadius: 7, flexShrink: 0, fontFamily: S.mono,
         color: copied ? S.green : S.textMuted,
         background: copied ? S.greenSoft : 'transparent',
         border: `1px solid ${copied ? 'rgba(16,185,129,0.3)' : S.border}`,
-        display: 'flex', alignItems: 'center', gap: 5,
+        display: 'flex', alignItems: 'center', gap: 6,
       }}>
         <Copy /> {copied ? 'Copied' : 'Copy'}
       </span>
@@ -2521,8 +2521,8 @@ function TargetBottomBar({
 function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div>
-      <div style={sectionLabelStyle}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: accent || S.white, letterSpacing: '-0.01em' }}>
+      <div style={{ fontSize: 14, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: accent || S.white, letterSpacing: '-0.01em' }}>
         {value}
       </div>
     </div>
@@ -2640,10 +2640,10 @@ function FilterSelect({
 function navButtonStyle(variant: 'primary' | 'ghost', disabled?: boolean): React.CSSProperties {
   if (variant === 'primary') {
     return {
-      padding: '12px 28px', borderRadius: 11,
+      padding: '13px 30px', borderRadius: 11,
       background: disabled ? S.surfaceHover : S.accent,
       color: disabled ? S.textMuted : S.white,
-      border: 'none', fontSize: 15, fontWeight: 600,
+      border: 'none', fontSize: 16, fontWeight: 600,
       cursor: disabled ? 'not-allowed' : 'pointer',
       display: 'flex', alignItems: 'center', gap: 10, fontFamily: S.font,
     };
@@ -2658,11 +2658,11 @@ function navButtonStyle(variant: 'primary' | 'ghost', disabled?: boolean): React
 
 function headerBtn(variant: 'ghost' | 'success'): React.CSSProperties {
   return {
-    padding: '10px 16px', borderRadius: 9,
+    padding: '11px 18px', borderRadius: 9,
     background: variant === 'success' ? S.greenSoft : S.surface,
     border: `1px solid ${variant === 'success' ? 'rgba(16,185,129,0.3)' : S.border}`,
     color: variant === 'success' ? S.green : S.textSecondary,
-    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
-    display: 'flex', alignItems: 'center', gap: 7,
+    fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
+    display: 'flex', alignItems: 'center', gap: 8,
   };
 }

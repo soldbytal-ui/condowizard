@@ -334,8 +334,8 @@ When the user asks you to generate ad copy, test a headline, or review content, 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 7, background: `${cat.color}20`, color: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>{cat.icon}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: activeCategory === cat.id ? S.white : S.textSecondary }}>{cat.label}</div>
-                    <div style={{ fontSize: 12, color: S.textMuted, marginTop: 2 }}>{count} rule{count !== 1 ? 's' : ''} active</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: activeCategory === cat.id ? S.white : S.textSecondary }}>{cat.label}</div>
+                    <div style={{ fontSize: 13, color: S.textMuted, marginTop: 3 }}>{count} rule{count !== 1 ? 's' : ''} active</div>
                   </div>
                 </div>
               </div>
@@ -367,9 +367,9 @@ When the user asks you to generate ad copy, test a headline, or review content, 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 9, background: `${activeCat.color}20`, color: activeCat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>{activeCat.icon}</div>
-                    <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>{activeCat.label}</h2>
+                    <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>{activeCat.label}</h2>
                   </div>
-                  {activeCat.description && <p style={{ fontSize: 15, color: '#6B7185', margin: 0, maxWidth: 560, lineHeight: 1.6 }}>{activeCat.description}</p>}
+                  {activeCat.description && <p style={{ fontSize: 16, color: '#6B7185', margin: 0, maxWidth: 600, lineHeight: 1.6 }}>{activeCat.description}</p>}
                 </div>
                 {categories.length > 1 && (
                   <button onClick={() => { if (confirm(`Delete "${activeCat.label}" and all its entries?`)) deleteCategory(activeCat.id); }}
@@ -405,8 +405,8 @@ When the user asks you to generate ad copy, test a headline, or review content, 
                       </div>
                     ) : (
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
-                        <div onClick={() => setEditingEntry(entry.id)} style={{ flex: 1, cursor: 'text', fontSize: 14, color: '#C8CBD3', lineHeight: 1.7 }}>
-                          <span style={{ color: S.textMuted, fontSize: 12, marginRight: 8, fontFamily: S.mono }}>{i + 1}.</span>
+                        <div onClick={() => setEditingEntry(entry.id)} style={{ flex: 1, cursor: 'text', fontSize: 15, color: '#C8CBD3', lineHeight: 1.7 }}>
+                          <span style={{ color: S.textMuted, fontSize: 13, marginRight: 8, fontFamily: S.mono }}>{i + 1}.</span>
                           {entry.text}
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -434,7 +434,7 @@ When the user asks you to generate ad copy, test a headline, or review content, 
                   onChange={(e) => setNewEntry(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addEntry(); } }}
                   placeholder={`Teach the agent something about ${activeCat.label.toLowerCase()}...`}
-                  style={{ width: '100%', minHeight: 64, padding: '14px 16px', borderRadius: 10, background: S.surfaceHover, border: `1px solid ${S.border}`, color: S.textPrimary, fontSize: 14, fontFamily: S.font, resize: 'vertical', lineHeight: 1.7 }}
+                  style={{ width: '100%', minHeight: 72, padding: '16px 18px', borderRadius: 10, background: S.surfaceHover, border: `1px solid ${S.border}`, color: S.textPrimary, fontSize: 15, fontFamily: S.font, resize: 'vertical', lineHeight: 1.7 }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
                   <span style={{ fontSize: 13, color: S.textMuted }}>Enter to add · Shift+Enter for new line</span>
