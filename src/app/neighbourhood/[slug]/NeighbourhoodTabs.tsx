@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import ListingCard from '@/components/search/ListingCard';
 import { UnifiedListing } from '@/types/listing';
+import VOWLocked from '@/components/auth/VOWLocked';
 
 interface Props {
   forSale: UnifiedListing[];
@@ -35,18 +36,23 @@ export default function NeighbourhoodTabsClient({ forSale, forRent, sold, name }
         ))}
       </div>
 
-      {/* Listing cards */}
+      {/* Listing cards — sold data is VOW-gated */}
       {current.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {current.map((listing) => (
-            <ListingCard
-              key={listing.mlsNumber || listing.id}
-              listing={listing}
-              isSoldView={tab === 'sold'}
-              isRentView={tab === 'rent'}
-            />
-          ))}
-        </div>
+        tab === 'sold' ? (
+          <VOWLocked message="Sign up to view recently sold properties">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {current.map((listing) => (
+                <ListingCard key={listing.mlsNumber || listing.id} listing={listing} isSoldView isRentView={false} />
+              ))}
+            </div>
+          </VOWLocked>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {current.map((listing) => (
+              <ListingCard key={listing.mlsNumber || listing.id} listing={listing} isSoldView={false} isRentView={tab === 'rent'} />
+            ))}
+          </div>
+        )
       ) : (
         <p className="text-text-muted text-sm py-8 text-center">
           No {tab === 'sale' ? 'properties for sale' : tab === 'rent' ? 'rentals' : 'recently sold properties'} found in {name}.

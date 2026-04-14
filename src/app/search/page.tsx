@@ -8,6 +8,7 @@ import SearchFilters from '@/components/search/SearchFilters';
 import ListingCard from '@/components/search/ListingCard';
 import { UnifiedListing, ListingFilters, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
+import VOWLocked from '@/components/auth/VOWLocked';
 
 const SearchMap = dynamic(() => import('@/components/search/SearchMap'), {
   ssr: false,
@@ -311,10 +312,18 @@ function SearchContent() {
                 <h3 className="text-lg font-semibold text-text-primary">No listings found</h3>
                 <p className="text-sm text-text-muted mt-1">Try adjusting your filters or search area</p>
               </div>
+            ) : filters.tab === 'sold' ? (
+              <VOWLocked message="Sign up free to view sold prices and history">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+                  {listings.map((listing) => (
+                    <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView isRentView={false} />
+                  ))}
+                </div>
+              </VOWLocked>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
                 {listings.map((listing) => (
-                  <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView={filters.tab === 'sold'} isRentView={filters.tab === 'rent'} />
+                  <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView={false} isRentView={filters.tab === 'rent'} />
                 ))}
               </div>
             )}

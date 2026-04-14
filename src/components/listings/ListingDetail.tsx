@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
 import { throttledPost } from '@/lib/throttled-fetch';
+import VOWLocked from '@/components/auth/VOWLocked';
 
 const ListingMiniMap = dynamic(() => import('./ListingMiniMap'), { ssr: false });
 
@@ -400,6 +401,7 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
               )}
 
               {activeTab === 'comparables' && (
+                <VOWLocked message="Sign up to view comparable sold properties">
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Sold Comparables (Last 6 Months)</h3>
                   {comps === null ? <p className="text-text-muted text-sm">Loading comparables...</p> : comps.length === 0 ? <p className="text-text-muted text-sm">No comparable sales found in this area. Try checking the full neighbourhood on the search page.</p> : (
@@ -428,9 +430,11 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                     </>
                   )}
                 </div>
+                </VOWLocked>
               )}
 
               {activeTab === 'history' && (() => {
+                return <VOWLocked message="Sign up to view price history">{(() => {
                 // Always show at least the current listing as an event
                 const allHistory = history.length > 0 ? history : [{
                   mlsNumber: listing.mlsNumber, listDate: listing.listDate,
@@ -461,6 +465,7 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                   </div>
                 </div>
                 );
+              })()}</VOWLocked>;
               })()}
 
               {activeTab === 'estimate' && (
