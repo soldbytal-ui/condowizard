@@ -12,7 +12,8 @@ const TEXT_MUTED = '#8B8FA3';
 const FONT = "'DM Sans', -apple-system, sans-serif";
 
 const TABS = [
-  { href: '/admin/scale', label: 'Campaigns', match: (p: string) => p === '/admin/scale' },
+  { href: '/admin/scale', label: 'Dashboard', match: (p: string) => p === '/admin/scale' },
+  { href: '/admin/scale/campaigns', label: 'Campaigns', match: (p: string) => p.startsWith('/admin/scale/campaigns') },
   { href: '/admin/scale/brain', label: 'Agent Brain', match: (p: string) => p.startsWith('/admin/scale/brain') },
   { href: '/admin/scale/settings', label: 'Settings', match: (p: string) => p.startsWith('/admin/scale/settings') },
 ];
