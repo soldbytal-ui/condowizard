@@ -1,0 +1,406 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  callAI,
+  loadScaleConfig,
+  saveScaleConfig,
+  ScaleModelConfig,
+  ScaleProvider,
+} from '@/lib/scale-ai';
+
+// ─── Provider configs ───
+interface ModelOption {
+  id: string;
+  name: string;
+  cost: string;
+  quality: number;
+  speed: number;
+  badge?: string;
+}
+interface ProviderOption {
+  id: ScaleProvider;
+  name: string;
+  description: string;
+  color: string;
+  models: ModelOption[];
+  keyPlaceholder: string;
+  docs: string;
+}
+
+const PROVIDERS: ProviderOption[] = [
+  {
+    id: 'anthropic',
+    name: 'Anthropic (direct)',
+    description: 'Direct Claude API access. Best quality for ad copy. Requires your own API key.',
+    color: '#D97706',
+    models: [
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', cost: '$3/$15 per 1M tokens', quality: 95, speed: 85, badge: 'Recommended' },
+      { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', cost: '$1/$5 per 1M tokens', quality: 80, speed: 98, badge: 'Fast & cheap' },
+    ],
+    keyPlaceholder: 'sk-ant-...',
+    docs: 'https://docs.anthropic.com',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: '300+ models through one API. Use Claude, GPT, Gemini, Llama, Mistral & more. Pay per token with credits.',
+    color: '#6366F1',
+    models: [
+      { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', cost: '$3/$15 per 1M', quality: 95, speed: 85, badge: 'Best quality' },
+      { id: 'anthropic/claude-haiku-4-5', name: 'Claude Haiku 4.5', cost: '$1/$5 per 1M', quality: 80, speed: 98 },
+      { id: 'openai/gpt-4o', name: 'GPT-4o', cost: '$2.50/$10 per 1M', quality: 90, speed: 90 },
+      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', cost: '$0.15/$0.60 per 1M', quality: 75, speed: 95, badge: 'Budget pick' },
+      { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', cost: '$1.25/$10 per 1M', quality: 88, speed: 85 },
+      { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', cost: '$0.15/$0.60 per 1M', quality: 78, speed: 97, badge: 'Ultra cheap' },
+      { id: 'meta-llama/llama-4-maverick', name: 'Llama 4 Maverick', cost: '$0.20/$0.60 per 1M', quality: 82, speed: 92 },
+      { id: 'mistralai/mistral-large', name: 'Mistral Large', cost: '$2/$6 per 1M', quality: 85, speed: 88 },
+      { id: 'deepseek/deepseek-chat-v3', name: 'DeepSeek V3', cost: '$0.14/$0.28 per 1M', quality: 80, speed: 90, badge: 'Cheapest' },
+    ],
+    keyPlaceholder: 'sk-or-...',
+    docs: 'https://openrouter.ai/docs',
+  },
+  {
+    id: 'openrouter_free',
+    name: 'OpenRouter Free',
+    description: "Free models at no cost. Lower quality but great for testing. Rate limited. No API key needed.",
+    color: '#10B981',
+    models: [
+      { id: 'openrouter/free', name: 'Auto (free router)', cost: 'Free', quality: 60, speed: 70, badge: 'Free' },
+    ],
+    keyPlaceholder: 'Optional — works without key',
+    docs: 'https://openrouter.ai/openrouter/free',
+  },
+];
+
+// ─── Icons ───
+const Check = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 7l3 3 5-5"/></svg>;
+const Zap = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 1L3 8h4l-.5 5L11 6H7l.5-5z"/></svg>;
+const Shield = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M7 1L2 3v4c0 3.5 5 6 5 6s5-2.5 5-6V3L7 1z"/></svg>;
+const Globe = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><circle cx="7" cy="7" r="5.5"/><path d="M2 7h10M7 1.5c1.5 2 2 3.5 2 5.5s-.5 3.5-2 5.5M7 1.5c-1.5 2-2 3.5-2 5.5s.5 3.5 2 5.5"/></svg>;
+const Eye = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="2"/></svg>;
+const EyeOff = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M2 2l10 10M5.5 5.5a2 2 0 002.8 2.8M1 7s2-3.5 5-4M8.5 3.3C12 4.5 13 7 13 7s-2.5 4-6 4c-.8 0-1.5-.1-2.2-.4"/></svg>;
+const ExternalLink = () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M5 1H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7M7 1h4v4M11 1L5 7"/></svg>;
+
+const S = {
+  bg: '#0B0D11', surface: 'rgba(255,255,255,0.02)', surfaceHover: 'rgba(255,255,255,0.04)',
+  border: 'rgba(255,255,255,0.06)', borderHover: 'rgba(255,255,255,0.12)',
+  accent: '#0066FF', accentSoft: 'rgba(0,102,255,0.08)', accentBorder: 'rgba(0,102,255,0.35)',
+  green: '#10B981', greenSoft: 'rgba(16,185,129,0.1)', red: '#EF4444',
+  textPrimary: '#E2E4E9', textSecondary: '#8B8FA3', textMuted: '#555B67', textDim: '#3A3F4B', white: '#fff',
+  font: "'DM Sans', -apple-system, sans-serif", mono: "'JetBrains Mono', monospace",
+};
+
+interface TestResult { ok: boolean; message: string; latency: number }
+interface CostEstimate { perProject: number; tenProjects: number }
+
+export default function ModelRouter() {
+  const [config, setConfig] = useState<ScaleModelConfig>({
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    apiKey: '',
+  });
+  const [showKey, setShowKey] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
+
+  useEffect(() => {
+    setConfig(loadScaleConfig());
+  }, []);
+
+  const save = () => {
+    saveScaleConfig(config);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const activeProvider = PROVIDERS.find((p) => p.id === config.provider);
+  const activeModel = activeProvider?.models.find((m) => m.id === config.model);
+
+  const selectProvider = (providerId: ScaleProvider) => {
+    const prov = PROVIDERS.find((p) => p.id === providerId);
+    if (!prov) return;
+    setConfig({
+      provider: providerId,
+      model: prov.models[0].id,
+      apiKey: config.provider === providerId ? config.apiKey : '',
+    });
+    setTestResult(null);
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const start = Date.now();
+    try {
+      const result = await callAI(
+        config,
+        'You are a helpful assistant. Respond in exactly one short sentence.',
+        "Say 'Scale by CondoWizard is connected!' and nothing else."
+      );
+      setTestResult({ ok: true, message: result.trim(), latency: Date.now() - start });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setTestResult({ ok: false, message, latency: Date.now() - start });
+    }
+    setTesting(false);
+  };
+
+  useEffect(() => {
+    if (!activeModel) return;
+    const costStr = activeModel.cost;
+    if (costStr === 'Free') {
+      setCostEstimate({ perProject: 0, tenProjects: 0 });
+      return;
+    }
+    const match = costStr.match(/\$([\d.]+)\/\$([\d.]+)/);
+    if (match) {
+      const inputPer1M = parseFloat(match[1]);
+      const outputPer1M = parseFloat(match[2]);
+      const perProject = (2000 * inputPer1M) / 1000000 + (2000 * outputPer1M) / 1000000;
+      setCostEstimate({ perProject, tenProjects: perProject * 10 });
+    }
+  }, [activeModel]);
+
+  return (
+    <div style={{ color: S.textPrimary, fontFamily: S.font }}>
+      <style>{`
+        @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .mr-card:hover { border-color: ${S.borderHover} !important; }
+        ::selection { background: rgba(0,102,255,0.3); }
+      `}</style>
+
+      <div style={{ padding: '28px 32px', maxWidth: 800, margin: '0 auto', animation: 'slideIn 0.25s ease' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+              Model router
+            </h1>
+            <p style={{ fontSize: 13, color: S.textSecondary, margin: '6px 0 0' }}>
+              Choose which AI provider and model power Scale. Saved locally in your browser.
+            </p>
+          </div>
+          <button onClick={save}
+            style={{ padding: '8px 20px', borderRadius: 8, background: saved ? S.greenSoft : S.accent, border: 'none', color: S.white, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: S.font, transition: 'all 0.15s' }}>
+            {saved ? 'Saved!' : 'Save configuration'}
+          </button>
+        </div>
+
+        {/* Provider selection */}
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: S.white, margin: '0 0 6px', letterSpacing: '-0.01em' }}>AI provider</h2>
+          <p style={{ fontSize: 13, color: '#6B7185', margin: '0 0 16px' }}>Choose where Scale sends API requests. Switch anytime without changing anything else.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {PROVIDERS.map((prov) => (
+              <div key={prov.id} className="mr-card" onClick={() => selectProvider(prov.id)}
+                style={{
+                  background: config.provider === prov.id ? S.accentSoft : S.surface,
+                  border: `1px solid ${config.provider === prov.id ? S.accentBorder : S.border}`,
+                  borderRadius: 12, padding: 20, cursor: 'pointer', transition: 'all 0.15s',
+                  position: 'relative',
+                }}>
+                {config.provider === prov.id && (
+                  <div style={{ position: 'absolute', top: 12, right: 12, width: 20, height: 20, borderRadius: 6, background: S.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white }}><Check /></div>
+                )}
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${prov.color}18`, color: prov.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                  {prov.id === 'anthropic' ? <Shield /> : prov.id === 'openrouter' ? <Globe /> : <Zap />}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: S.white, marginBottom: 4 }}>{prov.name}</div>
+                <div style={{ fontSize: 12, color: S.textMuted, lineHeight: 1.5 }}>{prov.description}</div>
+                <div style={{ marginTop: 10, fontSize: 11, color: prov.color }}>
+                  {prov.models.length} model{prov.models.length !== 1 ? 's' : ''} available
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Model selection */}
+        {activeProvider && (
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: S.white, margin: '0 0 6px', letterSpacing: '-0.01em' }}>Model</h2>
+            <p style={{ fontSize: 13, color: '#6B7185', margin: '0 0 16px' }}>Pick the model for ad generation. Higher quality = better copy but costs more.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {activeProvider.models.map((model) => (
+                <div key={model.id} className="mr-card" onClick={() => setConfig((c) => ({ ...c, model: model.id }))}
+                  style={{
+                    background: config.model === model.id ? S.accentSoft : S.surface,
+                    border: `1px solid ${config.model === model.id ? S.accentBorder : S.border}`,
+                    borderRadius: 10, padding: '14px 18px', cursor: 'pointer', transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', gap: 16,
+                  }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 6,
+                    border: config.model === model.id ? 'none' : '1.5px solid rgba(255,255,255,0.15)',
+                    background: config.model === model.id ? S.accent : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: S.white,
+                  }}>
+                    {config.model === model.id && <Check />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: S.white }}>{model.name}</span>
+                      {model.badge && (
+                        <span style={{
+                          fontSize: 10, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                          background: model.badge === 'Recommended' || model.badge === 'Best quality' ? S.accentSoft :
+                            model.badge === 'Free' ? S.greenSoft :
+                            model.badge.toLowerCase().includes('cheap') ? 'rgba(16,185,129,0.1)' :
+                            'rgba(245,158,11,0.1)',
+                          color: model.badge === 'Recommended' || model.badge === 'Best quality' ? '#4D9FFF' :
+                            model.badge === 'Free' ? S.green :
+                            model.badge.toLowerCase().includes('cheap') ? S.green :
+                            '#F59E0B',
+                        }}>{model.badge}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono }}>{model.cost}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, color: S.textMuted, marginBottom: 4 }}>Quality</div>
+                      <div style={{ width: 60, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                        <div style={{ width: `${model.quality}%`, height: '100%', borderRadius: 2, background: model.quality >= 90 ? S.accent : model.quality >= 75 ? '#F59E0B' : S.textMuted, transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, color: S.textMuted, marginBottom: 4 }}>Speed</div>
+                      <div style={{ width: 60, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                        <div style={{ width: `${model.speed}%`, height: '100%', borderRadius: 2, background: model.speed >= 90 ? S.green : model.speed >= 75 ? '#F59E0B' : S.textMuted, transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* API Key */}
+        {activeProvider && activeProvider.id !== 'openrouter_free' && (
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: S.white, margin: '0 0 6px', letterSpacing: '-0.01em' }}>API key</h2>
+            <p style={{ fontSize: 13, color: '#6B7185', margin: '0 0 16px' }}>
+              Your key is stored locally and never sent anywhere except {activeProvider.name}.{' '}
+              <a href={activeProvider.docs} target="_blank" rel="noreferrer" style={{ color: S.accent, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                Get a key <ExternalLink />
+              </a>
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={config.apiKey}
+                  onChange={(e) => setConfig((c) => ({ ...c, apiKey: e.target.value }))}
+                  placeholder={activeProvider.keyPlaceholder}
+                  style={{
+                    width: '100%', padding: '12px 40px 12px 14px', borderRadius: 8,
+                    background: S.surface, border: `1px solid ${S.border}`,
+                    color: S.textPrimary, fontSize: 13, fontFamily: S.mono, outline: 'none',
+                  }}
+                />
+                <button onClick={() => setShowKey(!showKey)}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: S.textMuted, cursor: 'pointer', padding: 4 }}>
+                  {showKey ? <EyeOff /> : <Eye />}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeProvider?.id === 'openrouter_free' && (
+          <div style={{ marginBottom: 32, padding: '16px 20px', borderRadius: 10, background: S.greenSoft, border: '1px solid rgba(16,185,129,0.2)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: S.green, marginBottom: 4 }}>No API key required</div>
+            <div style={{ fontSize: 13, color: '#6EE7B7', lineHeight: 1.5 }}>
+              OpenRouter&apos;s free tier works without an API key. Models are selected automatically. Quality is lower than paid models and requests are rate-limited, but it&apos;s great for testing.
+            </div>
+          </div>
+        )}
+
+        {/* Cost estimate */}
+        {costEstimate && (
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: S.white, margin: '0 0 6px', letterSpacing: '-0.01em' }}>Cost estimate</h2>
+            <p style={{ fontSize: 13, color: '#6B7185', margin: '0 0 16px' }}>Estimated API cost for ad generation (does not include ad spend).</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: S.white }}>
+                  {costEstimate.perProject === 0 ? 'Free' : `$${costEstimate.perProject.toFixed(4)}`}
+                </div>
+                <div style={{ fontSize: 12, color: S.textMuted }}>Per project</div>
+              </div>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: S.white }}>
+                  {costEstimate.tenProjects === 0 ? 'Free' : `$${costEstimate.tenProjects.toFixed(3)}`}
+                </div>
+                <div style={{ fontSize: 12, color: S.textMuted }}>10 projects</div>
+              </div>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: S.white }}>
+                  {costEstimate.tenProjects === 0 ? 'Free' : `$${(costEstimate.tenProjects * 30).toFixed(2)}`}
+                </div>
+                <div style={{ fontSize: 12, color: S.textMuted }}>Daily × 30 days</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Test connection */}
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: S.white, margin: '0 0 6px', letterSpacing: '-0.01em' }}>Test connection</h2>
+          <p style={{ fontSize: 13, color: '#6B7185', margin: '0 0 16px' }}>Send a test request to verify your configuration works.</p>
+          <button onClick={testConnection} disabled={testing || (activeProvider?.id !== 'openrouter_free' && !config.apiKey)}
+            style={{
+              padding: '12px 24px', borderRadius: 8,
+              background: testing ? S.surfaceHover : S.accent,
+              border: 'none', color: S.white, fontSize: 14, fontWeight: 600,
+              cursor: testing || (activeProvider?.id !== 'openrouter_free' && !config.apiKey) ? 'not-allowed' : 'pointer',
+              fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 8,
+              opacity: (activeProvider?.id !== 'openrouter_free' && !config.apiKey) ? 0.4 : 1,
+            }}>
+            {testing ? (
+              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: S.white, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Testing...</>
+            ) : (
+              <><Zap /> Test connection</>
+            )}
+          </button>
+
+          {testResult && (
+            <div style={{
+              marginTop: 12, padding: '14px 18px', borderRadius: 10,
+              background: testResult.ok ? S.greenSoft : 'rgba(239,68,68,0.06)',
+              border: `1px solid ${testResult.ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+              animation: 'slideIn 0.2s ease',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: testResult.ok ? S.green : S.red }}>
+                  {testResult.ok ? 'Connected' : 'Failed'}
+                </span>
+                <span style={{ fontSize: 11, color: S.textMuted, fontFamily: S.mono }}>{testResult.latency}ms</span>
+              </div>
+              <div style={{ fontSize: 12, color: testResult.ok ? '#6EE7B7' : '#FCA5A5', fontFamily: S.mono, lineHeight: 1.5 }}>
+                {testResult.message}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Integration guide */}
+        <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: S.white, margin: '0 0 12px', letterSpacing: '-0.01em' }}>How this connects to Scale</h3>
+          <div style={{ fontSize: 13, color: '#8B8FA3', lineHeight: 1.7 }}>
+            <p style={{ margin: '0 0 12px' }}>
+              Your model configuration is saved to <code style={{ fontFamily: S.mono, fontSize: 12, padding: '2px 6px', borderRadius: 4, background: S.surfaceHover }}>localStorage</code> and loaded by the Campaigns page and Agent Brain chat.
+            </p>
+            <p style={{ margin: 0 }}>
+              The flow: <span style={{ color: '#C8CBD3' }}>Campaigns</span> → <span style={{ color: '#C8CBD3' }}>Agent Brain</span> rules injected → request to <span style={{ color: '#C8CBD3' }}>{activeProvider?.name || 'your provider'}</span> via <span style={{ color: '#C8CBD3' }}>{activeModel?.name || 'your model'}</span> → structured ad copy.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -50,6 +50,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/settings', label: 'Settings', icon: '⚙' },
   ];
 
+  const isScaleActive = pathname?.startsWith('/admin/scale');
+
   return (
     <div className="min-h-screen bg-bg flex">
       {/* Mobile overlay */}
@@ -81,6 +83,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {item.label}
               </Link>
             ))}
+
+            <Link
+              href="/admin/scale"
+              className={`flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-sm transition-colors border ${
+                isScaleActive
+                  ? 'border-blue-500/40 bg-blue-500/10'
+                  : 'border-border hover:border-blue-500/30 hover:bg-surface2'
+              }`}
+            >
+              <span
+                className="flex-shrink-0 flex items-center justify-center"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 1.5L14 4.5v3c0 4-2.7 6.7-6 7-3.3-.3-6-3-6-7v-3L8 1.5z" />
+                  <path d="M6 8l1.5 1.5L10.5 6.5" />
+                </svg>
+              </span>
+              <span className="flex-1">
+                <span className={`block text-sm font-medium ${isScaleActive ? 'text-white' : 'text-text-primary'}`}>Scale</span>
+                <span className="block text-[10px] text-text-muted">AI Ad Automation</span>
+              </span>
+            </Link>
           </nav>
 
           <div className="p-3 border-t border-border">
