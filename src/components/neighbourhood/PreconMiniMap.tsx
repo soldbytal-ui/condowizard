@@ -24,9 +24,8 @@ interface Props {
   neighbourhoodName: string;
 }
 
-const FILL_PAINT = { 'fill-color': '#FBBF24', 'fill-opacity': 0.08 };
-const LINE_PAINT = { 'line-color': '#FBBF24', 'line-width': 2, 'line-opacity': 0.6 };
-const PIN_PAINT = { 'circle-radius': 7, 'circle-color': '#FBBF24', 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff', 'circle-opacity': 0.95 };
+const FILL_PAINT = { 'fill-color': '#FBBF24', 'fill-opacity': 0.06 };
+const LINE_PAINT = { 'line-color': '#FBBF24', 'line-width': 2, 'line-opacity': 0.5 };
 
 export default function PreconMiniMap({ projects, boundary, neighbourhoodName }: Props) {
   const mapRef = useRef<MapRef>(null);
@@ -45,28 +44,47 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
     }, 100);
   }, [boundary]);
 
+  // Add 3D city buildings from Mapbox composite source
+  const handleLoad = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const layers = map.getStyle().layers || [];
+    const labelLayerId = layers.find((l: any) => l.type === 'symbol' && l.layout?.['text-field'])?.id;
+
+    if (!map.getLayer('3d-buildings-mini')) {
+      map.addLayer({
+        id: '3d-buildings-mini',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['==', 'extrude', 'true'],
+        type: 'fill-extrusion',
+        minzoom: 12,
+        paint: {
+          'fill-extrusion-color': [
+            'interpolate', ['linear'], ['get', 'height'],
+            0, '#16181e', 50, '#1e2028', 100, '#252730',
+          ],
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['get', 'min_height'],
+          'fill-extrusion-opacity': 0.7,
+        },
+      }, labelLayerId);
+    }
+  }, []);
+
   const boundaryGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => {
     if (!boundary) return { type: 'FeatureCollection', features: [] };
     return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: boundary }, properties: {} }] };
   }, [boundary]);
 
-  const pinsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
-    type: 'FeatureCollection',
-    features: projects.filter(p => p.lat && p.lng).map(p => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
-      properties: { slug: p.slug, name: p.name },
-    })),
-  }), [projects]);
-
   const extrusionsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
     features: projects.filter(p => p.lat && p.lng).map(p => {
-      const s = 0.0003;
+      const s = 0.00025;
       return {
         type: 'Feature' as const,
         geometry: { type: 'Polygon' as const, coordinates: [[[p.lng-s,p.lat-s],[p.lng+s,p.lat-s],[p.lng+s,p.lat+s],[p.lng-s,p.lat+s],[p.lng-s,p.lat-s]]] },
-        properties: { height: (p.floors || 5) * 3.5, name: p.name },
+        properties: { height: (p.floors || 5) * 3.5, name: p.name, slug: p.slug },
       };
     }),
   }), [projects]);
@@ -85,13 +103,14 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
     <div className="h-72 md:h-96 rounded-xl overflow-hidden border border-border">
       <Map
         ref={mapRef}
-        initialViewState={{ longitude: -79.38, latitude: 43.65, zoom: 13, pitch: 50, bearing: -15 }}
+        initialViewState={{ longitude: -79.38, latitude: 43.65, zoom: 13, pitch: 55, bearing: -15 }}
+        onLoad={handleLoad}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
         onClick={handleClick}
-        interactiveLayerIds={['precon-pins']}
+        interactiveLayerIds={['precon-columns', 'precon-glow']}
         cursor="pointer"
       >
         <NavigationControl position="top-right" showCompass={false} />
@@ -102,18 +121,25 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
         </Source>
 
         <Source id="precon-extrusions" type="geojson" data={extrusionsGeoJSON}>
-          <Layer id="precon-extrusion-layer" type="fill-extrusion" paint={{
-            'fill-extrusion-color': '#FBBF24', 'fill-extrusion-height': ['get', 'height'],
-            'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.6,
+          {/* Glow layer */}
+          <Layer id="precon-glow" type="fill-extrusion" paint={{
+            'fill-extrusion-color': '#FBBF24',
+            'fill-extrusion-height': ['*', ['get', 'height'], 1.1],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.15,
           }} />
-        </Source>
-
-        <Source id="precon-pins-src" type="geojson" data={pinsGeoJSON}>
-          <Layer id="precon-pins" type="circle" paint={PIN_PAINT} />
+          {/* Main column */}
+          <Layer id="precon-columns" type="fill-extrusion" paint={{
+            'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'height'], 0, '#F59E0B', 30, '#FBBF24', 80, '#FCD34D'],
+            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.85,
+          }} />
+          {/* Labels */}
           <Layer id="precon-labels" type="symbol" layout={{
             'text-field': ['get', 'name'], 'text-size': 10,
             'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-            'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-optional': true,
+            'text-offset': [0, -1], 'text-anchor': 'bottom', 'text-optional': true,
           }} paint={{ 'text-color': '#FBBF24', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1 }} minzoom={13} />
         </Source>
 

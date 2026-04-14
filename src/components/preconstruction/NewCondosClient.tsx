@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { formatPrice } from '@/lib/utils';
@@ -51,6 +51,15 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
   const [status, setStatus] = useState('All');
   const [sort, setSort] = useState('newest');
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleMapHighlight = useCallback((slug: string | null) => {
+    setHighlightedSlug(slug);
+    if (slug && listRef.current) {
+      const card = listRef.current.querySelector(`[data-slug="${slug}"]`);
+      card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     let list = [...projects];
@@ -113,7 +122,7 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
       {/* Split view */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: project cards */}
-        <div className="w-full lg:w-[55%] overflow-y-auto bg-bg p-4">
+        <div ref={listRef} className="w-full lg:w-[55%] overflow-y-auto bg-bg p-4">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 bg-bt-precon/20 rounded-full flex items-center justify-center mb-4"><span className="text-2xl">🏗</span></div>
@@ -126,7 +135,8 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
                 <Link
                   key={p.id}
                   href={`/properties/${p.slug}`}
-                  className={`block bg-white rounded-xl border overflow-hidden hover:shadow-md transition-all ${highlightedSlug === p.slug ? 'border-accent-blue ring-2 ring-accent-blue/20' : 'border-border'}`}
+                  data-slug={p.slug}
+                  className={`block bg-white rounded-xl border overflow-hidden hover:shadow-md transition-all ${highlightedSlug === p.slug ? 'border-amber-400 ring-2 ring-amber-400/30 shadow-lg' : 'border-border'}`}
                   onMouseEnter={() => setHighlightedSlug(p.slug)}
                   onMouseLeave={() => setHighlightedSlug(null)}
                 >
@@ -168,7 +178,7 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
 
         {/* Right: 3D map */}
         <div className="hidden lg:block lg:w-[45%]">
-          <PreconMap projects={mapProjects} highlightedSlug={highlightedSlug} />
+          <PreconMap projects={mapProjects} highlightedSlug={highlightedSlug} onHighlight={handleMapHighlight} />
         </div>
       </div>
     </div>

@@ -21,23 +21,51 @@ interface MapProject {
 interface Props {
   projects: MapProject[];
   highlightedSlug: string | null;
+  onHighlight?: (slug: string | null) => void;
 }
 
-const PIN_PAINT = {
-  'circle-radius': ['case', ['boolean', ['feature-state', 'highlighted'], false], 9, 6],
-  'circle-color': '#FBBF24',
-  'circle-stroke-width': 2,
-  'circle-stroke-color': '#ffffff',
-  'circle-opacity': 0.95,
-};
-
-export default function PreconMap({ projects, highlightedSlug }: Props) {
+export default function PreconMap({ projects, highlightedSlug, onHighlight }: Props) {
   const mapRef = useRef<MapRef>(null);
   const [popup, setPopup] = useState<MapProject | null>(null);
 
   const [viewState, setViewState] = useState({
     longitude: -79.3832, latitude: 43.6632, zoom: 12, pitch: 55, bearing: -15,
   });
+
+  // Add 3D city buildings from Mapbox composite source on map load
+  const handleLoad = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const layers = map.getStyle().layers || [];
+    const labelLayerId = layers.find((l: any) => l.type === 'symbol' && l.layout?.['text-field'])?.id;
+
+    if (!map.getLayer('3d-buildings')) {
+      map.addLayer({
+        id: '3d-buildings',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['==', 'extrude', 'true'],
+        type: 'fill-extrusion',
+        minzoom: 12,
+        paint: {
+          'fill-extrusion-color': [
+            'interpolate', ['linear'], ['get', 'height'],
+            0, '#16181e', 50, '#1e2028', 100, '#252730', 200, '#2d3040',
+          ],
+          'fill-extrusion-height': [
+            'interpolate', ['linear'], ['zoom'],
+            12, 0, 12.5, ['get', 'height'],
+          ],
+          'fill-extrusion-base': [
+            'interpolate', ['linear'], ['zoom'],
+            12, 0, 12.5, ['get', 'min_height'],
+          ],
+          'fill-extrusion-opacity': 0.7,
+        },
+      }, labelLayerId);
+    }
+  }, []);
 
   // Fly to highlighted project
   useEffect(() => {
@@ -54,22 +82,11 @@ export default function PreconMap({ projects, highlightedSlug }: Props) {
     }
   }, [highlightedSlug, projects]);
 
-  // GeoJSON for project pins
-  const pinsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
-    type: 'FeatureCollection',
-    features: projects.map((p) => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
-      properties: { slug: p.slug, name: p.name, price: p.price, floors: p.floors, developer: p.developer, image: p.image },
-    })),
-  }), [projects]);
-
   // GeoJSON for 3D building extrusions (height based on floor count)
   const extrusionsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
     features: projects.map((p) => {
-      // Create a small polygon around the point for extrusion
-      const size = 0.0003; // ~30m
+      const size = 0.00025;
       return {
         type: 'Feature' as const,
         geometry: {
@@ -88,9 +105,14 @@ export default function PreconMap({ projects, highlightedSlug }: Props) {
   const handleClick = useCallback((e: MapLayerMouseEvent) => {
     const feature = e.features?.[0];
     if (feature?.properties?.slug) {
-      window.open(`/properties/${feature.properties.slug}`, '_self');
+      const slug = feature.properties.slug;
+      const p = projects.find((pr) => pr.slug === slug);
+      if (p) {
+        setPopup(p);
+        onHighlight?.(slug);
+      }
     }
-  }, []);
+  }, [projects, onHighlight]);
 
   const handleMouseMove = useCallback((e: MapLayerMouseEvent) => {
     const feature = e.features?.[0];
@@ -107,10 +129,11 @@ export default function PreconMap({ projects, highlightedSlug }: Props) {
       ref={mapRef}
       {...viewState}
       onMove={(evt) => setViewState(evt.viewState)}
+      onLoad={handleLoad}
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setPopup(null)}
-      interactiveLayerIds={['precon-pins']}
+      interactiveLayerIds={['precon-columns', 'precon-glow']}
       cursor={popup ? 'pointer' : 'grab'}
       mapboxAccessToken={MAPBOX_TOKEN}
       mapStyle="mapbox://styles/mapbox/dark-v11"
@@ -119,31 +142,42 @@ export default function PreconMap({ projects, highlightedSlug }: Props) {
     >
       <NavigationControl position="top-right" />
 
-      {/* 3D Building extrusions */}
+      {/* Amber/gold extruded columns */}
       <Source id="precon-extrusions" type="geojson" data={extrusionsGeoJSON}>
+        {/* Glow layer — wider, semi-transparent */}
         <Layer
-          id="precon-extrusion-layer"
+          id="precon-glow"
           type="fill-extrusion"
           paint={{
             'fill-extrusion-color': '#FBBF24',
-            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-height': ['*', ['get', 'height'], 1.1],
             'fill-extrusion-base': 0,
-            'fill-extrusion-opacity': 0.6,
+            'fill-extrusion-opacity': 0.15,
           }}
         />
-      </Source>
-
-      {/* Project pins */}
-      <Source id="precon-pins-source" type="geojson" data={pinsGeoJSON}>
-        <Layer id="precon-pins" type="circle" paint={PIN_PAINT as any} />
+        {/* Main column */}
+        <Layer
+          id="precon-columns"
+          type="fill-extrusion"
+          paint={{
+            'fill-extrusion-color': [
+              'interpolate', ['linear'], ['get', 'height'],
+              0, '#F59E0B', 30, '#FBBF24', 80, '#FCD34D',
+            ],
+            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.85,
+          }}
+        />
+        {/* Labels */}
         <Layer
           id="precon-labels" type="symbol"
           layout={{
             'text-field': ['get', 'name'],
             'text-size': 10,
             'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-            'text-offset': [0, 1.2],
-            'text-anchor': 'top',
+            'text-offset': [0, -1],
+            'text-anchor': 'bottom',
             'text-optional': true,
           }}
           paint={{ 'text-color': '#FBBF24', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1 }}
