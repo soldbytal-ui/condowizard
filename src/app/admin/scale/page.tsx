@@ -30,6 +30,16 @@ interface GoogleAdsStatus {
   customerId?: string | null;
 }
 
+// Mirror of CRM lead shape — kept narrow so we don't import from /crm.
+interface CrmLead {
+  id: string;
+  name: string;
+  source: string;
+  interest: string;
+  status: 'new' | 'contacted' | 'showing' | 'offer' | 'under_contract' | 'closed' | 'lost';
+  createdAt: string;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Theme
 // ═══════════════════════════════════════════════════════════════
@@ -81,6 +91,21 @@ const QUICK_ACTIONS = [
 
 const SCALE_HISTORY_STORAGE_KEY = 'scale-campaign-history';
 const SCALE_BRAIN_STORAGE_KEY = 'scale-agent-brain';
+const CRM_LEADS_STORAGE_KEY = 'scale-crm-leads';
+
+const LEAD_STATUS_LABELS: Record<CrmLead['status'], string> = {
+  new: 'New', contacted: 'Contacted', showing: 'Showing', offer: 'Offer',
+  under_contract: 'Under Contract', closed: 'Closed', lost: 'Lost',
+};
+const LEAD_STATUS_COLORS: Record<CrmLead['status'], { color: string; bg: string; border: string }> = {
+  new:            { color: '#93C5FD', bg: 'rgba(0,102,255,0.16)',   border: 'rgba(0,102,255,0.4)' },
+  contacted:      { color: '#FCD34D', bg: 'rgba(245,158,11,0.16)',  border: 'rgba(245,158,11,0.4)' },
+  showing:        { color: '#C4B5FD', bg: 'rgba(139,92,246,0.16)',  border: 'rgba(139,92,246,0.4)' },
+  offer:          { color: '#67E8F9', bg: 'rgba(6,182,212,0.16)',   border: 'rgba(6,182,212,0.4)' },
+  under_contract: { color: '#6EE7B7', bg: 'rgba(16,185,129,0.16)',  border: 'rgba(16,185,129,0.4)' },
+  closed:         { color: '#A7F3D0', bg: 'rgba(4,120,87,0.22)',    border: 'rgba(4,120,87,0.5)' },
+  lost:           { color: '#9CA3AF', bg: 'rgba(107,113,133,0.18)', border: 'rgba(107,113,133,0.4)' },
+};
 
 // ═══════════════════════════════════════════════════════════════
 // Main dashboard
@@ -90,11 +115,19 @@ export default function ScaleDashboard() {
   const [brainCategories, setBrainCategories] = useState<BrainCategory[]>([]);
   const [config, setConfig] = useState<ScaleModelConfig | null>(null);
   const [googleStatus, setGoogleStatus] = useState<GoogleAdsStatus | null>(null);
+  const [leads, setLeads] = useState<CrmLead[]>([]);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SCALE_HISTORY_STORAGE_KEY);
       if (raw) setHistory(JSON.parse(raw));
+    } catch {}
+    try {
+      const raw = localStorage.getItem(CRM_LEADS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setLeads(parsed);
+      }
     } catch {}
     try {
       const raw = localStorage.getItem(SCALE_BRAIN_STORAGE_KEY);
@@ -153,6 +186,27 @@ export default function ScaleDashboard() {
   const recent = history.slice(0, 10);
   const providerLabel = config ? prettyProvider(config.provider) : '—';
 
+  // CRM-derived metrics
+  const leadsThisWeek = useMemo(() => {
+    const cutoff = Date.now() - 7 * 86400000;
+    return leads.filter((l) => {
+      const t = new Date(l.createdAt).getTime();
+      return !Number.isNaN(t) && t >= cutoff;
+    }).length;
+  }, [leads]);
+
+  const costPerLead: number | null = useMemo(() => {
+    if (totalAdSpend <= 0 || leads.length === 0) return null;
+    return Math.round(totalAdSpend / leads.length);
+  }, [totalAdSpend, leads.length]);
+
+  const recentLeads = useMemo(
+    () => [...leads]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5),
+    [leads]
+  );
+
   return (
     <div style={{ fontFamily: S.font, color: S.pageHeading, fontSize: 16, lineHeight: 1.6, background: S.pageBg, minHeight: '100%' }}>
       <style>{`
@@ -195,13 +249,14 @@ export default function ScaleDashboard() {
             />
             <MetricCard
               label="Leads This Week"
-              value="—"
-              subtitle="Connect CRM to track"
+              value={leadsThisWeek.toString()}
+              subtitle={leads.length === 0 ? 'No leads yet' : `${leads.length} total in CRM`}
             />
             <MetricCard
               label="Cost Per Lead"
-              value="—"
-              subtitle="Awaiting data"
+              value={costPerLead === null ? '—' : `$${costPerLead}`}
+              subtitle={costPerLead === null ? 'Push a campaign + add leads' : 'spend ÷ leads'}
+              mono
             />
           </div>
         </section>
@@ -321,6 +376,65 @@ export default function ScaleDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Section 3.5 — Recent leads (from CRM) */}
+        <section style={{ marginBottom: 40 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={sectionLabelStyle}>Recent leads</div>
+            <Link href="/admin/scale/crm" style={{ fontSize: 15, color: S.accent, fontWeight: 500 }}>
+              View all →
+            </Link>
+          </div>
+          <div style={{
+            background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16,
+            overflow: 'hidden', boxShadow: CARD_SHADOW, color: S.textPrimary,
+          }}>
+            {recentLeads.length === 0 ? (
+              <div style={{ padding: 36, textAlign: 'center', color: S.textMuted, fontSize: 14, lineHeight: 1.6 }}>
+                No leads yet. <Link href="/admin/scale/crm" style={{ color: S.accent }}>Add your first lead →</Link>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {recentLeads.map((l, i) => {
+                  const c = LEAD_STATUS_COLORS[l.status] || LEAD_STATUS_COLORS.new;
+                  return (
+                    <Link
+                      key={l.id}
+                      href="/admin/scale/crm"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 16,
+                        padding: '16px 20px',
+                        borderBottom: i === recentLeads.length - 1 ? 'none' : `1px solid ${S.border}`,
+                        color: S.textPrimary,
+                      }}
+                    >
+                      <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: S.white, marginBottom: 2 }}>{l.name}</div>
+                        <div style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono }}>{l.source}</div>
+                      </div>
+                      <div style={{ flex: '2 1 220px', fontSize: 14, color: S.textSecondary, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {l.interest || '—'}
+                      </div>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 7,
+                        padding: '5px 12px', borderRadius: 100,
+                        background: c.bg, color: c.color,
+                        fontSize: 12, fontWeight: 600,
+                        border: `1px solid ${c.border}`,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {LEAD_STATUS_LABELS[l.status]}
+                      </span>
+                      <span style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono, whiteSpace: 'nowrap', minWidth: 70, textAlign: 'right' }}>
+                        {formatRelativeDate(l.createdAt)}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>
