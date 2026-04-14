@@ -119,7 +119,8 @@ export default async function NeighbourhoodPage({ params }: Props) {
   const { data: preconRaw } = await supabase
     .from('projects')
     .select('*, neighborhood:neighborhoods(*), developer:developers(*)')
-    .neq('status', 'COMPLETED');
+    .neq('status', 'COMPLETED')
+    .neq('status', 'ARCHIVED');
 
   // Filter precon by name match (neighbourhood name in either the Supabase hood name or address)
   const preconProjects = (preconRaw || [])

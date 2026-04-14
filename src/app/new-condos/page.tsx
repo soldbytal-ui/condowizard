@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'New Condos in Toronto | Pre-Construction Projects',
-  description: 'Browse 800+ pre-construction condo, townhome, and detached projects across the Greater Toronto Area with interactive 3D map.',
+  description: 'Browse 600+ pre-construction condo, townhome, and detached projects across the Greater Toronto Area with interactive 3D map.',
   alternates: { canonical: 'https://condowizard.ca/new-condos' },
   openGraph: {
     title: 'New Condos in Toronto | Pre-Construction Projects',
@@ -23,11 +23,12 @@ export default async function NewCondosPage() {
       .from('projects')
       .select('*, neighborhood:neighborhoods(*), developer:developers(*)')
       .neq('status', 'COMPLETED')
+      .neq('status', 'ARCHIVED')
       .order('createdAt', { ascending: false }),
     supabase.from('neighborhoods').select('*').order('name'),
   ]);
 
-  // Sort: featured first, then real images, then Unsplash, then no image
+  // Sort: featured first, then real images + data, then Unsplash, then no image
   const allProjects = (projects || []).sort((a: any, b: any) => {
     // Featured always first
     if (a.featured && !b.featured) return -1;
@@ -37,7 +38,11 @@ export default async function NewCondosPage() {
     const bReal = b.mainImageUrl && !b.mainImageUrl.includes('unsplash');
     if (aReal && !bReal) return -1;
     if (!aReal && bReal) return 1;
-    // Then any image vs no image
+    // Among same image tier, prefer projects with more data
+    const aData = (a.description ? 2 : 0) + (a.floors ? 1 : 0) + (a.priceMin ? 1 : 0);
+    const bData = (b.description ? 2 : 0) + (b.floors ? 1 : 0) + (b.priceMin ? 1 : 0);
+    if (aData !== bData) return bData - aData;
+    // Then Unsplash images vs no image
     if (a.mainImageUrl && !b.mainImageUrl) return -1;
     if (!a.mainImageUrl && b.mainImageUrl) return 1;
     return 0;

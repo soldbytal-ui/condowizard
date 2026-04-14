@@ -82,9 +82,7 @@ export default function Navbar() {
         <NavSearch />
 
         <div className="hidden md:flex items-center gap-1">
-          <Link href="/search" className={`btn-ghost text-sm ${isSearch ? 'text-accent-blue' : ''}`}>Buy</Link>
-          <Link href="/search?tab=rent" className="btn-ghost text-sm">Rent</Link>
-          <Link href="/search?tab=sold" className="btn-ghost text-sm">Sold</Link>
+          <Link href="/search" className={`btn-ghost text-sm ${isSearch ? 'text-accent-blue' : ''}`}>MLS</Link>
           <Link href="/new-condos" className="btn-ghost text-sm">Pre-Construction</Link>
           <div
             className="relative"
@@ -163,9 +161,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-border shadow-lg">
           <div className="container-main py-4 space-y-1">
-            <Link href="/search" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors font-medium">Buy</Link>
-            <Link href="/search?tab=rent" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Rent</Link>
-            <Link href="/search?tab=sold" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Sold Data</Link>
+            <Link href="/search" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors font-medium">MLS</Link>
             <Link href="/new-condos" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Pre-Construction</Link>
             <div className="pt-2 border-t border-border mt-2">
               <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Explore</p>

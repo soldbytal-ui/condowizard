@@ -21,7 +21,8 @@ export default async function ProjectsPage({ searchParams }: Props) {
 
   let projectQuery = supabase
     .from('projects')
-    .select('*, neighborhood:neighborhoods(*), developer:developers(*)');
+    .select('*, neighborhood:neighborhoods(*), developer:developers(*)')
+    .neq('status', 'ARCHIVED');
 
   if (q) projectQuery = projectQuery.ilike('name', `%${q}%`);
   if (status) projectQuery = projectQuery.eq('status', status);
