@@ -35,6 +35,23 @@ interface Props {
   neighborhoods: { id: string; name: string; slug: string }[];
 }
 
+function estimateFloors(p: { floors: number | null; totalUnits: number | null; priceMin: number | null; category: string }): number {
+  if (p.floors && p.floors > 0) return p.floors;
+  if (p.totalUnits) {
+    if (p.totalUnits > 500) return 50;
+    if (p.totalUnits > 300) return 40;
+    if (p.totalUnits > 150) return 30;
+    if (p.totalUnits > 50) return 20;
+    return 10;
+  }
+  if (p.priceMin) {
+    if (p.priceMin > 1500000) return 40;
+    if (p.priceMin > 800000) return 25;
+  }
+  // Vary defaults to avoid everything being the same height
+  return 15 + Math.abs(p.category?.charCodeAt(0) || 0) % 20;
+}
+
 const STATUS_OPTIONS = ['All', 'PRE_LAUNCH', 'PRE_CONSTRUCTION', 'UNDER_CONSTRUCTION', 'NEAR_COMPLETION', 'COMPLETED'];
 const STATUS_LABELS: Record<string, string> = {
   All: 'All Status',
@@ -83,7 +100,7 @@ export default function NewCondosClient({ projects, neighborhoods }: Props) {
       name: p.name,
       lat: p.latitude!,
       lng: p.longitude!,
-      floors: p.floors || 1,
+      floors: estimateFloors(p),
       price: p.priceMin,
       image: p.mainImageUrl || p.images?.[0] || null,
       developer: p.developer?.name || null,

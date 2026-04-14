@@ -145,14 +145,28 @@ export default async function NeighbourhoodPage({ params }: Props) {
       const searchName = name.toLowerCase();
       return hoodName.includes(searchName) || addr.includes(searchName);
     })
-    .map((p: any) => ({
-      name: p.name, slug: p.slug,
-      lat: p.latitude || 0, lng: p.longitude || 0,
-      floors: p.floors, priceMin: p.priceMin,
-      developer: p.developer?.name || null,
-      image: p.mainImageUrl || null,
-      units: p.totalUnits, estCompletion: p.estCompletion,
-    }));
+    .map((p: any) => {
+      // Estimate floors for visual variety when actual data is missing
+      let floors = p.floors;
+      if (!floors || floors <= 0) {
+        if (p.totalUnits > 500) floors = 50;
+        else if (p.totalUnits > 300) floors = 40;
+        else if (p.totalUnits > 150) floors = 30;
+        else if (p.totalUnits > 50) floors = 20;
+        else if (p.totalUnits > 0) floors = 10;
+        else if (p.priceMin > 1500000) floors = 40;
+        else if (p.priceMin > 800000) floors = 25;
+        else floors = 12 + (p.name?.charCodeAt(0) || 0) % 25; // varied default
+      }
+      return {
+        name: p.name, slug: p.slug,
+        lat: p.latitude || 0, lng: p.longitude || 0,
+        floors, priceMin: p.priceMin,
+        developer: p.developer?.name || null,
+        image: p.mainImageUrl || null,
+        units: p.totalUnits, estCompletion: p.estCompletion,
+      };
+    });
 
   const { data: hoodInfo } = await supabase.from('neighborhoods').select('*').eq('slug', params.slug).single();
 
