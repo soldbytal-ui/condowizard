@@ -105,10 +105,18 @@ export default function ModelRouter() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [saved, setSaved] = useState(false);
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setConfig(loadScaleConfig());
+    setHydrated(true);
   }, []);
+
+  // Auto-persist any config change so switching tabs never loses the API key.
+  useEffect(() => {
+    if (!hydrated) return;
+    saveScaleConfig(config);
+  }, [config, hydrated]);
 
   const save = () => {
     saveScaleConfig(config);
@@ -122,11 +130,12 @@ export default function ModelRouter() {
   const selectProvider = (providerId: ScaleProvider) => {
     const prov = PROVIDERS.find((p) => p.id === providerId);
     if (!prov) return;
-    setConfig({
+    // Preserve the apiKey across provider switches — user's request.
+    setConfig((c) => ({
       provider: providerId,
       model: prov.models[0].id,
-      apiKey: config.provider === providerId ? config.apiKey : '',
-    });
+      apiKey: c.apiKey,
+    }));
     setTestResult(null);
   };
 

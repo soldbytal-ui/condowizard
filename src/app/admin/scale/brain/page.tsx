@@ -317,7 +317,7 @@ When the user asks you to generate ad copy, test a headline, or review content, 
         </div>
       </div>
 
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 56px - 71px)' }}>
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px - 71px)' }}>
         {/* Sidebar — categories */}
         <div style={{ width: 240, borderRight: `1px solid ${S.border}`, padding: '16px 12px', overflowY: 'auto', flexShrink: 0 }}>
           <div style={{ fontSize: 10, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, padding: '0 8px' }}>Categories</div>

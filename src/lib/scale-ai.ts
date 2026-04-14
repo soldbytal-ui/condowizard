@@ -44,6 +44,18 @@ export function saveScaleConfig(config: ScaleModelConfig) {
   window.localStorage.setItem(SCALE_CONFIG_STORAGE_KEY, JSON.stringify(config));
 }
 
+/**
+ * Merge a partial config into whatever's already stored. Used to persist a
+ * single field (e.g. just the apiKey or just the model) without clobbering
+ * the rest. Returns the resulting full config.
+ */
+export function patchScaleConfig(patch: Partial<ScaleModelConfig>): ScaleModelConfig {
+  const current = loadScaleConfig();
+  const next: ScaleModelConfig = { ...current, ...patch };
+  saveScaleConfig(next);
+  return next;
+}
+
 interface BrainEntry { id: string; text: string; active: boolean }
 interface BrainCategory { id: string; label: string; entries: BrainEntry[] }
 

@@ -5,9 +5,8 @@ import { usePathname } from 'next/navigation';
 
 const BG = '#0B0D11';
 const BORDER = 'rgba(255,255,255,0.06)';
-const ACCENT = '#0066FF';
-const ACCENT_SOFT = 'rgba(0,102,255,0.10)';
-const ACCENT_BORDER = 'rgba(0,102,255,0.35)';
+const ACCENT_SOFT = 'rgba(0,102,255,0.12)';
+const ACCENT_BORDER = 'rgba(0,102,255,0.4)';
 const TEXT_PRIMARY = '#E2E4E9';
 const TEXT_MUTED = '#8B8FA3';
 const FONT = "'DM Sans', -apple-system, sans-serif";
@@ -22,14 +21,15 @@ function ScaleMark() {
   return (
     <div
       style={{
-        width: 28,
-        height: 28,
-        borderRadius: 7,
+        width: 30,
+        height: 30,
+        borderRadius: 8,
         background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
+        boxShadow: '0 4px 12px rgba(0,102,255,0.25)',
       }}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -44,39 +44,62 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname() || '';
 
   return (
-    <div className="scale-shell" style={{ minHeight: '100vh', background: BG, color: TEXT_PRIMARY, fontFamily: FONT }}>
-      <style>{`
-        .scale-shell { margin: -16px; }
-        @media (min-width: 768px) { .scale-shell { margin: -32px; } }
-        .scale-root a { text-decoration: none; }
-        .scale-root ::selection { background: rgba(0,102,255,0.3); }
-      `}</style>
+    <>
       <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet"
       />
+      <style>{`
+        .scale-app a { text-decoration: none; }
+        .scale-app ::selection { background: rgba(0,102,255,0.3); }
+        body:has(.scale-app) { overflow: hidden; }
+      `}</style>
 
-      <div className="scale-root">
-        <div
+      <div
+        className="scale-app"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9999,
+          background: BG,
+          color: TEXT_PRIMARY,
+          fontFamily: FONT,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Scale top bar */}
+        <header
           style={{
+            flexShrink: 0,
             borderBottom: `1px solid ${BORDER}`,
             padding: '0 28px',
             display: 'flex',
             alignItems: 'center',
-            height: 56,
-            gap: 28,
+            height: 60,
+            gap: 24,
             background: BG,
-            position: 'sticky',
-            top: 0,
-            zIndex: 20,
           }}
         >
-          <Link href="/admin/scale" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link href="/admin/scale" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ScaleMark />
-            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>Scale</span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff' }}>Scale</span>
+              <span style={{ fontSize: 10, color: TEXT_MUTED, fontWeight: 500, letterSpacing: '0.04em' }}>
+                by CondoWizard
+              </span>
+            </div>
           </Link>
 
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+          <div style={{ flex: 1 }} />
+
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {TABS.map((tab) => {
               const active = tab.match(pathname);
               return (
@@ -84,8 +107,8 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
                   key={tab.href}
                   href={tab.href}
                   style={{
-                    padding: '7px 14px',
-                    borderRadius: 7,
+                    padding: '8px 16px',
+                    borderRadius: 8,
                     fontSize: 13,
                     fontWeight: 500,
                     color: active ? '#fff' : TEXT_MUTED,
@@ -105,17 +128,29 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
             style={{
               fontSize: 12,
               color: TEXT_MUTED,
-              padding: '6px 10px',
-              borderRadius: 6,
+              padding: '7px 12px',
+              borderRadius: 7,
               border: `1px solid ${BORDER}`,
+              marginLeft: 8,
             }}
           >
-            ← Admin
+            ← Back to Admin
           </Link>
-        </div>
+        </header>
 
-        {children}
+        {/* Scrollable content area */}
+        <main
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            background: BG,
+          }}
+        >
+          {children}
+        </main>
       </div>
-    </div>
+    </>
   );
 }
