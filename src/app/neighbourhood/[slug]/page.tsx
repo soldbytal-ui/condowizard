@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatPrice } from '@/lib/utils';
 import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
+import { getAreaSearchParams } from '@/lib/area-mappings';
 import ListingCard from '@/components/search/ListingCard';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 import NeighbourhoodTabsClient from './NeighbourhoodTabs';
@@ -14,36 +15,6 @@ const ToggleMap = dynamic(() => import('@/components/neighbourhood/ToggleMap'), 
 
 interface Props { params: { slug: string }; }
 
-// TRREB district codes by neighbourhood
-const NEIGHBOURHOOD_DISTRICTS: Record<string, string> = {
-  'downtown-core': 'C01',
-  'king-west': 'C01',
-  'queen-west': 'C01',
-  'liberty-village': 'C01',
-  'cityplace': 'C01',
-  'fort-york': 'C01',
-  'yorkville': 'C02',
-  'the-annex': 'C02',
-  'midtown': 'C03',
-  'yonge-eglinton': 'C03',
-  'leaside': 'C11',
-  'leslieville': 'E01',
-  'riverside': 'E01',
-  'danforth': 'E03',
-  'high-park': 'W01',
-  'roncesvalles': 'W01',
-  'junction': 'W02',
-  'waterfront': 'C01',
-  'canary-district': 'C08',
-  'port-lands': 'C08',
-  'north-york': 'C06',
-  'scarborough': 'E05',
-  'etobicoke': 'W06',
-  'mississauga': 'W12',
-  'vaughan': 'N03',
-  'richmond-hill': 'N03',
-  'markham': 'N11',
-};
 
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -106,13 +77,26 @@ export default async function NeighbourhoodPage({ params }: Props) {
   const boundary = hood.boundary;
   const city = hood.city;
 
+  // Build Repliers location filter from area mappings
+  const areaParams = getAreaSearchParams(params.slug);
+  const mlsLocationFilter: Record<string, unknown> = {};
+  if (areaParams.neighborhoods && areaParams.neighborhoods.length > 0) {
+    mlsLocationFilter.neighborhood = areaParams.neighborhoods[0];
+    mlsLocationFilter.city = city;
+  } else if (areaParams.city) {
+    mlsLocationFilter.city = areaParams.city;
+  } else {
+    mlsLocationFilter.city = city;
+    mlsLocationFilter.neighborhood = name;
+  }
+
   // Fetch MLS — For Sale
   let forSale: any[] = [];
   let stats: any = {};
   try {
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
-      body: { city, neighborhood: name, status: 'A', type: 'sale', resultsPerPage: 24, sortBy: 'updatedOnDesc', statistics: 'avg-listPrice,med-listPrice,cnt-available' },
+      body: { ...mlsLocationFilter, status: 'A', type: 'sale', resultsPerPage: 24, sortBy: 'updatedOnDesc', statistics: 'avg-listPrice,med-listPrice,cnt-available' },
       revalidate: 300,
     });
     forSale = (data.listings || []).map(mapMLSToUnified);
@@ -126,7 +110,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
   try {
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
-      body: { city, neighborhood: name, status: 'A', type: 'lease', resultsPerPage: 12, sortBy: 'updatedOnDesc' },
+      body: { ...mlsLocationFilter, status: 'A', type: 'lease', resultsPerPage: 12, sortBy: 'updatedOnDesc' },
       revalidate: 300,
     });
     forRent = (data.listings || []).map(mapMLSToUnified);
@@ -139,7 +123,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
   try {
     const data = await repliersRequest<RepliersListingsResponse>({
       path: '/listings',
-      body: { city, neighborhood: name, status: 'U', lastStatus: 'Sld', resultsPerPage: 12, sortBy: 'soldDateDesc', minSoldDate: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0] },
+      body: { ...mlsLocationFilter, status: 'U', lastStatus: 'Sld', resultsPerPage: 12, sortBy: 'soldDateDesc', minSoldDate: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0] },
       revalidate: 600,
     });
     sold = (data.listings || []).map(mapMLSToUnified);
@@ -279,7 +263,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
             <h3 className="text-xl font-bold text-text-primary mb-2">Looking to buy in {name}?</h3>
             <p className="text-text-muted mb-4">Get expert guidance from a licensed real estate professional</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={`/search?district=${NEIGHBOURHOOD_DISTRICTS[params.slug] || 'C01'}`} className="bg-accent-blue text-white px-6 py-2.5 rounded-lg font-medium hover:bg-accent-blue/90">View All Listings</Link>
+              <Link href={`/search?neighborhood=${encodeURIComponent(areaParams.neighborhoods?.[0] || areaParams.city || name)}`} className="bg-accent-blue text-white px-6 py-2.5 rounded-lg font-medium hover:bg-accent-blue/90">View All Listings</Link>
               <Link href="/contact-us" className="border border-border text-text-primary px-6 py-2.5 rounded-lg font-medium hover:border-accent-blue/30">Contact Tal Shelef</Link>
             </div>
           </section>
