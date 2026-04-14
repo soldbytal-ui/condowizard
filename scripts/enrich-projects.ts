@@ -544,8 +544,8 @@ async function main() {
     .select('id, name, slug, address, description, mainImageUrl, images, architect, floors, totalUnits, priceMin, priceMax, sizeRangeMin, sizeRangeMax, estCompletion, neighborhoodId')
     .order('name');
 
-  // Focus on thin records first
-  query = query.or('description.is.null,mainImageUrl.is.null');
+  // Focus on thin records first, exclude archived
+  query = query.neq('status', 'ARCHIVED').or('description.is.null,mainImageUrl.is.null');
 
   if (LIMIT) query = query.limit(LIMIT);
 
