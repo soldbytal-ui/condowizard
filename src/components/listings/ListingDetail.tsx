@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
+import { throttledPost } from '@/lib/throttled-fetch';
 
 const ListingMiniMap = dynamic(() => import('./ListingMiniMap'), { ssr: false });
 
@@ -127,14 +128,14 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
   const buildingColor = BUILDING_TYPE_COLORS[listing.buildingType] || '#6B7280';
   const buildingLabel = BUILDING_TYPE_LABELS[listing.buildingType] || listing.buildingType;
 
-  // Lazy-load data per tab
+  // Track which tabs have been loaded to prevent refetching
+  const [tabsLoaded, setTabsLoaded] = useState<Record<string, boolean>>({});
+
+  // Lazy-load data per tab — only fetches on first click
   const fetchTabData = useCallback(async (tab: string) => {
-    const post = async (body: any) => {
-      const res = await fetch('/api/repliers/listings', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      });
-      return res.ok ? res.json() : null;
-    };
+    if (tabsLoaded[tab]) return; // Already loaded
+
+    const post = async (body: any) => throttledPost('/api/repliers/listings', body);
 
     // SOLD COMPS — no sqft filter (TREB sqft ranges break the query)
     if (tab === 'comparables' && !comps) {
@@ -229,9 +230,18 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
     if (tab === 'neighbourhood' && listing.neighborhood) {
       // Stats will be shown inline — no separate fetch needed since we just link to search
     }
-  }, [listing, pd, estimate, comps, nearby, rentalComps]);
 
-  useEffect(() => { fetchTabData(activeTab); }, [activeTab, fetchTabData]);
+    // Mark tab as loaded to prevent refetching
+    setTabsLoaded(prev => ({ ...prev, [tab]: true }));
+  }, [listing, pd, tabsLoaded]);
+
+  // Only fetch tab data when activeTab changes — NOT on every state change
+  useEffect(() => {
+    if (activeTab !== 'overview' && activeTab !== 'history') {
+      fetchTabData(activeTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   if (!listing) return <div className="pt-20 text-center text-text-muted">Listing not found.</div>;
 

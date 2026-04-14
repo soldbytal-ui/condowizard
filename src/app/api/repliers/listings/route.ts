@@ -96,6 +96,12 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const errText = await res.text();
       console.error(`[Repliers] Error ${res.status}:`, errText.slice(0, 500));
+      if (res.status === 429) {
+        return NextResponse.json(
+          { error: 'rate_limit', message: 'Please wait a moment and try again', listings: [], total: 0 },
+          { status: 429, headers: { 'Retry-After': '10' } }
+        );
+      }
       return NextResponse.json({ error: 'Repliers API error', details: errText.slice(0, 300) }, { status: res.status });
     }
 
@@ -129,9 +135,18 @@ export async function POST(req: NextRequest) {
       statistics: normalizedStats,
       aggregates: data.aggregates || null,
       clusters: data.clusters || null,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
     });
-  } catch (error) {
+  } catch (error: any) {
+    const msg = String(error);
+    if (msg.includes('429') || msg.includes('rate')) {
+      return NextResponse.json(
+        { error: 'rate_limit', message: 'Please wait a moment', listings: [], total: 0 },
+        { status: 429, headers: { 'Retry-After': '10' } }
+      );
+    }
     console.error('Repliers listings error:', error);
-    return NextResponse.json({ error: 'Failed to fetch listings', details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch listings', details: msg }, { status: 500 });
   }
 }
