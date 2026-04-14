@@ -25,12 +25,6 @@ interface HoodResult {
 
 function slugify(n: string) { return n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''); }
 
-function parseAddressQuery(q: string): { streetNumber?: string; streetName?: string } | null {
-  const m = q.trim().match(/^(\d+)\s+(.+)/);
-  if (m) return { streetNumber: m[1], streetName: m[2].split(/\s+(st|ave|blvd|rd|dr|way|ter|crt|cres|pkwy|ln|pl|sq|ct)/i)[0].trim() };
-  if (/^[a-z]/i.test(q.trim()) && q.trim().length >= 3) return { streetName: q.trim().split(/\s+(st|ave|blvd|rd|dr|way|ter|crt)/i)[0].trim() };
-  return null;
-}
 
 export default function NavSearch() {
   const [query, setQuery] = useState('');
@@ -65,7 +59,7 @@ export default function NavSearch() {
         let foundListings: ListingResult[] = [];
 
         if (isMLS) {
-          // Direct MLS lookup
+          // Direct MLS# lookup
           const res = await fetch(`/api/repliers/listings/${q.toUpperCase()}`);
           if (res.ok) {
             const d = await res.json();
@@ -79,33 +73,28 @@ export default function NavSearch() {
               }];
             }
           }
-        } else {
-          // Address search via Repliers streetNumber/streetName params
-          const parsed = parseAddressQuery(q);
-          if (parsed?.streetName) {
-            const body: any = { city: 'Toronto', status: 'A', resultsPerPage: 8, sortBy: 'listPriceDesc' };
-            if (parsed.streetNumber) body.streetNumber = parsed.streetNumber;
-            body.streetName = parsed.streetName;
-
-            const res = await fetch('/api/repliers/listings', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-            });
-            if (res.ok) {
-              const d = await res.json();
-              foundListings = (d.listings || []).map((l: any) => ({
-                mlsNumber: l.mlsNumber || l.id, price: l.price,
-                address: l.address, unitNumber: '',
-                city: l.city || 'Toronto', beds: l.beds, baths: l.baths,
-                sqft: l.sqft, propertyType: l.propertyType, dom: l.dom || 0,
-                image: l.images?.[0] || null, isRental: false,
-              }));
-            }
+        } else if (q.length >= 3) {
+          // Fuzzy address search using Repliers 'search' param
+          // Handles partial names: "30 roe" → finds "30 Roehampton"
+          const res = await fetch('/api/repliers/listings', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ search: q, status: 'A', resultsPerPage: 8, sortBy: 'listPriceDesc' }),
+          });
+          if (res.ok) {
+            const d = await res.json();
+            foundListings = (d.listings || []).map((l: any) => ({
+              mlsNumber: l.mlsNumber || l.id, price: l.price,
+              address: l.address, unitNumber: '',
+              city: l.city || 'Toronto', beds: l.beds, baths: l.baths,
+              sqft: l.sqft, propertyType: l.propertyType, dom: l.dom || 0,
+              image: l.images?.[0] || null, isRental: false,
+            }));
           }
         }
 
-        // --- NEIGHBOURHOOD SEARCH (only if not address-like) ---
+        // --- NEIGHBOURHOOD SEARCH (show for text queries, not number-prefixed addresses) ---
         let foundHoods: HoodResult[] = [];
-        if (!isMLS && !parseAddressQuery(q)?.streetNumber) {
+        if (!isMLS && !/^\d/.test(q)) {
           try {
             const res = await fetch('/api/repliers/communities');
             if (res.ok) {
@@ -131,9 +120,9 @@ export default function NavSearch() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && query.trim()) {
       setIsOpen(false);
-      const parsed = parseAddressQuery(query.trim());
-      if (parsed?.streetNumber && parsed.streetName) {
-        router.push(`/search?streetNumber=${parsed.streetNumber}&streetName=${encodeURIComponent(parsed.streetName)}`);
+      // If there's a top listing result, navigate to it
+      if (listings.length > 0) {
+        router.push(`/listing/${listings[0].mlsNumber}`);
       } else {
         router.push(`/search?neighborhood=${encodeURIComponent(query.trim())}`);
       }

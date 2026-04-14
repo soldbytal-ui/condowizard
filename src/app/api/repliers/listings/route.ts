@@ -7,7 +7,7 @@ const API_KEY = process.env.REPLIERS_API_KEY || '';
 
 // Scalar params: key→value (single value)
 const SCALAR_KEYS = [
-  'city', 'status', 'type', 'sortBy', 'resultsPerPage', 'pageNum',
+  'city', 'status', 'type', 'sortBy', 'resultsPerPage', 'pageNum', 'search',
   'minPrice', 'maxPrice', 'minBedrooms', 'maxBedrooms', 'minBeds', 'maxBeds',
   'minBaths', 'maxBaths',
   'minSqft', 'maxSqft', 'minDaysOnMarket', 'maxDaysOnMarket',
