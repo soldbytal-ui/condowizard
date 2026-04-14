@@ -66,6 +66,7 @@ function SearchContent() {
       bedsMin: searchParams.get('beds') ? parseInt(searchParams.get('beds')!) : undefined,
       neighborhood: searchParams.get('neighborhood') || undefined,
       area: searchParams.get('area') || undefined,
+      search: searchParams.get('search') || undefined,
       soldDateRange: tab === 'sold' ? '90' : undefined,
       soldDateMin: tab === 'sold' ? daysAgo(90) : undefined,
       page: 1,
@@ -86,9 +87,15 @@ function SearchContent() {
       case 'largest': b.sortBy = 'sqftDesc'; break;
       default: b.sortBy = sold ? 'soldDateDesc' : 'updatedOnDesc';
     }
-    if (f.area) b.area = f.area;
-    if (f.municipality) b.city = f.municipality;
-    if (f.neighborhood) b.neighborhood = f.neighborhood;
+    // Text search from navbar — takes priority, skip location filters
+    if (f.search) {
+      b.search = f.search;
+      // Don't send neighbourhood/area/city restrictions for text search
+    } else {
+      if (f.area) b.area = f.area;
+      if (f.municipality) b.city = f.municipality;
+      if (f.neighborhood) b.neighborhood = f.neighborhood;
+    }
     if (f.streetName) b.streetName = f.streetName;
     if (f.streetNumberMin) b.minStreetNumber = f.streetNumberMin;
     if (f.streetNumberMax) b.maxStreetNumber = f.streetNumberMax;
@@ -215,6 +222,7 @@ function SearchContent() {
     if (filters.priceMin) p.set('priceMin', String(filters.priceMin));
     if (filters.priceMax) p.set('priceMax', String(filters.priceMax));
     if (filters.bedsMin) p.set('beds', String(filters.bedsMin));
+    if (filters.search) p.set('search', filters.search);
     if (filters.neighborhood) p.set('neighborhood', filters.neighborhood);
     if (filters.area) p.set('area', filters.area);
     if (filters.class) p.set('class', filters.class);
@@ -256,7 +264,7 @@ function SearchContent() {
   }, []);
 
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
-    setFilters((prev) => prev.neighborhood ? prev : { ...prev, bounds });
+    setFilters((prev) => (prev.neighborhood || prev.search) ? prev : { ...prev, bounds });
   }, []);
 
   // Pin CLICK → persistent preview panel (stays open until closed)

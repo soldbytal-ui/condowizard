@@ -115,6 +115,8 @@ export function classifyBuildingType(listing: {
 
 export interface ListingFilters {
   tab: 'sale' | 'precon' | 'sold' | 'rent';
+  // Text search (from navbar search bar)
+  search?: string;
   // Basic
   priceMin?: number;
   priceMax?: number;

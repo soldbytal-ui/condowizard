@@ -229,15 +229,26 @@ export default function SearchFilters({ filters, onFilterChange, onMlsLookup, to
         })}
       </div>
 
-      {/* Neighbourhood badge */}
-      {filters.neighborhood && (
+      {/* Search / Neighbourhood badge */}
+      {(filters.search || filters.neighborhood) && (
         <div className="px-4 pb-1">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent-blue/10 text-accent-blue text-xs font-medium rounded-full">
-            {filters.neighborhood}
-            <button onClick={() => onFilterChange({ neighborhood: undefined, bounds: undefined, page: 1 })} className="hover:text-red-500 ml-0.5">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </span>
+          {filters.search && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full mr-2">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              {filters.search}
+              <button onClick={() => onFilterChange({ search: undefined, page: 1 })} className="hover:text-red-500 ml-0.5">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </span>
+          )}
+          {filters.neighborhood && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent-blue/10 text-accent-blue text-xs font-medium rounded-full">
+              {filters.neighborhood}
+              <button onClick={() => onFilterChange({ neighborhood: undefined, bounds: undefined, page: 1 })} className="hover:text-red-500 ml-0.5">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </span>
+          )}
         </div>
       )}
       <div className="px-4 pb-2 flex items-center gap-4 text-xs text-text-muted">
