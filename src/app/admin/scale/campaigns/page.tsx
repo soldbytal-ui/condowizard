@@ -285,19 +285,22 @@ const CHANNELS: Channel[] = [
 // Theme
 // ═══════════════════════════════════════════════════════════════
 const S = {
-  bg: '#0B0D11',
-  surface: 'rgba(255,255,255,0.02)',
-  surfaceHover: 'rgba(255,255,255,0.04)',
+  pageBg: '#F5F5F7',
+  pageHeading: '#111318',
+  pageSubtitle: '#6B7185',
+  bg: '#111318',
+  surface: '#111318',
+  surfaceHover: '#1A1D23',
   border: 'rgba(255,255,255,0.06)',
   borderHover: 'rgba(255,255,255,0.12)',
   accent: '#0066FF',
-  accentSoft: 'rgba(0,102,255,0.10)',
-  accentStrong: 'rgba(0,102,255,0.18)',
-  accentBorder: 'rgba(0,102,255,0.35)',
+  accentSoft: 'rgba(0,102,255,0.14)',
+  accentStrong: 'rgba(0,102,255,0.22)',
+  accentBorder: 'rgba(0,102,255,0.45)',
   green: '#10B981',
-  greenSoft: 'rgba(16,185,129,0.12)',
+  greenSoft: 'rgba(16,185,129,0.14)',
   red: '#EF4444',
-  redSoft: 'rgba(239,68,68,0.10)',
+  redSoft: 'rgba(239,68,68,0.12)',
   textPrimary: '#E2E4E9',
   textSecondary: '#8B8FA3',
   textMuted: '#6B7185',
@@ -306,6 +309,8 @@ const S = {
   font: "'DM Sans', -apple-system, sans-serif",
   mono: "'JetBrains Mono', monospace",
 };
+
+const CARD_SHADOW = '0 2px 12px rgba(0,0,0,0.08)';
 
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.08em',
@@ -464,9 +469,9 @@ function StepIndicator({ current, stepLabels, skipStep2 }: { current: number; st
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 9,
-                background: completed ? S.accent : active ? 'transparent' : 'rgba(255,255,255,0.04)',
-                border: `1.5px solid ${completed ? S.accent : active ? S.accent : S.border}`,
-                color: completed ? '#fff' : active ? S.accent : S.textMuted,
+                background: completed ? S.accent : active ? '#fff' : 'rgba(0,0,0,0.04)',
+                border: `1.5px solid ${completed ? S.accent : active ? S.accent : 'rgba(0,0,0,0.12)'}`,
+                color: completed ? '#fff' : active ? S.accent : S.pageSubtitle,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, fontWeight: 700, fontFamily: S.mono,
                 transition: 'all 0.2s',
@@ -475,12 +480,12 @@ function StepIndicator({ current, stepLabels, skipStep2 }: { current: number; st
               </div>
               <span style={{
                 fontSize: 15, fontWeight: 500,
-                color: active ? S.white : completed ? S.textSecondary : S.textMuted,
+                color: active ? S.pageHeading : completed ? S.pageHeading : S.pageSubtitle,
                 whiteSpace: 'nowrap',
               }}>{label}</span>
             </div>
             {i < labels.length - 1 && (
-              <div style={{ flex: 1, height: 1.5, background: completed ? S.accent : S.border, margin: '0 20px', minWidth: 24 }} />
+              <div style={{ flex: 1, height: 1.5, background: completed ? S.accent : 'rgba(0,0,0,0.08)', margin: '0 20px', minWidth: 24 }} />
             )}
           </div>
         );
@@ -969,10 +974,10 @@ function StepCampaignType({
 }) {
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Choose campaign type
       </h1>
-      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 28px', lineHeight: 1.6, maxWidth: 680 }}>
+      <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 28px', lineHeight: 1.6, maxWidth: 680 }}>
         Scale adapts to what you&apos;re advertising. Pick the kind of campaign and we&apos;ll tailor the data source, targeting, and AI prompt.
       </p>
 
@@ -990,6 +995,7 @@ function StepCampaignType({
                 border: `1.5px solid ${selected ? S.accentBorder : S.border}`,
                 borderRadius: 16, padding: 24, fontFamily: S.font, color: S.textPrimary,
                 display: 'flex', flexDirection: 'column', gap: 14, minHeight: 190,
+                boxShadow: CARD_SHADOW,
               }}
             >
               {selected && (
@@ -1090,10 +1096,10 @@ function StepTarget(props: {
     const allSelected = projects.length > 0 && projects.every((p) => selectedIds.has(p.id));
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           {campaignMeta.id === 'short_term_rentals' ? 'Select investment projects' : 'Select projects to advertise'}
         </h1>
-        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 22px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 22px', lineHeight: 1.6 }}>
           {campaignMeta.id === 'short_term_rentals'
             ? 'Pick projects that work as short-term rentals or furnished income properties. Scale tailors the copy to investors.'
             : 'Pick one or more active projects. Scale generates on-brand ad copy for every one you select.'}
@@ -1153,7 +1159,8 @@ function StepTarget(props: {
                       position: 'relative', textAlign: 'left', cursor: 'pointer',
                       background: selected ? S.accentSoft : S.surface,
                       border: `1.5px solid ${selected ? S.accentBorder : S.border}`,
-                      borderRadius: 14, padding: 0, overflow: 'hidden', fontFamily: S.font, color: S.textPrimary,
+                      borderRadius: 16, padding: 0, overflow: 'hidden', fontFamily: S.font, color: S.textPrimary,
+                      boxShadow: CARD_SHADOW,
                     }}
                   >
                     <div style={{
@@ -1234,10 +1241,10 @@ function StepTarget(props: {
     const allSelected = neighborhoods.length > 0 && neighborhoods.every((n) => selectedIds.has(n.id));
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           Select neighborhoods
         </h1>
-        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 22px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 22px', lineHeight: 1.6 }}>
           Each neighborhood ad links to its own hub page at <code style={{ fontFamily: S.mono, fontSize: 14 }}>condowizard.ca/areas/[slug]</code>.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -1301,10 +1308,10 @@ function StepTarget(props: {
     const allSelected = communities.length > 0 && communities.every((c) => selectedIds.has(c.id));
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           Select communities
         </h1>
-        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 22px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 22px', lineHeight: 1.6 }}>
           Each ad links to live MLS listings for that community, powered by Repliers.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -1386,10 +1393,10 @@ function StepCustomBrief({
 }) {
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease', maxWidth: 820 }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Write your campaign brief
       </h1>
-      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 24px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 24px', lineHeight: 1.6 }}>
         Describe what you want to advertise, who it&apos;s for, and any key angles. Scale will follow your brief and your Agent Brain rules.
       </p>
 
@@ -1408,7 +1415,7 @@ function StepCustomBrief({
         <span style={{ fontFamily: S.mono }}>{value.trim().length} chars</span>
       </div>
 
-      <div style={{ marginTop: 20, padding: 18, background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12 }}>
+      <div style={{ marginTop: 20, padding: 20, background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
         <div style={sectionLabelStyle}>How this is used</div>
         <div style={{ fontSize: 14, color: '#C8CBD3', lineHeight: 1.7 }}>
           Your brief is prepended to every AI call as the campaign context, alongside the {campaignMeta.label.toLowerCase()} angle and the full Agent Brain knowledge base.
@@ -1440,10 +1447,10 @@ function StepChannel(props: {
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Choose ad channel
       </h1>
-      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 28px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 28px', lineHeight: 1.6 }}>
         Pick where these ads will run. Scale tailors the format and length to each channel&apos;s spec.
       </p>
 
@@ -1460,10 +1467,11 @@ function StepChannel(props: {
                 position: 'relative', textAlign: 'left',
                 background: selected ? S.accentSoft : S.surface,
                 border: `1.5px solid ${selected ? S.accentBorder : S.border}`,
-                borderRadius: 14, padding: 24,
+                borderRadius: 16, padding: 24,
                 cursor: ch.disabled ? 'not-allowed' : 'pointer',
                 opacity: ch.disabled ? 0.45 : 1,
                 fontFamily: S.font, color: S.textPrimary,
+                boxShadow: CARD_SHADOW,
               }}
             >
               {selected && (
@@ -1524,14 +1532,14 @@ function StepConfigure(props: {
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Configure campaign
       </h1>
-      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 28px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 28px', lineHeight: 1.6 }}>
         Final review before Scale calls the AI.
       </p>
 
-      <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
+      <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, marginBottom: 20, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
         <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', marginBottom: 22 }}>
           <Stat label="Campaign type" value={campaignMeta.label} accent={campaignMeta.color} />
           <Stat label="Targets" value={total.toString()} />
@@ -1555,7 +1563,7 @@ function StepConfigure(props: {
         </div>
       </div>
 
-      <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
+      <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, marginBottom: 20, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 22 }}>
           <div>
             <div style={sectionLabelStyle}>Daily budget per campaign</div>
@@ -1589,7 +1597,7 @@ function StepConfigure(props: {
         </div>
       </div>
 
-      <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
+      <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, marginBottom: 20, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
         <div style={sectionLabelStyle}>Scale will generate</div>
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
@@ -1675,7 +1683,7 @@ function StepReview(props: {
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             Review output
           </h1>
           <p style={{ fontSize: 15, color: S.textSecondary, margin: '10px 0 0' }}>
@@ -1693,7 +1701,7 @@ function StepReview(props: {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24, alignItems: 'flex-start' }}>
-        <div className="s-scroll" style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 10, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+        <div className="s-scroll" style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 12, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', boxShadow: CARD_SHADOW, color: S.textPrimary }}>
           {targets.map((t) => {
             const r = results[t.id];
             const isActive = t.id === active?.id;
@@ -1780,7 +1788,7 @@ function StepReview(props: {
                 </div>
               </div>
 
-              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, minHeight: 260 }}>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, minHeight: 260, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: S.white, letterSpacing: '-0.01em' }}>
@@ -1984,14 +1992,14 @@ function StepPushAds({
   if (!isGoogle) {
     return (
       <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           Push to Ads
         </h1>
-        <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 24px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 24px', lineHeight: 1.6 }}>
           Ad platform integration for <strong style={{ color: S.white }}>{channel.name}</strong> is not wired up yet.
         </p>
         <div style={{
-          background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 36, textAlign: 'center',
+          background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 36, textAlign: 'center', boxShadow: CARD_SHADOW, color: S.textPrimary,
         }}>
           <div style={{ fontSize: 40, marginBottom: 14 }}>✦</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: S.white, marginBottom: 8 }}>
@@ -2012,10 +2020,10 @@ function StepPushAds({
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
         Push to Google Ads
       </h1>
-      <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 24px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 24px', lineHeight: 1.6 }}>
         Creates a real campaign in your Google Ads account. Campaigns are created in <strong style={{ color: S.white }}>PAUSED</strong> state — you un-pause from the Google Ads UI.
       </p>
 
@@ -2052,7 +2060,7 @@ function StepPushAds({
 
           return (
             <div key={target.id} style={{
-              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 24,
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, boxShadow: CARD_SHADOW, color: S.textPrimary,
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, marginBottom: 18 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -2481,8 +2489,8 @@ function BottomBar({ children }: { children: React.ReactNode }) {
     <div style={{
       position: 'sticky', bottom: 0, marginTop: 36,
       paddingTop: 22, paddingBottom: 22,
-      borderTop: `1px solid ${S.border}`,
-      background: `linear-gradient(to top, ${S.bg} 60%, rgba(11,13,17,0.6))`,
+      borderTop: `1px solid rgba(0,0,0,0.08)`,
+      background: `linear-gradient(to top, ${S.pageBg} 60%, rgba(245,245,247,0.7))`,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 14,
     }}>
@@ -2547,7 +2555,8 @@ function cardStyle(selected: boolean): React.CSSProperties {
     position: 'relative', textAlign: 'left', cursor: 'pointer',
     background: selected ? S.accentSoft : S.surface,
     border: `1.5px solid ${selected ? S.accentBorder : S.border}`,
-    borderRadius: 12, padding: 20, fontFamily: S.font, color: S.textPrimary,
+    borderRadius: 16, padding: 20, fontFamily: S.font, color: S.textPrimary,
+    boxShadow: CARD_SHADOW,
   };
 }
 
@@ -2564,15 +2573,16 @@ function scrollContainerStyle(): React.CSSProperties {
 function toolbarBtnStyle(): React.CSSProperties {
   return {
     padding: '12px 20px', borderRadius: 10,
-    background: S.surface, border: `1px solid ${S.border}`,
-    color: S.textSecondary, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
+    background: '#fff', border: `1px solid rgba(0,0,0,0.12)`,
+    color: S.pageHeading, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   };
 }
 
 function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
     <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: 420 }}>
-      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: S.textMuted, display: 'flex' }}>
+      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: S.pageSubtitle, display: 'flex' }}>
         <Search />
       </span>
       <input
@@ -2582,8 +2592,9 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
         placeholder={placeholder}
         style={{
           width: '100%', padding: '14px 16px 14px 42px', borderRadius: 11,
-          background: S.surface, border: `1px solid ${S.border}`,
-          color: S.textPrimary, fontSize: 15, fontFamily: S.font, outline: 'none',
+          background: '#fff', border: `1px solid rgba(0,0,0,0.12)`,
+          color: S.pageHeading, fontSize: 15, fontFamily: S.font, outline: 'none',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
         }}
       />
     </div>
@@ -2603,7 +2614,7 @@ function FilterSelect({
     <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
       <span style={{
         position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-        fontSize: 12, color: S.textMuted, fontWeight: 500, pointerEvents: 'none', letterSpacing: '0.02em',
+        fontSize: 12, color: S.pageSubtitle, fontWeight: 500, pointerEvents: 'none', letterSpacing: '0.02em',
       }}>
         {label}:
       </span>
@@ -2614,22 +2625,23 @@ function FilterSelect({
           appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
           padding: `12px 34px 12px ${label.length * 6.4 + 26}px`,
           borderRadius: 11,
-          background: active ? S.accentSoft : S.surface,
-          border: `1px solid ${active ? S.accentBorder : S.border}`,
-          color: active ? S.white : S.textSecondary,
+          background: active ? 'rgba(0,102,255,0.08)' : '#fff',
+          border: `1px solid ${active ? S.accentBorder : 'rgba(0,0,0,0.12)'}`,
+          color: active ? S.accent : S.pageHeading,
           fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font, outline: 'none',
           minWidth: 200,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
         }}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value} style={{ background: S.bg, color: S.textPrimary }}>
+          <option key={o.value} value={o.value} style={{ background: '#fff', color: S.pageHeading }}>
             {o.label}
           </option>
         ))}
       </select>
       <span style={{
         position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-        pointerEvents: 'none', color: S.textMuted, display: 'flex',
+        pointerEvents: 'none', color: S.pageSubtitle, display: 'flex',
       }}>
         <svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M2.5 4l2.5 2.5L7.5 4" /></svg>
       </span>
@@ -2650,9 +2662,10 @@ function navButtonStyle(variant: 'primary' | 'ghost', disabled?: boolean): React
   }
   return {
     padding: '12px 22px', borderRadius: 11,
-    background: 'transparent', border: `1px solid ${S.border}`,
-    color: S.textSecondary, fontSize: 15, fontWeight: 500,
+    background: '#fff', border: `1px solid rgba(0,0,0,0.12)`,
+    color: S.pageHeading, fontSize: 15, fontWeight: 500,
     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: S.font,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   };
 }
 
@@ -2661,8 +2674,9 @@ function headerBtn(variant: 'ghost' | 'success'): React.CSSProperties {
     padding: '11px 18px', borderRadius: 9,
     background: variant === 'success' ? S.greenSoft : S.surface,
     border: `1px solid ${variant === 'success' ? 'rgba(16,185,129,0.3)' : S.border}`,
-    color: variant === 'success' ? S.green : S.textSecondary,
+    color: variant === 'success' ? S.green : S.textPrimary,
     fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
     display: 'flex', alignItems: 'center', gap: 8,
+    boxShadow: CARD_SHADOW,
   };
 }

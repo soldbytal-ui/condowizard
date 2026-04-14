@@ -34,20 +34,23 @@ interface GoogleAdsStatus {
 // Theme
 // ═══════════════════════════════════════════════════════════════
 const S = {
-  bg: '#0B0D11',
-  surface: 'rgba(255,255,255,0.02)',
-  surfaceHover: 'rgba(255,255,255,0.04)',
+  pageBg: '#F5F5F7',
+  pageHeading: '#111318',
+  pageSubtitle: '#6B7185',
+  bg: '#111318',
+  surface: '#111318',
+  surfaceHover: '#1A1D23',
   border: 'rgba(255,255,255,0.06)',
   borderHover: 'rgba(255,255,255,0.12)',
   accent: '#0066FF',
-  accentSoft: 'rgba(0,102,255,0.10)',
+  accentSoft: 'rgba(0,102,255,0.12)',
   accentBorder: 'rgba(0,102,255,0.35)',
   green: '#10B981',
-  greenSoft: 'rgba(16,185,129,0.12)',
+  greenSoft: 'rgba(16,185,129,0.14)',
   red: '#EF4444',
-  redSoft: 'rgba(239,68,68,0.10)',
+  redSoft: 'rgba(239,68,68,0.12)',
   amber: '#F59E0B',
-  amberSoft: 'rgba(245,158,11,0.12)',
+  amberSoft: 'rgba(245,158,11,0.14)',
   textPrimary: '#E2E4E9',
   textSecondary: '#8B8FA3',
   textMuted: '#6B7185',
@@ -57,9 +60,11 @@ const S = {
   mono: "'JetBrains Mono', monospace",
 };
 
+const CARD_SHADOW = '0 2px 12px rgba(0,0,0,0.08)';
+
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: 20, letterSpacing: '-0.01em',
-  color: S.white, fontWeight: 600, marginBottom: 18,
+  color: S.pageHeading, fontWeight: 600, marginBottom: 18,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -149,7 +154,7 @@ export default function ScaleDashboard() {
   const providerLabel = config ? prettyProvider(config.provider) : '—';
 
   return (
-    <div style={{ fontFamily: S.font, color: S.textPrimary, fontSize: 16, lineHeight: 1.6 }}>
+    <div style={{ fontFamily: S.font, color: S.pageHeading, fontSize: 16, lineHeight: 1.6, background: S.pageBg, minHeight: '100%' }}>
       <style>{`
         @keyframes sSlideIn { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:translateY(0);} }
         .s-card { transition: border-color 0.15s, background 0.15s, transform 0.15s; }
@@ -162,10 +167,10 @@ export default function ScaleDashboard() {
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '32px 40px 96px', animation: 'sSlideIn 0.25s ease' }}>
         {/* Header */}
         <div style={{ marginBottom: 40 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             Scale
           </h1>
-          <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 0', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 0', lineHeight: 1.6 }}>
             AI-powered ad automation for CondoWizard.ca
           </p>
         </div>
@@ -221,9 +226,11 @@ export default function ScaleDashboard() {
                 className="s-action"
                 style={{
                   display: 'flex', flexDirection: 'column', gap: 14,
-                  padding: 24, borderRadius: 14,
+                  padding: 24, borderRadius: 16,
                   background: S.surface,
                   border: `1px solid ${S.border}`,
+                  boxShadow: CARD_SHADOW,
+                  color: S.textPrimary,
                   transition: 'all 0.15s',
                   cursor: 'pointer',
                 }}
@@ -256,8 +263,8 @@ export default function ScaleDashboard() {
           </div>
 
           <div style={{
-            background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12,
-            overflow: 'hidden',
+            background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16,
+            overflow: 'hidden', boxShadow: CARD_SHADOW, color: S.textPrimary,
           }}>
             {recent.length === 0 ? (
               <div style={{
@@ -450,7 +457,8 @@ function MetricCard({
 }: { label: string; value: string; subtitle: string; mono?: boolean }) {
   return (
     <div style={{
-      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28,
+      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28,
+      boxShadow: CARD_SHADOW, color: S.textPrimary,
     }}>
       <div style={{
         fontSize: 15, fontWeight: 500, color: S.textSecondary,
@@ -482,7 +490,8 @@ function SplitCard({
 }) {
   return (
     <div style={{
-      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 28,
+      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28,
+      boxShadow: CARD_SHADOW, color: S.textPrimary,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: subtitle ? 6 : 20 }}>
         <div>
@@ -556,8 +565,9 @@ function StatusBadge({ status }: { status: HistoryStatus }) {
 function InsightCard({ icon, title, body }: { icon: string; title: string; body: React.ReactNode }) {
   return (
     <div style={{
-      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 24,
+      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24,
       display: 'flex', gap: 16, alignItems: 'flex-start',
+      boxShadow: CARD_SHADOW, color: S.textPrimary,
     }}>
       <div style={{
         width: 40, height: 40, borderRadius: 10, flexShrink: 0,

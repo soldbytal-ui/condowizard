@@ -126,13 +126,16 @@ const Sparkle = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="curr
 const Chat = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M2 2h10a1 1 0 011 1v6a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>;
 
 const S = {
-  bg: '#0B0D11', surface: 'rgba(255,255,255,0.02)', surfaceHover: 'rgba(255,255,255,0.04)',
+  pageBg: '#F5F5F7', pageHeading: '#111318', pageSubtitle: '#6B7185',
+  bg: '#111318', surface: '#111318', surfaceHover: '#1A1D23',
   border: 'rgba(255,255,255,0.06)', borderHover: 'rgba(255,255,255,0.12)',
-  accent: '#0066FF', accentSoft: 'rgba(0,102,255,0.08)', accentBorder: 'rgba(0,102,255,0.35)',
-  green: '#10B981', greenSoft: 'rgba(16,185,129,0.1)',
-  textPrimary: '#E2E4E9', textSecondary: '#8B8FA3', textMuted: '#555B67', textDim: '#3A3F4B', white: '#fff',
+  accent: '#0066FF', accentSoft: 'rgba(0,102,255,0.14)', accentBorder: 'rgba(0,102,255,0.4)',
+  green: '#10B981', greenSoft: 'rgba(16,185,129,0.14)',
+  textPrimary: '#E2E4E9', textSecondary: '#8B8FA3', textMuted: '#8B8FA3', textDim: '#6B7185', white: '#fff',
   font: "'DM Sans', -apple-system, sans-serif", mono: "'JetBrains Mono', monospace",
 };
+
+const CARD_SHADOW = '0 2px 12px rgba(0,0,0,0.08)';
 
 export default function AgentBrain() {
   const [categories, setCategories] = useState<BrainCategory[]>(DEFAULT_CATEGORIES);
@@ -287,7 +290,7 @@ When the user asks you to generate ad copy, test a headline, or review content, 
   const activeCount = categories.reduce((sum, c) => sum + c.entries.filter((e) => e.active).length, 0);
 
   return (
-    <div style={{ color: S.textPrimary, fontFamily: S.font }}>
+    <div style={{ fontFamily: S.font, background: S.pageBg, minHeight: '100%', padding: 24 }}>
       <style>{`
         @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
@@ -296,6 +299,12 @@ When the user asks you to generate ad copy, test a headline, or review content, 
         textarea:focus, input:focus { border-color: ${S.accent} !important; outline: none; }
         ::selection { background: rgba(0,102,255,0.3); }
       `}</style>
+
+      <div style={{
+        background: S.bg, color: S.textPrimary,
+        borderRadius: 16, border: `1px solid ${S.border}`,
+        boxShadow: CARD_SHADOW, overflow: 'hidden',
+      }}>
 
       {/* Page header */}
       <div style={{ padding: '24px 36px', borderBottom: `1px solid ${S.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -538,6 +547,7 @@ When the user asks you to generate ad copy, test a headline, or review content, 
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

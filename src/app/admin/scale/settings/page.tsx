@@ -83,13 +83,16 @@ const EyeOff = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
 const ExternalLink = () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M5 1H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7M7 1h4v4M11 1L5 7"/></svg>;
 
 const S = {
-  bg: '#0B0D11', surface: 'rgba(255,255,255,0.02)', surfaceHover: 'rgba(255,255,255,0.04)',
+  pageBg: '#F5F5F7', pageHeading: '#111318', pageSubtitle: '#6B7185',
+  bg: '#111318', surface: '#111318', surfaceHover: '#1A1D23',
   border: 'rgba(255,255,255,0.06)', borderHover: 'rgba(255,255,255,0.12)',
-  accent: '#0066FF', accentSoft: 'rgba(0,102,255,0.08)', accentBorder: 'rgba(0,102,255,0.35)',
-  green: '#10B981', greenSoft: 'rgba(16,185,129,0.1)', red: '#EF4444',
-  textPrimary: '#E2E4E9', textSecondary: '#8B8FA3', textMuted: '#555B67', textDim: '#3A3F4B', white: '#fff',
+  accent: '#0066FF', accentSoft: 'rgba(0,102,255,0.14)', accentBorder: 'rgba(0,102,255,0.4)',
+  green: '#10B981', greenSoft: 'rgba(16,185,129,0.14)', red: '#EF4444',
+  textPrimary: '#E2E4E9', textSecondary: '#8B8FA3', textMuted: '#8B8FA3', textDim: '#6B7185', white: '#fff',
   font: "'DM Sans', -apple-system, sans-serif", mono: "'JetBrains Mono', monospace",
 };
+
+const CARD_SHADOW = '0 2px 12px rgba(0,0,0,0.08)';
 
 interface TestResult { ok: boolean; message: string; latency: number }
 interface CostEstimate { perProject: number; tenProjects: number }
@@ -222,7 +225,7 @@ export default function ModelRouter() {
   }, [activeModel]);
 
   return (
-    <div style={{ color: S.textPrimary, fontFamily: S.font }}>
+    <div style={{ color: S.pageHeading, fontFamily: S.font, background: S.pageBg, minHeight: '100%' }}>
       <style>{`
         @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -233,10 +236,10 @@ export default function ModelRouter() {
       <div style={{ padding: '28px 32px', maxWidth: 800, margin: '0 auto', animation: 'slideIn 0.25s ease' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               Model router
             </h1>
-            <p style={{ fontSize: 17, color: S.textSecondary, margin: '12px 0 0', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 0', lineHeight: 1.6 }}>
               Choose which AI provider and model power Scale. Saved locally in your browser.
             </p>
           </div>
@@ -248,7 +251,7 @@ export default function ModelRouter() {
 
         {/* Provider selection */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>AI provider</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>AI provider</h2>
           <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Choose where Scale sends API requests. Switch anytime without changing anything else.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {PROVIDERS.map((prov) => (
@@ -256,8 +259,8 @@ export default function ModelRouter() {
                 style={{
                   background: config.provider === prov.id ? S.accentSoft : S.surface,
                   border: `1px solid ${config.provider === prov.id ? S.accentBorder : S.border}`,
-                  borderRadius: 12, padding: 20, cursor: 'pointer', transition: 'all 0.15s',
-                  position: 'relative',
+                  borderRadius: 16, padding: 22, cursor: 'pointer', transition: 'all 0.15s',
+                  position: 'relative', boxShadow: CARD_SHADOW, color: S.textPrimary,
                 }}>
                 {config.provider === prov.id && (
                   <div style={{ position: 'absolute', top: 12, right: 12, width: 20, height: 20, borderRadius: 6, background: S.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white }}><Check /></div>
@@ -278,7 +281,7 @@ export default function ModelRouter() {
         {/* Model selection */}
         {activeProvider && (
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Model</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Model</h2>
             <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Pick the model for ad generation. Higher quality = better copy but costs more.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {activeProvider.models.map((model) => (
@@ -286,8 +289,8 @@ export default function ModelRouter() {
                   style={{
                     background: config.model === model.id ? S.accentSoft : S.surface,
                     border: `1px solid ${config.model === model.id ? S.accentBorder : S.border}`,
-                    borderRadius: 10, padding: '14px 18px', cursor: 'pointer', transition: 'all 0.15s',
-                    display: 'flex', alignItems: 'center', gap: 16,
+                    borderRadius: 14, padding: '16px 20px', cursor: 'pointer', transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', gap: 16, boxShadow: CARD_SHADOW, color: S.textPrimary,
                   }}>
                   <div style={{
                     width: 20, height: 20, borderRadius: 6,
@@ -339,7 +342,7 @@ export default function ModelRouter() {
         {/* API Key */}
         {activeProvider && activeProvider.id !== 'openrouter_free' && (
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>API key</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>API key</h2>
             <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
               Your key is stored locally and never sent anywhere except {activeProvider.name}.{' '}
               <a href={activeProvider.docs} target="_blank" rel="noreferrer" style={{ color: S.accent, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -380,22 +383,22 @@ export default function ModelRouter() {
         {/* Cost estimate */}
         {costEstimate && (
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Cost estimate</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Cost estimate</h2>
             <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Estimated API cost for ad generation (does not include ad spend).</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, textAlign: 'center', boxShadow: CARD_SHADOW, color: S.textPrimary }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
                   {costEstimate.perProject === 0 ? 'Free' : `$${costEstimate.perProject.toFixed(4)}`}
                 </div>
                 <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>Per project</div>
               </div>
-              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, textAlign: 'center', boxShadow: CARD_SHADOW, color: S.textPrimary }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
                   {costEstimate.tenProjects === 0 ? 'Free' : `$${costEstimate.tenProjects.toFixed(3)}`}
                 </div>
                 <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>10 projects</div>
               </div>
-              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, textAlign: 'center', boxShadow: CARD_SHADOW, color: S.textPrimary }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: S.white, letterSpacing: '-0.02em' }}>
                   {costEstimate.tenProjects === 0 ? 'Free' : `$${(costEstimate.tenProjects * 30).toFixed(2)}`}
                 </div>
@@ -407,7 +410,7 @@ export default function ModelRouter() {
 
         {/* Test connection */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Test connection</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Test connection</h2>
           <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>Send a test request to verify your configuration works.</p>
           <button onClick={testConnection} disabled={testing || (activeProvider?.id !== 'openrouter_free' && !config.apiKey)}
             style={{
@@ -428,7 +431,7 @@ export default function ModelRouter() {
           {testResult && (
             <div style={{
               marginTop: 12, padding: '14px 18px', borderRadius: 10,
-              background: testResult.ok ? S.greenSoft : 'rgba(239,68,68,0.06)',
+              background: S.surface, color: S.textPrimary, boxShadow: CARD_SHADOW,
               border: `1px solid ${testResult.ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
               animation: 'slideIn 0.2s ease',
             }}>
@@ -447,7 +450,7 @@ export default function ModelRouter() {
 
         {/* Google Ads */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Google Ads</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Google Ads</h2>
           <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
             Connect your Google Ads account so Scale can push generated campaigns live with one click. Campaigns are created in a PAUSED state — you un-pause from the Google Ads UI.
           </p>
@@ -468,7 +471,7 @@ export default function ModelRouter() {
             <div style={{ fontSize: 14, color: S.textMuted }}>Checking Google Ads status…</div>
           ) : googleStatus.connected ? (
             <div style={{
-              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 22,
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, boxShadow: CARD_SHADOW, color: S.textPrimary,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -507,7 +510,7 @@ export default function ModelRouter() {
             </div>
           ) : (
             <div style={{
-              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 22,
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, boxShadow: CARD_SHADOW, color: S.textPrimary,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
             }}>
               <div>
@@ -536,7 +539,7 @@ export default function ModelRouter() {
         </div>
 
         {/* Integration guide */}
-        <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 28 }}>
+        <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: S.white, margin: '0 0 14px', letterSpacing: '-0.01em' }}>How this connects to Scale</h3>
           <div style={{ fontSize: 14, color: '#8B8FA3', lineHeight: 1.7 }}>
             <p style={{ margin: '0 0 14px' }}>

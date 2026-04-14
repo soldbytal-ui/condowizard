@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const BG = '#0B0D11';
+const PAGE_BG = '#F5F5F7';
+const NAV_BG = '#111318';
 const BORDER = 'rgba(255,255,255,0.06)';
-const ACCENT_SOFT = 'rgba(0,102,255,0.12)';
-const ACCENT_BORDER = 'rgba(0,102,255,0.4)';
+const ACCENT_SOFT = 'rgba(0,102,255,0.18)';
+const ACCENT_BORDER = 'rgba(0,102,255,0.5)';
 const TEXT_PRIMARY = '#E2E4E9';
 const TEXT_MUTED = '#8B8FA3';
 const FONT = "'DM Sans', -apple-system, sans-serif";
@@ -67,8 +68,8 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
           width: '100vw',
           height: '100vh',
           zIndex: 9999,
-          background: BG,
-          color: TEXT_PRIMARY,
+          background: PAGE_BG,
+          color: '#111318',
           fontFamily: FONT,
           display: 'flex',
           flexDirection: 'column',
@@ -79,13 +80,14 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
         <header
           style={{
             flexShrink: 0,
-            borderBottom: `1px solid ${BORDER}`,
+            borderBottom: `1px solid rgba(0,0,0,0.06)`,
             padding: '0 32px',
             display: 'flex',
             alignItems: 'center',
             height: 64,
             gap: 28,
-            background: BG,
+            background: NAV_BG,
+            color: TEXT_PRIMARY,
           }}
         >
           <Link href="/admin/scale" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -146,7 +148,8 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
             minHeight: 0,
             overflowY: 'auto',
             overflowX: 'hidden',
-            background: BG,
+            background: PAGE_BG,
+            color: '#111318',
           }}
         >
           {children}
