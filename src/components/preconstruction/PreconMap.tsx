@@ -24,6 +24,20 @@ interface Props {
   onHighlight?: (slug: string | null) => void;
 }
 
+function createBuildingFootprint(lat: number, lng: number, floors: number): number[][] {
+  const baseSize = 0.00015;
+  const sizeMultiplier = floors > 50 ? 2.5 : floors > 30 ? 2.0 : floors > 15 ? 1.5 : 1.0;
+  const size = baseSize * sizeMultiplier;
+  const aspect = 0.7;
+  return [
+    [lng - size, lat - size * aspect],
+    [lng + size, lat - size * aspect],
+    [lng + size, lat + size * aspect],
+    [lng - size, lat + size * aspect],
+    [lng - size, lat - size * aspect],
+  ];
+}
+
 export default function PreconMap({ projects, highlightedSlug, onHighlight }: Props) {
   const mapRef = useRef<MapRef>(null);
   const [popup, setPopup] = useState<MapProject | null>(null);
@@ -36,7 +50,6 @@ export default function PreconMap({ projects, highlightedSlug, onHighlight }: Pr
   const handleLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-
     const layers = map.getStyle().layers || [];
     const labelLayerId = layers.find((l: any) => l.type === 'symbol' && l.layout?.['text-field'])?.id;
 
@@ -53,14 +66,8 @@ export default function PreconMap({ projects, highlightedSlug, onHighlight }: Pr
             'interpolate', ['linear'], ['get', 'height'],
             0, '#16181e', 50, '#1e2028', 100, '#252730', 200, '#2d3040',
           ],
-          'fill-extrusion-height': [
-            'interpolate', ['linear'], ['zoom'],
-            12, 0, 12.5, ['get', 'height'],
-          ],
-          'fill-extrusion-base': [
-            'interpolate', ['linear'], ['zoom'],
-            12, 0, 12.5, ['get', 'min_height'],
-          ],
+          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 12, 0, 12.5, ['get', 'height']],
+          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 12, 0, 12.5, ['get', 'min_height']],
           'fill-extrusion-opacity': 0.7,
         },
       }, labelLayerId);
@@ -72,34 +79,39 @@ export default function PreconMap({ projects, highlightedSlug, onHighlight }: Pr
     if (!highlightedSlug || !mapRef.current) return;
     const p = projects.find((pr) => pr.slug === highlightedSlug);
     if (p) {
-      mapRef.current.getMap().flyTo({
-        center: [p.lng, p.lat],
-        zoom: 15,
-        pitch: 60,
-        duration: 1000,
-      });
+      mapRef.current.getMap().flyTo({ center: [p.lng, p.lat], zoom: 15, pitch: 60, duration: 1000 });
       setPopup(p);
     }
   }, [highlightedSlug, projects]);
 
-  // GeoJSON for 3D building extrusions (height based on floor count)
-  const extrusionsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
+  // Polygon footprints for fill-extrusion (height by floor count)
+  const buildingsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
-    features: projects.map((p) => {
-      const size = 0.00025;
-      return {
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Polygon' as const,
-          coordinates: [[
-            [p.lng - size, p.lat - size], [p.lng + size, p.lat - size],
-            [p.lng + size, p.lat + size], [p.lng - size, p.lat + size],
-            [p.lng - size, p.lat - size],
-          ]],
-        },
-        properties: { height: (p.floors || 5) * 3.5, name: p.name, slug: p.slug },
-      };
-    }),
+    features: projects.filter(p => p.lat && p.lng).map((p) => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [createBuildingFootprint(p.lat, p.lng, p.floors || 20)],
+      },
+      properties: {
+        height: (p.floors || 20) * 3.5,
+        floors: p.floors || 20,
+        name: p.name,
+        slug: p.slug,
+        price: p.price || 0,
+        developer: p.developer || '',
+      },
+    })),
+  }), [projects]);
+
+  // Separate point source for labels and glow dots (symbol layers need Points)
+  const pointsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: projects.filter(p => p.lat && p.lng).map((p) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
+      properties: { name: p.name, slug: p.slug, floors: p.floors || 20, price: p.price || 0 },
+    })),
   }), [projects]);
 
   const handleClick = useCallback((e: MapLayerMouseEvent) => {
@@ -107,10 +119,7 @@ export default function PreconMap({ projects, highlightedSlug, onHighlight }: Pr
     if (feature?.properties?.slug) {
       const slug = feature.properties.slug;
       const p = projects.find((pr) => pr.slug === slug);
-      if (p) {
-        setPopup(p);
-        onHighlight?.(slug);
-      }
+      if (p) { setPopup(p); onHighlight?.(slug); }
     }
   }, [projects, onHighlight]);
 
@@ -133,7 +142,7 @@ export default function PreconMap({ projects, highlightedSlug, onHighlight }: Pr
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setPopup(null)}
-      interactiveLayerIds={['precon-columns', 'precon-glow']}
+      interactiveLayerIds={['precon-3d']}
       cursor={popup ? 'pointer' : 'grab'}
       mapboxAccessToken={MAPBOX_TOKEN}
       mapStyle="mapbox://styles/mapbox/dark-v11"
@@ -142,52 +151,76 @@ export default function PreconMap({ projects, highlightedSlug, onHighlight }: Pr
     >
       <NavigationControl position="top-right" />
 
-      {/* Amber/gold extruded columns */}
-      <Source id="precon-extrusions" type="geojson" data={extrusionsGeoJSON}>
-        {/* Glow layer — wider, semi-transparent */}
+      {/* 3D building extrusions — polygon footprints with height */}
+      <Source id="precon-buildings" type="geojson" data={buildingsGeoJSON}>
+        {/* Glow base layer */}
         <Layer
           id="precon-glow"
           type="fill-extrusion"
           paint={{
             'fill-extrusion-color': '#FBBF24',
-            'fill-extrusion-height': ['*', ['get', 'height'], 1.1],
+            'fill-extrusion-height': ['*', ['get', 'height'], 1.15],
             'fill-extrusion-base': 0,
-            'fill-extrusion-opacity': 0.15,
+            'fill-extrusion-opacity': 0.12,
           }}
         />
-        {/* Main column */}
+        {/* Main 3D columns */}
         <Layer
-          id="precon-columns"
+          id="precon-3d"
           type="fill-extrusion"
           paint={{
             'fill-extrusion-color': [
-              'interpolate', ['linear'], ['get', 'height'],
-              0, '#F59E0B', 30, '#FBBF24', 80, '#FCD34D',
+              'interpolate', ['linear'], ['get', 'floors'],
+              1, '#F59E0B',
+              15, '#FBBF24',
+              35, '#FCD34D',
+              60, '#FDE68A',
             ],
             'fill-extrusion-height': ['get', 'height'],
             'fill-extrusion-base': 0,
             'fill-extrusion-opacity': 0.85,
           }}
         />
-        {/* Labels */}
+      </Source>
+
+      {/* Labels and glow dots — separate Point source */}
+      <Source id="precon-points" type="geojson" data={pointsGeoJSON}>
+        {/* Glow dot at base */}
         <Layer
-          id="precon-labels" type="symbol"
+          id="precon-dot"
+          type="circle"
+          paint={{
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 14, 5, 16, 8],
+            'circle-color': '#FBBF24',
+            'circle-opacity': 0.6,
+            'circle-blur': 0.4,
+          }}
+        />
+        {/* Name labels */}
+        <Layer
+          id="precon-labels"
+          type="symbol"
           layout={{
             'text-field': ['get', 'name'],
-            'text-size': 10,
+            'text-size': ['interpolate', ['linear'], ['zoom'], 12, 9, 15, 12],
             'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-            'text-offset': [0, -1],
+            'text-offset': [0, -2],
             'text-anchor': 'bottom',
+            'text-allow-overlap': false,
             'text-optional': true,
           }}
-          paint={{ 'text-color': '#FBBF24', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1 }}
+          paint={{
+            'text-color': '#FBBF24',
+            'text-halo-color': 'rgba(0,0,0,0.85)',
+            'text-halo-width': 1.2,
+          }}
           minzoom={13}
         />
       </Source>
 
       {/* Popup */}
       {popup && (
-        <Popup latitude={popup.lat} longitude={popup.lng} closeButton={false} closeOnClick={false} anchor="bottom" offset={15}>
+        <Popup latitude={popup.lat} longitude={popup.lng} closeButton={false} closeOnClick={false} anchor="bottom" offset={20}>
           <div className="min-w-[220px]">
             {popup.image && <img src={popup.image} alt={popup.name} className="w-full h-28 object-cover rounded-t" />}
             <div className="p-2">

@@ -27,6 +27,20 @@ interface Props {
 const FILL_PAINT = { 'fill-color': '#FBBF24', 'fill-opacity': 0.06 };
 const LINE_PAINT = { 'line-color': '#FBBF24', 'line-width': 2, 'line-opacity': 0.5 };
 
+function createBuildingFootprint(lat: number, lng: number, floors: number): number[][] {
+  const baseSize = 0.00015;
+  const sizeMultiplier = floors > 50 ? 2.5 : floors > 30 ? 2.0 : floors > 15 ? 1.5 : 1.0;
+  const size = baseSize * sizeMultiplier;
+  const aspect = 0.7;
+  return [
+    [lng - size, lat - size * aspect],
+    [lng + size, lat - size * aspect],
+    [lng + size, lat + size * aspect],
+    [lng - size, lat + size * aspect],
+    [lng - size, lat - size * aspect],
+  ];
+}
+
 export default function PreconMiniMap({ projects, boundary, neighbourhoodName }: Props) {
   const mapRef = useRef<MapRef>(null);
   const [popup, setPopup] = useState<PreconProject | null>(null);
@@ -60,10 +74,7 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
         type: 'fill-extrusion',
         minzoom: 12,
         paint: {
-          'fill-extrusion-color': [
-            'interpolate', ['linear'], ['get', 'height'],
-            0, '#16181e', 50, '#1e2028', 100, '#252730',
-          ],
+          'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'height'], 0, '#16181e', 50, '#1e2028', 100, '#252730'],
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'min_height'],
           'fill-extrusion-opacity': 0.7,
@@ -77,16 +88,32 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
     return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: boundary }, properties: {} }] };
   }, [boundary]);
 
-  const extrusionsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
+  // Polygon footprints for 3D extrusion
+  const buildingsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
-    features: projects.filter(p => p.lat && p.lng).map(p => {
-      const s = 0.00025;
-      return {
-        type: 'Feature' as const,
-        geometry: { type: 'Polygon' as const, coordinates: [[[p.lng-s,p.lat-s],[p.lng+s,p.lat-s],[p.lng+s,p.lat+s],[p.lng-s,p.lat+s],[p.lng-s,p.lat-s]]] },
-        properties: { height: (p.floors || 5) * 3.5, name: p.name, slug: p.slug },
-      };
-    }),
+    features: projects.filter(p => p.lat && p.lng).map(p => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [createBuildingFootprint(p.lat, p.lng, p.floors || 20)],
+      },
+      properties: {
+        height: (p.floors || 20) * 3.5,
+        floors: p.floors || 20,
+        name: p.name,
+        slug: p.slug,
+      },
+    })),
+  }), [projects]);
+
+  // Separate point source for labels
+  const pointsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: projects.filter(p => p.lat && p.lng).map(p => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
+      properties: { name: p.name, slug: p.slug },
+    })),
   }), [projects]);
 
   const handleClick = useCallback((e: any) => {
@@ -110,7 +137,7 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
         onClick={handleClick}
-        interactiveLayerIds={['precon-columns', 'precon-glow']}
+        interactiveLayerIds={['precon-3d-mini']}
         cursor="pointer"
       >
         <NavigationControl position="top-right" showCompass={false} />
@@ -120,27 +147,33 @@ export default function PreconMiniMap({ projects, boundary, neighbourhoodName }:
           <Layer id="precon-border" type="line" paint={LINE_PAINT} />
         </Source>
 
-        <Source id="precon-extrusions" type="geojson" data={extrusionsGeoJSON}>
-          {/* Glow layer */}
-          <Layer id="precon-glow" type="fill-extrusion" paint={{
+        {/* 3D building extrusions */}
+        <Source id="precon-buildings-mini" type="geojson" data={buildingsGeoJSON}>
+          <Layer id="precon-glow-mini" type="fill-extrusion" paint={{
             'fill-extrusion-color': '#FBBF24',
-            'fill-extrusion-height': ['*', ['get', 'height'], 1.1],
+            'fill-extrusion-height': ['*', ['get', 'height'], 1.15],
             'fill-extrusion-base': 0,
-            'fill-extrusion-opacity': 0.15,
+            'fill-extrusion-opacity': 0.12,
           }} />
-          {/* Main column */}
-          <Layer id="precon-columns" type="fill-extrusion" paint={{
-            'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'height'], 0, '#F59E0B', 30, '#FBBF24', 80, '#FCD34D'],
+          <Layer id="precon-3d-mini" type="fill-extrusion" paint={{
+            'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'floors'], 1, '#F59E0B', 15, '#FBBF24', 35, '#FCD34D', 60, '#FDE68A'],
             'fill-extrusion-height': ['get', 'height'],
             'fill-extrusion-base': 0,
             'fill-extrusion-opacity': 0.85,
           }} />
-          {/* Labels */}
-          <Layer id="precon-labels" type="symbol" layout={{
+        </Source>
+
+        {/* Labels on points */}
+        <Source id="precon-points-mini" type="geojson" data={pointsGeoJSON}>
+          <Layer id="precon-dot-mini" type="circle" paint={{
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 14, 4, 16, 7],
+            'circle-color': '#FBBF24', 'circle-opacity': 0.6, 'circle-blur': 0.4,
+          }} />
+          <Layer id="precon-labels-mini" type="symbol" layout={{
             'text-field': ['get', 'name'], 'text-size': 10,
             'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-            'text-offset': [0, -1], 'text-anchor': 'bottom', 'text-optional': true,
-          }} paint={{ 'text-color': '#FBBF24', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1 }} minzoom={13} />
+            'text-offset': [0, -2], 'text-anchor': 'bottom', 'text-optional': true,
+          }} paint={{ 'text-color': '#FBBF24', 'text-halo-color': 'rgba(0,0,0,0.85)', 'text-halo-width': 1.2 }} minzoom={13} />
         </Source>
 
         {popup && (
