@@ -70,13 +70,13 @@ export default function AirbnbClient({ buildings }: Props) {
         </div>
 
         {/* View toggle */}
-        <div className="flex border-b border-border mb-6">
+        <div className="flex gap-2 mb-6">
           <button onClick={() => setViewMode('list')}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${viewMode === 'list' ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-muted hover:text-text-primary'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-accent-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             List View
           </button>
           <button onClick={() => setViewMode('map')}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${viewMode === 'map' ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-muted hover:text-text-primary'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'map' ? 'bg-accent-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             Map View
           </button>
         </div>
