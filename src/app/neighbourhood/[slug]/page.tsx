@@ -14,6 +14,37 @@ const ToggleMap = dynamic(() => import('@/components/neighbourhood/ToggleMap'), 
 
 interface Props { params: { slug: string }; }
 
+// TRREB district codes by neighbourhood
+const NEIGHBOURHOOD_DISTRICTS: Record<string, string> = {
+  'downtown-core': 'C01',
+  'king-west': 'C01',
+  'queen-west': 'C01',
+  'liberty-village': 'C01',
+  'cityplace': 'C01',
+  'fort-york': 'C01',
+  'yorkville': 'C02',
+  'the-annex': 'C02',
+  'midtown': 'C03',
+  'yonge-eglinton': 'C03',
+  'leaside': 'C11',
+  'leslieville': 'E01',
+  'riverside': 'E01',
+  'danforth': 'E03',
+  'high-park': 'W01',
+  'roncesvalles': 'W01',
+  'junction': 'W02',
+  'waterfront': 'C01',
+  'canary-district': 'C08',
+  'port-lands': 'C08',
+  'north-york': 'C06',
+  'scarborough': 'E05',
+  'etobicoke': 'W06',
+  'mississauga': 'W12',
+  'vaughan': 'N03',
+  'richmond-hill': 'N03',
+  'markham': 'N11',
+};
+
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
@@ -248,7 +279,7 @@ export default async function NeighbourhoodPage({ params }: Props) {
             <h3 className="text-xl font-bold text-text-primary mb-2">Looking to buy in {name}?</h3>
             <p className="text-text-muted mb-4">Get expert guidance from a licensed real estate professional</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={`/search?neighborhood=${encodeURIComponent(name)}`} className="bg-accent-blue text-white px-6 py-2.5 rounded-lg font-medium hover:bg-accent-blue/90">View All Listings</Link>
+              <Link href={`/search?district=${NEIGHBOURHOOD_DISTRICTS[params.slug] || 'C01'}`} className="bg-accent-blue text-white px-6 py-2.5 rounded-lg font-medium hover:bg-accent-blue/90">View All Listings</Link>
               <Link href="/contact-us" className="border border-border text-text-primary px-6 py-2.5 rounded-lg font-medium hover:border-accent-blue/30">Contact Tal Shelef</Link>
             </div>
           </section>

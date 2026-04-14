@@ -66,6 +66,7 @@ function SearchContent() {
       priceMax: searchParams.get('priceMax') ? parseInt(searchParams.get('priceMax')!) : undefined,
       bedsMin: searchParams.get('beds') ? parseInt(searchParams.get('beds')!) : undefined,
       neighborhood: searchParams.get('neighborhood') || undefined,
+      district: searchParams.get('district') || undefined,
       area: searchParams.get('area') || undefined,
       search: searchParams.get('search') || undefined,
       soldDateRange: tab === 'sold' ? '90' : undefined,
@@ -95,6 +96,7 @@ function SearchContent() {
     } else {
       if (f.area) b.area = f.area;
       if (f.municipality) b.city = f.municipality;
+      if (f.district) b.district = f.district;
       if (f.neighborhood) b.neighborhood = f.neighborhood;
     }
     if (f.streetName) b.streetName = f.streetName;

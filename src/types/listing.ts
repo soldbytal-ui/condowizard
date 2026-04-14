@@ -131,6 +131,7 @@ export interface ListingFilters {
   pageSize?: number;
   // Location
   neighborhood?: string;
+  district?: string;
   community?: string;
   area?: string;
   municipality?: string;
