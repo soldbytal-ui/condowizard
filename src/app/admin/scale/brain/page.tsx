@@ -298,20 +298,20 @@ When the user asks you to generate ad copy, test a headline, or review content, 
       `}</style>
 
       {/* Page header */}
-      <div style={{ padding: '20px 32px', borderBottom: `1px solid ${S.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '24px 36px', borderBottom: `1px solid ${S.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>Agent brain</h1>
-          <p style={{ fontSize: 12, color: S.textMuted, margin: '4px 0 0' }}>Knowledge base injected into every AI call</p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>Agent brain</h1>
+          <p style={{ fontSize: 14, color: S.textMuted, margin: '6px 0 0', lineHeight: 1.6 }}>Knowledge base injected into every AI call</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: S.textMuted, fontFamily: S.mono }}>{activeCount}/{totalEntries} rules active</span>
-          <button onClick={() => setShowChat(!showChat)} style={{ padding: '6px 12px', borderRadius: 6, background: showChat ? S.accentSoft : S.surfaceHover, border: `1px solid ${showChat ? S.accentBorder : S.border}`, color: showChat ? S.accent : S.textSecondary, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono }}>{activeCount}/{totalEntries} rules active</span>
+          <button onClick={() => setShowChat(!showChat)} style={{ padding: '10px 20px', borderRadius: 8, background: showChat ? S.accentSoft : S.surfaceHover, border: `1px solid ${showChat ? S.accentBorder : S.border}`, color: showChat ? S.accent : S.textSecondary, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Chat /> Test agent
           </button>
-          <button onClick={() => setShowPreview(!showPreview)} style={{ padding: '6px 12px', borderRadius: 6, background: S.surfaceHover, border: `1px solid ${S.border}`, color: S.textSecondary, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={() => setShowPreview(!showPreview)} style={{ padding: '10px 20px', borderRadius: 8, background: S.surfaceHover, border: `1px solid ${S.border}`, color: S.textSecondary, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Eye /> Preview prompt
           </button>
-          <button onClick={save} style={{ padding: '6px 12px', borderRadius: 6, background: saved ? S.greenSoft : S.accent, border: 'none', color: S.white, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s' }}>
+          <button onClick={save} style={{ padding: '10px 20px', borderRadius: 8, background: saved ? S.greenSoft : S.accent, border: 'none', color: S.white, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}>
             <Save /> {saved ? 'Saved!' : 'Save'}
           </button>
         </div>
@@ -319,23 +319,23 @@ When the user asks you to generate ad copy, test a headline, or review content, 
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px - 71px)' }}>
         {/* Sidebar — categories */}
-        <div style={{ width: 240, borderRight: `1px solid ${S.border}`, padding: '16px 12px', overflowY: 'auto', flexShrink: 0 }}>
-          <div style={{ fontSize: 10, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, padding: '0 8px' }}>Categories</div>
+        <div style={{ width: 260, borderRight: `1px solid ${S.border}`, padding: '20px 14px', overflowY: 'auto', flexShrink: 0 }}>
+          <div style={{ fontSize: 13, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, padding: '0 10px' }}>Categories</div>
           {categories.map((cat) => {
             const count = cat.entries.filter((e) => e.active).length;
             return (
               <div key={cat.id} onClick={() => setActiveCategory(cat.id)}
                 style={{
-                  padding: '10px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 4,
+                  padding: '12px 14px', borderRadius: 9, cursor: 'pointer', marginBottom: 6,
                   background: activeCategory === cat.id ? S.accentSoft : 'transparent',
                   border: `1px solid ${activeCategory === cat.id ? S.accentBorder : 'transparent'}`,
                   transition: 'all 0.12s',
                 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 6, background: `${cat.color}20`, color: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{cat.icon}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: `${cat.color}20`, color: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>{cat.icon}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: activeCategory === cat.id ? S.white : S.textSecondary }}>{cat.label}</div>
-                    <div style={{ fontSize: 10, color: S.textMuted }}>{count} rule{count !== 1 ? 's' : ''} active</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: activeCategory === cat.id ? S.white : S.textSecondary }}>{cat.label}</div>
+                    <div style={{ fontSize: 12, color: S.textMuted, marginTop: 2 }}>{count} rule{count !== 1 ? 's' : ''} active</div>
                   </div>
                 </div>
               </div>
@@ -360,30 +360,30 @@ When the user asks you to generate ad copy, test a headline, or review content, 
         </div>
 
         {/* Main content — entries */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '28px 36px' }}>
           {activeCat && (
             <div style={{ animation: 'slideIn 0.2s ease' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 16 }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${activeCat.color}20`, color: activeCat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>{activeCat.icon}</div>
-                    <h2 style={{ fontSize: 20, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>{activeCat.label}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9, background: `${activeCat.color}20`, color: activeCat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>{activeCat.icon}</div>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>{activeCat.label}</h2>
                   </div>
-                  {activeCat.description && <p style={{ fontSize: 13, color: '#6B7185', margin: 0, maxWidth: 500 }}>{activeCat.description}</p>}
+                  {activeCat.description && <p style={{ fontSize: 15, color: '#6B7185', margin: 0, maxWidth: 560, lineHeight: 1.6 }}>{activeCat.description}</p>}
                 </div>
                 {categories.length > 1 && (
                   <button onClick={() => { if (confirm(`Delete "${activeCat.label}" and all its entries?`)) deleteCategory(activeCat.id); }}
-                    style={{ padding: '6px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', color: '#F87171', fontSize: 11, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', color: '#F87171', fontSize: 13, cursor: 'pointer', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Trash /> Delete category
                   </button>
                 )}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {activeEntries.map((entry, i) => (
                   <div key={entry.id} className="brain-entry"
                     style={{
-                      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: '14px 16px',
+                      background: S.surface, border: `1px solid ${S.border}`, borderRadius: 11, padding: '18px 20px',
                       opacity: entry.active ? 1 : 0.4, transition: 'all 0.15s',
                       borderLeft: `3px solid ${entry.active ? activeCat.color : 'transparent'}`,
                     }}>
@@ -398,24 +398,24 @@ When the user asks you to generate ad copy, test a headline, or review content, 
                             }
                             if (e.key === 'Escape') setEditingEntry(null);
                           }}
-                          style={{ width: '100%', minHeight: 60, padding: '8px 10px', borderRadius: 6, background: S.surfaceHover, border: `1px solid ${S.accent}`, color: S.textPrimary, fontSize: 13, fontFamily: S.font, resize: 'vertical', lineHeight: 1.5 }}
+                          style={{ width: '100%', minHeight: 76, padding: '12px 14px', borderRadius: 8, background: S.surfaceHover, border: `1px solid ${S.accent}`, color: S.textPrimary, fontSize: 14, fontFamily: S.font, resize: 'vertical', lineHeight: 1.7 }}
                           autoFocus
                         />
-                        <div style={{ fontSize: 10, color: S.textMuted, marginTop: 4 }}>Enter to save · Escape to cancel</div>
+                        <div style={{ fontSize: 12, color: S.textMuted, marginTop: 6 }}>Enter to save · Escape to cancel</div>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <div onClick={() => setEditingEntry(entry.id)} style={{ flex: 1, cursor: 'text', fontSize: 13, color: '#C8CBD3', lineHeight: 1.6 }}>
-                          <span style={{ color: S.textMuted, fontSize: 11, marginRight: 6, fontFamily: S.mono }}>{i + 1}.</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
+                        <div onClick={() => setEditingEntry(entry.id)} style={{ flex: 1, cursor: 'text', fontSize: 14, color: '#C8CBD3', lineHeight: 1.7 }}>
+                          <span style={{ color: S.textMuted, fontSize: 12, marginRight: 8, fontFamily: S.mono }}>{i + 1}.</span>
                           {entry.text}
                         </div>
-                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                           <button onClick={() => toggleEntry(entry.id)} title={entry.active ? 'Disable' : 'Enable'}
-                            style={{ padding: 4, borderRadius: 4, background: 'transparent', border: 'none', color: entry.active ? S.green : S.textMuted, cursor: 'pointer' }}>
+                            style={{ padding: 6, borderRadius: 5, background: 'transparent', border: 'none', color: entry.active ? S.green : S.textMuted, cursor: 'pointer' }}>
                             {entry.active ? <Eye /> : <EyeOff />}
                           </button>
                           <button onClick={() => deleteEntry(entry.id)} title="Delete"
-                            style={{ padding: 4, borderRadius: 4, background: 'transparent', border: 'none', color: S.textMuted, cursor: 'pointer' }}>
+                            style={{ padding: 6, borderRadius: 5, background: 'transparent', border: 'none', color: S.textMuted, cursor: 'pointer' }}>
                             <Trash />
                           </button>
                         </div>
@@ -426,20 +426,20 @@ When the user asks you to generate ad copy, test a headline, or review content, 
               </div>
 
               {/* Add new entry */}
-              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: 16 }}>
-                <div style={{ fontSize: 11, color: S.textMuted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Add new rule</div>
+              <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 13, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Add new rule</div>
                 <textarea
                   ref={textareaRef}
                   value={newEntry}
                   onChange={(e) => setNewEntry(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addEntry(); } }}
                   placeholder={`Teach the agent something about ${activeCat.label.toLowerCase()}...`}
-                  style={{ width: '100%', minHeight: 48, padding: '10px 12px', borderRadius: 8, background: S.surfaceHover, border: `1px solid ${S.border}`, color: S.textPrimary, fontSize: 13, fontFamily: S.font, resize: 'vertical', lineHeight: 1.5 }}
+                  style={{ width: '100%', minHeight: 64, padding: '14px 16px', borderRadius: 10, background: S.surfaceHover, border: `1px solid ${S.border}`, color: S.textPrimary, fontSize: 14, fontFamily: S.font, resize: 'vertical', lineHeight: 1.7 }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <span style={{ fontSize: 11, color: S.textMuted }}>Enter to add · Shift+Enter for new line</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                  <span style={{ fontSize: 13, color: S.textMuted }}>Enter to add · Shift+Enter for new line</span>
                   <button onClick={addEntry} disabled={!newEntry.trim()}
-                    style={{ padding: '6px 16px', borderRadius: 6, background: newEntry.trim() ? S.accent : S.surfaceHover, border: 'none', color: newEntry.trim() ? S.white : S.textDim, fontSize: 12, fontWeight: 600, cursor: newEntry.trim() ? 'pointer' : 'not-allowed', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    style={{ padding: '10px 22px', borderRadius: 8, background: newEntry.trim() ? S.accent : S.surfaceHover, border: 'none', color: newEntry.trim() ? S.white : S.textDim, fontSize: 14, fontWeight: 600, cursor: newEntry.trim() ? 'pointer' : 'not-allowed', fontFamily: S.font, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Plus /> Add rule
                   </button>
                 </div>
