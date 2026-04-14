@@ -219,10 +219,34 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
       } catch { setNearby([]); }
     }
 
-    // INVESTMENT (rental comps)
+    // INVESTMENT (rental comps) — match property type + bedrooms ±1
     if (tab === 'investment' && !rentalComps) {
       try {
-        const d = await post({ city: listing.city || 'Toronto', status: 'A', type: 'lease', neighborhood: listing.neighborhood, minBeds: listing.beds, resultsPerPage: 5, sortBy: 'listPriceDesc' });
+        const body: any = {
+          city: listing.city || 'Toronto', status: 'A', type: 'lease',
+          neighborhood: listing.neighborhood || undefined,
+          minBeds: Math.max(0, listing.beds - 1),
+          maxBeds: listing.beds + 1,
+          resultsPerPage: 8,
+          sortBy: 'listPriceDesc',
+        };
+        // Match property type — Repliers uses different names for sale vs lease
+        // Sale: "Condo Apt" → Lease: "Condo Apartment", "Detached" → "Detached", etc.
+        const leaseTypeMap: Record<string, string> = {
+          'Condo Apt': 'Condo Apartment',
+          'Condo Townhouse': 'Condo Townhouse',
+          'Detached': 'Detached',
+          'Semi-Detached': 'Semi-Detached',
+          'Att/Row/Twnhouse': 'Att/Row/Twnhouse',
+        };
+        const leaseType = pd.propertyType ? (leaseTypeMap[pd.propertyType] || pd.propertyType) : null;
+        if (leaseType) body.propertyType = leaseType;
+        let d = await post(body);
+        // If 0 results, broaden: drop propertyType
+        if (d && (!d.listings?.length || d.total === 0)) {
+          delete body.propertyType;
+          d = await post(body);
+        }
         setRentalComps(d?.listings || []);
       } catch { setRentalComps([]); }
     }
@@ -544,28 +568,102 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
               {activeTab === 'investment' && (
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Investment Analysis</h3>
-                  {rentalComps === null ? <p className="text-text-muted text-sm">Loading rental data...</p> : rentalComps.length === 0 ? <p className="text-text-muted text-sm">No rental comparables found in this area.</p> : (() => {
-                    const avgRent = Math.round(rentalComps.reduce((a, c) => a + c.price, 0) / rentalComps.length);
-                    const annualRent = avgRent * 12;
+                  {rentalComps === null ? (
+                    <p className="text-text-muted text-sm">Loading rental data...</p>
+                  ) : rentalComps.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-text-muted text-sm">No comparable rentals found in this area.</p>
+                      <p className="text-xs text-text-muted mt-1">Contact Tal Shelef for a rental market estimate — <a href="tel:6478904082" className="text-accent-blue">647-890-4082</a></p>
+                    </div>
+                  ) : (() => {
+                    // Weighted rent estimate: prefer exact bedroom matches
+                    const exactBedComps = rentalComps.filter(c => c.beds === listing.beds);
+                    const similarComps = rentalComps.filter(c => Math.abs(c.beds - listing.beds) <= 1);
+                    const useComps = exactBedComps.length >= 2 ? exactBedComps : similarComps;
+
+                    let estRent: number;
+                    if (exactBedComps.length >= 2) {
+                      estRent = Math.round(exactBedComps.reduce((s, c) => s + c.price, 0) / exactBedComps.length);
+                    } else if (similarComps.length >= 2) {
+                      // Adjust for bedroom difference (~$300/bed)
+                      estRent = Math.round(similarComps.reduce((s, c) => s + c.price - (c.beds - listing.beds) * 300, 0) / similarComps.length);
+                    } else {
+                      estRent = Math.round(rentalComps.reduce((s, c) => s + c.price, 0) / rentalComps.length);
+                    }
+
+                    const annualRent = estRent * 12;
                     const grossYield = listing.price > 0 ? (annualRent / listing.price * 100) : 0;
-                    const monthlyMortgage = listing.price * 0.8 * (0.045 / 12) * Math.pow(1 + 0.045 / 12, 300) / (Math.pow(1 + 0.045 / 12, 300) - 1);
-                    const monthlyCosts = monthlyMortgage + (listing.maintenanceFee || 0) + ((pd.taxes || listing.price * 0.0065) / 12) + 100;
-                    const cashFlow = avgRent - monthlyCosts;
+
+                    // Monthly costs breakdown
+                    const principal = listing.price * 0.8; // 20% down
+                    const mr = 0.045 / 12;
+                    const np = 25 * 12;
+                    const monthlyMortgage = mr > 0 ? Math.round(principal * mr * Math.pow(1 + mr, np) / (Math.pow(1 + mr, np) - 1)) : 0;
+                    const monthlyMaint = listing.maintenanceFee || 0;
+                    const monthlyTax = Math.round((pd.taxes || listing.price * 0.008) / 12);
+                    const monthlyInsurance = 100;
+                    const totalCosts = monthlyMortgage + monthlyMaint + monthlyTax + monthlyInsurance;
+                    const cashFlow = estRent - totalCosts;
+
                     return (
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="bg-white rounded-lg border border-border p-3 text-center"><p className="text-xl font-bold">${avgRent.toLocaleString()}</p><p className="text-xs text-text-muted">Est. Monthly Rent</p></div>
-                          <div className="bg-white rounded-lg border border-border p-3 text-center"><p className="text-xl font-bold">{grossYield.toFixed(1)}%</p><p className="text-xs text-text-muted">Gross Yield</p></div>
-                          <div className="bg-white rounded-lg border border-border p-3 text-center"><p className={`text-xl font-bold ${cashFlow >= 0 ? 'text-accent-green' : 'text-red-500'}`}>${Math.abs(Math.round(cashFlow)).toLocaleString()}</p><p className="text-xs text-text-muted">{cashFlow >= 0 ? 'Monthly Surplus' : 'Monthly Deficit'}</p></div>
-                          <div className="bg-white rounded-lg border border-border p-3 text-center"><p className="text-xl font-bold">${Math.round(monthlyCosts).toLocaleString()}</p><p className="text-xs text-text-muted">Monthly Costs</p></div>
-                        </div>
-                        <h4 className="font-medium text-sm mt-4">Rental Comparables</h4>
-                        {rentalComps.map((r) => (
-                          <div key={r.id} className="flex justify-between p-3 bg-white rounded-lg border border-border text-sm">
-                            <div><p className="font-medium">${r.price.toLocaleString()}/mo</p><p className="text-xs text-text-muted">{r.address}</p></div>
-                            <p className="text-xs text-text-muted">{r.beds}bd · {r.baths}ba</p>
+                          <div className="bg-white rounded-lg border border-border p-3 text-center">
+                            <p className="text-xl font-bold text-text-primary">${estRent.toLocaleString()}</p>
+                            <p className="text-xs text-text-muted">Est. Monthly Rent</p>
+                            <p className="text-[10px] text-text-muted">({exactBedComps.length >= 2 ? `${exactBedComps.length} exact` : `${useComps.length} similar`} comps)</p>
                           </div>
-                        ))}
+                          <div className="bg-white rounded-lg border border-border p-3 text-center">
+                            <p className="text-xl font-bold text-accent-blue">{grossYield.toFixed(1)}%</p>
+                            <p className="text-xs text-text-muted">Gross Yield</p>
+                          </div>
+                          <div className="bg-white rounded-lg border border-border p-3 text-center">
+                            <p className={`text-xl font-bold ${cashFlow >= 0 ? 'text-accent-green' : 'text-red-500'}`}>${Math.abs(Math.round(cashFlow)).toLocaleString()}</p>
+                            <p className="text-xs text-text-muted">{cashFlow >= 0 ? 'Monthly Surplus' : 'Monthly Deficit'}</p>
+                          </div>
+                          <div className="bg-white rounded-lg border border-border p-3 text-center">
+                            <p className="text-xl font-bold text-text-primary">${totalCosts.toLocaleString()}</p>
+                            <p className="text-xs text-text-muted">Monthly Costs</p>
+                          </div>
+                        </div>
+
+                        {/* Cost breakdown */}
+                        <div className="bg-white rounded-xl border border-border p-4">
+                          <h4 className="font-medium text-sm mb-3">Monthly Cost Breakdown</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between"><span className="text-text-muted">Mortgage (80% LTV, 4.5%, 25yr)</span><span>${monthlyMortgage.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span className="text-text-muted">Maintenance Fee</span><span>${monthlyMaint.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span className="text-text-muted">Property Tax</span><span>${monthlyTax.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span className="text-text-muted">Insurance (est.)</span><span>${monthlyInsurance}</span></div>
+                            <div className="flex justify-between font-bold border-t border-border pt-2"><span>Total Monthly Costs</span><span>${totalCosts.toLocaleString()}</span></div>
+                            <div className="flex justify-between font-bold"><span>Estimated Rent</span><span className="text-accent-green">${estRent.toLocaleString()}</span></div>
+                            <div className={`flex justify-between font-bold pt-1 ${cashFlow >= 0 ? 'text-accent-green' : 'text-red-500'}`}>
+                              <span>{cashFlow >= 0 ? 'Monthly Surplus' : 'Monthly Deficit'}</span>
+                              <span>{cashFlow >= 0 ? '+' : '-'}${Math.abs(Math.round(cashFlow)).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Rental comps */}
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Rental Comparables ({rentalComps.length} found)</h4>
+                          <div className="space-y-2">
+                            {rentalComps.map((r) => (
+                              <a key={r.id} href={`/listing/${r.mlsNumber}`} className="flex items-center justify-between p-3 bg-white rounded-lg border border-border text-sm hover:border-accent-blue/30 transition-colors">
+                                <div>
+                                  <p className="font-medium text-text-primary">${r.price.toLocaleString()}/mo</p>
+                                  <p className="text-xs text-text-muted truncate">{r.address}</p>
+                                </div>
+                                <div className="text-right flex-shrink-0 ml-3">
+                                  <p className="text-xs text-text-muted">{r.beds}bd · {r.baths}ba{r.sqft ? ` · ${r.sqft}` : ''}</p>
+                                  <p className="text-[10px] text-text-muted">{r.propertyType}</p>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-text-muted">Investment analysis is for informational purposes only. Actual returns may vary. Contact Tal Shelef for a personalized investment assessment.</p>
                       </div>
                     );
                   })()}
