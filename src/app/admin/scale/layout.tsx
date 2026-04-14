@@ -15,6 +15,7 @@ const FONT = "'DM Sans', -apple-system, sans-serif";
 const TABS = [
   { href: '/admin/scale', label: 'Dashboard', match: (p: string) => p === '/admin/scale' },
   { href: '/admin/scale/campaigns', label: 'Campaigns', match: (p: string) => p.startsWith('/admin/scale/campaigns') },
+  { href: '/admin/scale/agents', label: 'Agents', match: (p: string) => p.startsWith('/admin/scale/agents') },
   { href: '/admin/scale/crm', label: 'CRM', match: (p: string) => p.startsWith('/admin/scale/crm') },
   { href: '/admin/scale/brain', label: 'Agent Brain', match: (p: string) => p.startsWith('/admin/scale/brain') },
   { href: '/admin/scale/settings', label: 'Settings', match: (p: string) => p.startsWith('/admin/scale/settings') },

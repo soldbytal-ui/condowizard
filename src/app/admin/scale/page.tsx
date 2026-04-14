@@ -24,6 +24,16 @@ interface ScaleHistoryEntry {
 interface BrainEntry { id: string; text: string; active: boolean }
 interface BrainCategory { id: string; label: string; color?: string; entries: BrainEntry[] }
 
+interface DashboardAgent {
+  id: string;
+  name: string;
+  role: string;
+  status: 'active' | 'paused' | 'inactive';
+  lastHeartbeat: string | null;
+}
+
+interface DashboardTask { assignedTo: string; status: string; title: string }
+
 interface GoogleAdsStatus {
   connected: boolean;
   email?: string | null;
@@ -92,6 +102,8 @@ const QUICK_ACTIONS = [
 const SCALE_HISTORY_STORAGE_KEY = 'scale-campaign-history';
 const SCALE_BRAIN_STORAGE_KEY = 'scale-agent-brain';
 const CRM_LEADS_STORAGE_KEY = 'scale-crm-leads';
+const AGENTS_KEY = 'scale-agents';
+const AGENT_TASKS_KEY = 'scale-agents-tasks';
 
 const LEAD_STATUS_LABELS: Record<CrmLead['status'], string> = {
   new: 'New', contacted: 'Contacted', showing: 'Showing', offer: 'Offer',
@@ -116,6 +128,8 @@ export default function ScaleDashboard() {
   const [config, setConfig] = useState<ScaleModelConfig | null>(null);
   const [googleStatus, setGoogleStatus] = useState<GoogleAdsStatus | null>(null);
   const [leads, setLeads] = useState<CrmLead[]>([]);
+  const [agents, setAgents] = useState<DashboardAgent[]>([]);
+  const [agentTasks, setAgentTasks] = useState<DashboardTask[]>([]);
 
   useEffect(() => {
     try {
@@ -127,6 +141,20 @@ export default function ScaleDashboard() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) setLeads(parsed);
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem(AGENTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setAgents(parsed);
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem(AGENT_TASKS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setAgentTasks(parsed);
       }
     } catch {}
     try {
@@ -439,6 +467,57 @@ export default function ScaleDashboard() {
             )}
           </div>
         </section>
+
+        {/* Section 3.75 — Active Agents */}
+        {agents.length > 0 && (
+          <section style={{ marginBottom: 40 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={sectionLabelStyle}>Active agents</div>
+              <Link href="/admin/scale/agents" style={{ fontSize: 15, color: S.accent, fontWeight: 500 }}>
+                Manage agents →
+              </Link>
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16,
+            }}>
+              {agents.map((a) => {
+                const dot = a.status === 'active' ? S.green : a.status === 'paused' ? S.amber : 'rgba(255,255,255,0.3)';
+                const currentTask = agentTasks.find((t) => t.assignedTo === a.id && (t.status === 'in_progress' || t.status === 'queued'));
+                return (
+                  <Link
+                    key={a.id}
+                    href="/admin/scale/agents"
+                    style={{
+                      background: S.surface, color: S.textPrimary,
+                      border: `1px solid ${S.border}`, borderRadius: 14, padding: 18,
+                      boxShadow: CARD_SHADOW, display: 'flex', flexDirection: 'column', gap: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+                      <span style={{ fontSize: 16, fontWeight: 700, color: S.white, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {a.name}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: S.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {a.role.split('—')[0].trim()}
+                    </div>
+                    {currentTask ? (
+                      <div style={{ fontSize: 13, color: S.textSecondary, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Current: {currentTask.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>No active task</div>
+                    )}
+                    <div style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono, marginTop: 4 }}>
+                      Heartbeat {a.lastHeartbeat ? formatRelativeDate(a.lastHeartbeat) : 'not run yet'}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Section 4 — Split row: brain status + connections */}
         <section style={{ marginBottom: 40 }}>
