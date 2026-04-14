@@ -3,112 +3,127 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-interface SearchResult {
-  type: 'mls' | 'neighbourhood' | 'location' | 'precon';
-  title: string;
-  subtitle?: string;
-  href: string;
-  image?: string;
+interface ListingResult {
+  mlsNumber: string;
+  price: number;
+  address: string;
+  unitNumber: string;
+  city: string;
+  beds: number;
+  baths: number;
+  sqft: string;
+  propertyType: string;
+  dom: number;
+  image: string | null;
+  isRental: boolean;
 }
 
-function slugify(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+interface HoodResult {
+  name: string;
+  slug: string;
+}
+
+function slugify(n: string) { return n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''); }
+
+function parseAddressQuery(q: string): { streetNumber?: string; streetName?: string } | null {
+  const m = q.trim().match(/^(\d+)\s+(.+)/);
+  if (m) return { streetNumber: m[1], streetName: m[2].split(/\s+(st|ave|blvd|rd|dr|way|ter|crt|cres|pkwy|ln|pl|sq|ct)/i)[0].trim() };
+  if (/^[a-z]/i.test(q.trim()) && q.trim().length >= 3) return { streetName: q.trim().split(/\s+(st|ave|blvd|rd|dr|way|ter|crt)/i)[0].trim() };
+  return null;
 }
 
 export default function NavSearch() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [listings, setListings] = useState<ListingResult[]>([]);
+  const [hoods, setHoods] = useState<HoodResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Close on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setIsOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleSearch = (value: string) => {
+  const handleChange = (value: string) => {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (value.length < 2) {
-      setResults([]);
-      setIsOpen(false);
-      return;
-    }
+    if (value.length < 2) { setListings([]); setHoods([]); setIsOpen(false); return; }
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const all: SearchResult[] = [];
       const q = value.trim();
-      const isMLS = /^[CWENX]\d{5,}$/i.test(q);
+      const isMLS = /^[CWENX]\d{4,}/i.test(q);
 
       try {
-        // 1. MLS# lookup
+        // --- LISTINGS SEARCH ---
+        let foundListings: ListingResult[] = [];
+
         if (isMLS) {
+          // Direct MLS lookup
           const res = await fetch(`/api/repliers/listings/${q.toUpperCase()}`);
           if (res.ok) {
-            const data = await res.json();
-            if (data.listing) {
-              const l = data.listing;
-              all.push({
-                type: 'mls', title: `$${l.price?.toLocaleString()} — ${l.address}`,
-                subtitle: `MLS# ${l.mlsNumber} · ${l.beds}bd · ${l.baths}ba`,
-                href: `/listing/${l.mlsNumber}`, image: l.images?.[0],
-              });
+            const d = await res.json();
+            if (d.listing) {
+              const l = d.listing;
+              foundListings = [{
+                mlsNumber: l.mlsNumber, price: l.price, address: l.address,
+                unitNumber: '', city: l.city || 'Toronto', beds: l.beds, baths: l.baths,
+                sqft: l.sqft, propertyType: l.propertyType, dom: l.dom,
+                image: l.images?.[0] || null, isRental: false,
+              }];
+            }
+          }
+        } else {
+          // Address search via Repliers streetNumber/streetName params
+          const parsed = parseAddressQuery(q);
+          if (parsed?.streetName) {
+            const body: any = { city: 'Toronto', status: 'A', resultsPerPage: 8, sortBy: 'listPriceDesc' };
+            if (parsed.streetNumber) body.streetNumber = parsed.streetNumber;
+            body.streetName = parsed.streetName;
+
+            const res = await fetch('/api/repliers/listings', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            if (res.ok) {
+              const d = await res.json();
+              foundListings = (d.listings || []).map((l: any) => ({
+                mlsNumber: l.mlsNumber || l.id, price: l.price,
+                address: l.address, unitNumber: '',
+                city: l.city || 'Toronto', beds: l.beds, baths: l.baths,
+                sqft: l.sqft, propertyType: l.propertyType, dom: l.dom || 0,
+                image: l.images?.[0] || null, isRental: false,
+              }));
             }
           }
         }
 
-        // 2. Locations autocomplete (addresses/areas)
-        if (!isMLS && q.length >= 3) {
-          const res = await fetch(`/api/repliers/locations?q=${encodeURIComponent(q)}`);
-          if (res.ok) {
-            const data = await res.json();
-            for (const loc of (data.locations || data.suggestions || []).slice(0, 5)) {
-              const name = loc.name || loc.address || '';
-              const type = loc.type || '';
-              if (type === 'neighborhood' || type === 'neighbourhood') {
-                all.push({ type: 'neighbourhood', title: name, subtitle: 'Neighbourhood', href: `/neighbourhood/${slugify(name)}` });
-              } else {
-                all.push({ type: 'location', title: name, subtitle: type || 'Location', href: `/search?neighborhood=${encodeURIComponent(name)}` });
-              }
-            }
-          }
-        }
-
-        // 3. Neighbourhood name matching (client-side from known list)
-        if (!isMLS) {
+        // --- NEIGHBOURHOOD SEARCH (only if not address-like) ---
+        let foundHoods: HoodResult[] = [];
+        if (!isMLS && !parseAddressQuery(q)?.streetNumber) {
           try {
-            const commRes = await fetch('/api/repliers/communities');
-            if (commRes.ok) {
-              const commData = await commRes.json();
-              const matched = (commData.locations || [])
+            const res = await fetch('/api/repliers/communities');
+            if (res.ok) {
+              const d = await res.json();
+              foundHoods = (d.locations || [])
                 .filter((c: any) => c.name.toLowerCase().includes(q.toLowerCase()))
-                .slice(0, 5);
-              for (const c of matched) {
-                // Avoid duplicates from locations autocomplete
-                if (!all.some(r => r.title === c.name)) {
-                  all.push({ type: 'neighbourhood', title: c.name, subtitle: c.city || 'Toronto', href: `/neighbourhood/${slugify(c.name)}` });
-                }
-              }
+                .slice(0, 4)
+                .map((c: any) => ({ name: c.name, slug: slugify(c.name) }));
             }
           } catch {}
         }
+
+        setListings(foundListings);
+        setHoods(foundHoods);
+        setIsOpen(foundListings.length > 0 || foundHoods.length > 0 || q.length >= 2);
       } catch (e) {
         console.error('NavSearch error:', e);
       }
-
-      setResults(all.slice(0, 10));
-      setIsOpen(all.length > 0 || q.length >= 2);
       setLoading(false);
     }, 300);
   };
@@ -116,23 +131,31 @@ export default function NavSearch() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && query.trim()) {
       setIsOpen(false);
-      router.push(`/search?neighborhood=${encodeURIComponent(query.trim())}`);
+      const parsed = parseAddressQuery(query.trim());
+      if (parsed?.streetNumber && parsed.streetName) {
+        router.push(`/search?streetNumber=${parsed.streetNumber}&streetName=${encodeURIComponent(parsed.streetName)}`);
+      } else {
+        router.push(`/search?neighborhood=${encodeURIComponent(query.trim())}`);
+      }
     }
     if (e.key === 'Escape') setIsOpen(false);
   };
 
-  const icons: Record<string, string> = { mls: 'M', neighbourhood: 'N', location: 'A', precon: 'P' };
-  const iconColors: Record<string, string> = { mls: 'bg-accent-blue text-white', neighbourhood: 'bg-green-100 text-green-700', location: 'bg-gray-100 text-gray-600', precon: 'bg-yellow-100 text-yellow-700' };
+  const fmtPrice = (p: number, rental: boolean) => {
+    if (!p) return '';
+    const str = p >= 1000000 ? `$${(p / 1000000).toFixed(1)}M` : `$${Math.round(p / 1000)}K`;
+    return rental ? str + '/mo' : str;
+  };
+
+  const hasResults = listings.length > 0 || hoods.length > 0;
 
   return (
-    <div ref={containerRef} className="relative hidden md:block flex-1 max-w-md mx-4">
+    <div ref={containerRef} className="relative hidden md:block flex-1 max-w-lg mx-4">
       <input
-        type="text"
-        value={query}
-        onChange={(e) => handleSearch(e.target.value)}
-        onFocus={() => query.length >= 2 && results.length > 0 && setIsOpen(true)}
+        type="text" value={query} onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => query.length >= 2 && hasResults && setIsOpen(true)}
         onKeyDown={handleKeyDown}
-        placeholder="Search MLS#, address, or neighbourhood..."
+        placeholder="Search address, MLS#, or neighbourhood..."
         className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm border-none focus:outline-none focus:ring-2 focus:ring-accent-blue focus:bg-white transition-colors"
       />
       <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,37 +163,60 @@ export default function NavSearch() {
       </svg>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[400px] overflow-y-auto z-50">
-          {loading && results.length === 0 && (
-            <div className="p-4 text-center text-gray-400 text-sm">Searching...</div>
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[500px] overflow-y-auto z-50 w-full min-w-[480px]">
+          {loading && !hasResults && <div className="p-4 text-center text-gray-400 text-sm">Searching...</div>}
+
+          {/* Listings section */}
+          {listings.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 pt-3 pb-1">
+                Listings · {listings.length}
+              </p>
+              {listings.map((l) => (
+                <a key={l.mlsNumber} href={`/listing/${l.mlsNumber}`}
+                  onClick={() => { setIsOpen(false); setQuery(''); }}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+                  {l.image ? (
+                    <img src={l.image} alt="" className="w-16 h-12 object-cover rounded flex-shrink-0" />
+                  ) : (
+                    <div className="w-16 h-12 bg-gray-200 rounded flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{l.address}</p>
+                    <p className="text-xs text-gray-500">
+                      {l.beds > 0 && `${l.beds} Bed`}{l.baths > 0 && ` · ${l.baths} Bath`}{l.sqft && ` · ${l.sqft} sqft`}{l.propertyType && ` · ${l.propertyType}`}
+                    </p>
+                    <p className={`text-xs font-semibold mt-0.5 ${l.isRental ? 'text-accent-blue' : 'text-accent-green'}`}>
+                      {fmtPrice(l.price, l.isRental)}{l.dom > 0 && ` · ${l.dom} DOM`}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-gray-400 flex-shrink-0 font-mono">#{l.mlsNumber}</span>
+                </a>
+              ))}
+              <a href={`/search?neighborhood=${encodeURIComponent(query)}`}
+                onClick={() => { setIsOpen(false); setQuery(''); }}
+                className="block px-4 py-2.5 text-sm text-accent-blue font-medium hover:bg-blue-50 border-t text-center">
+                View all results for &ldquo;{query}&rdquo; &rarr;
+              </a>
+            </div>
           )}
 
-          {results.length > 0 && (
-            <div className="p-1.5">
-              {results.map((r, i) => (
-                <a
-                  key={i}
-                  href={r.href}
+          {/* Neighbourhoods section */}
+          {hoods.length > 0 && (
+            <div className={listings.length > 0 ? 'border-t' : ''}>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 pt-3 pb-1">Neighbourhoods</p>
+              {hoods.map((h) => (
+                <a key={h.slug} href={`/neighbourhood/${h.slug}`}
                   onClick={() => { setIsOpen(false); setQuery(''); }}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  {r.image ? (
-                    <img src={r.image} alt="" className="w-10 h-10 object-cover rounded flex-shrink-0" />
-                  ) : (
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${iconColors[r.type] || 'bg-gray-100 text-gray-600'}`}>
-                      {icons[r.type] || '?'}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{r.title}</p>
-                    {r.subtitle && <p className="text-xs text-gray-500 truncate">{r.subtitle}</p>}
-                  </div>
+                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-xs font-bold flex-shrink-0">N</div>
+                  <span className="text-sm text-gray-900">{h.name}</span>
                 </a>
               ))}
             </div>
           )}
 
-          {!loading && results.length === 0 && query.length >= 2 && (
+          {!loading && !hasResults && query.length >= 2 && (
             <div className="p-4 text-center text-gray-400 text-sm">No results for &ldquo;{query}&rdquo;</div>
           )}
         </div>

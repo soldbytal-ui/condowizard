@@ -12,7 +12,7 @@ const SCALAR_KEYS = [
   'minBaths', 'maxBaths',
   'minSqft', 'maxSqft', 'minDaysOnMarket', 'maxDaysOnMarket',
   'neighborhood', 'area', 'district', 'municipality',
-  'streetName', 'minStreetNumber', 'maxStreetNumber', 'unitNumber',
+  'streetName', 'streetNumber', 'minStreetNumber', 'maxStreetNumber', 'unitNumber',
   'mlsNumber', 'class',
   'minUpdatedOn', 'maxUpdatedOn', 'minListDate', 'maxListDate',
   'minSoldDate', 'maxSoldDate', 'minSoldPrice', 'maxSoldPrice',
