@@ -22,8 +22,11 @@ interface ScaleProject {
   floors: number | null;
   units: number | null;
   amenities: string[];
+  description?: string;
+  buildingType?: string;
   status: string;
   image: string;
+  images?: string[];
 }
 
 interface Channel {
@@ -242,6 +245,8 @@ export default function CampaignsWizard() {
   // Wizard state
   const [step, setStep] = useState(1);
   const [search, setSearch] = useState('');
+  const [neighborhoodFilter, setNeighborhoodFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [channelId, setChannelId] = useState<string>('google_search');
   const [budget, setBudget] = useState(50);
@@ -281,16 +286,30 @@ export default function CampaignsWizard() {
   // Derived
   const channel = useMemo(() => CHANNELS.find((c) => c.id === channelId) || CHANNELS[0], [channelId]);
 
+  const neighborhoodOptions = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach((p) => { if (p.neighborhood && p.neighborhood !== '—') set.add(p.neighborhood); });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach((p) => { if (p.status) set.add(p.status); });
+    return Array.from(set).sort();
+  }, [projects]);
+
   const filteredProjects = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.neighborhood.toLowerCase().includes(q) ||
-        p.developer.toLowerCase().includes(q)
-    );
-  }, [projects, search]);
+    return projects.filter((p) => {
+      if (neighborhoodFilter !== 'all' && p.neighborhood !== neighborhoodFilter) return false;
+      if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+      if (q) {
+        const hay = `${p.name} ${p.neighborhood} ${p.developer}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [projects, search, neighborhoodFilter, statusFilter]);
 
   const selectedProjects = useMemo(
     () => projects.filter((p) => selectedIds.has(p.id)),
@@ -446,9 +465,16 @@ export default function CampaignsWizard() {
         {step === 1 && (
           <StepProjects
             projects={filteredProjects}
+            totalCount={projects.length}
             loading={projectsLoading}
             search={search}
             onSearch={setSearch}
+            neighborhoodFilter={neighborhoodFilter}
+            onNeighborhoodChange={setNeighborhoodFilter}
+            neighborhoodOptions={neighborhoodOptions}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            statusOptions={statusOptions}
             selectedIds={selectedIds}
             toggleProject={toggleProject}
             selectAll={selectAll}
@@ -515,29 +541,57 @@ export default function CampaignsWizard() {
 // ═══════════════════════════════════════════════════════════════
 function StepProjects(props: {
   projects: ScaleProject[];
+  totalCount: number;
   loading: boolean;
   search: string;
   onSearch: (v: string) => void;
+  neighborhoodFilter: string;
+  onNeighborhoodChange: (v: string) => void;
+  neighborhoodOptions: string[];
+  statusFilter: string;
+  onStatusChange: (v: string) => void;
+  statusOptions: string[];
   selectedIds: Set<string>;
   toggleProject: (id: string) => void;
   selectAll: () => void;
   deselectAll: () => void;
   onContinue: () => void;
 }) {
-  const { projects, loading, search, onSearch, selectedIds, toggleProject, selectAll, deselectAll, onContinue } = props;
+  const {
+    projects, totalCount, loading,
+    search, onSearch,
+    neighborhoodFilter, onNeighborhoodChange, neighborhoodOptions,
+    statusFilter, onStatusChange, statusOptions,
+    selectedIds, toggleProject, selectAll, deselectAll, onContinue,
+  } = props;
+
   const allSelected = projects.length > 0 && projects.every((p) => selectedIds.has(p.id));
+  const shown = projects.length;
+  const anyFilterActive = search || neighborhoodFilter !== 'all' || statusFilter !== 'all';
 
   return (
     <div style={{ animation: 'sSlideIn 0.25s ease' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.02em' }}>
         Select projects to advertise
       </h1>
-      <p style={{ fontSize: 14, color: S.textSecondary, margin: '8px 0 24px' }}>
+      <p style={{ fontSize: 14, color: S.textSecondary, margin: '8px 0 20px' }}>
         Pick one or more active projects. Scale generates on-brand ad copy for every one you select.
       </p>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
+      {/* Total count */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <span style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono, letterSpacing: '0.02em' }}>
+          {loading
+            ? 'Loading…'
+            : anyFilterActive
+              ? `${shown} of ${totalCount} projects`
+              : `${totalCount} project${totalCount === 1 ? '' : 's'} available`}
+        </span>
+      </div>
+
+      {/* Filter row */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 380 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: S.textMuted, display: 'flex' }}>
             <Search />
           </span>
@@ -553,6 +607,22 @@ function StepProjects(props: {
             }}
           />
         </div>
+
+        <FilterSelect
+          label="Neighborhood"
+          value={neighborhoodFilter}
+          onChange={onNeighborhoodChange}
+          options={[{ value: 'all', label: 'All neighborhoods' }, ...neighborhoodOptions.map((n) => ({ value: n, label: n }))]}
+        />
+        <FilterSelect
+          label="Status"
+          value={statusFilter}
+          onChange={onStatusChange}
+          options={[{ value: 'all', label: 'All statuses' }, ...statusOptions.map((s) => ({ value: s, label: statusLabel(s) }))]}
+        />
+
+        <div style={{ flex: 1 }} />
+
         <button
           onClick={allSelected ? deselectAll : selectAll}
           className="s-btn"
@@ -570,58 +640,89 @@ function StepProjects(props: {
         <div style={{ color: S.textMuted, fontSize: 14, padding: 40 }}>Loading projects…</div>
       ) : projects.length === 0 ? (
         <div style={{ color: S.textMuted, fontSize: 14, padding: 40, textAlign: 'center', border: `1px dashed ${S.border}`, borderRadius: 12 }}>
-          No projects match “{search}”.
+          No projects match these filters.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
-          {projects.map((p) => {
-            const selected = selectedIds.has(p.id);
-            return (
-              <button
-                key={p.id}
-                onClick={() => toggleProject(p.id)}
-                className="s-card"
-                style={{
-                  position: 'relative', textAlign: 'left', cursor: 'pointer',
-                  background: selected ? S.accentSoft : S.surface,
-                  border: `1px solid ${selected ? S.accentBorder : S.border}`,
-                  borderRadius: 14, padding: 0, overflow: 'hidden', fontFamily: S.font, color: S.textPrimary,
-                }}
-              >
-                <div style={{
-                  height: 120, background: p.image ? `center/cover no-repeat url(${p.image})` : `linear-gradient(135deg, ${S.surfaceHover} 0%, ${S.surface} 100%)`,
-                  position: 'relative', borderBottom: `1px solid ${S.border}`,
-                }}>
-                  <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                      width: 22, height: 22, borderRadius: 6,
-                      background: selected ? S.accent : 'rgba(0,0,0,0.4)',
-                      border: `1.5px solid ${selected ? S.accent : 'rgba(255,255,255,0.3)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                      backdropFilter: 'blur(8px)',
-                    }}>
-                      {selected && <Check size={12} />}
+        <div
+          className="s-scroll"
+          style={{
+            maxHeight: 'calc(100vh - 380px)',
+            minHeight: 300,
+            overflowY: 'auto',
+            paddingRight: 6,
+            marginRight: -6,
+          }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {projects.map((p) => {
+              const selected = selectedIds.has(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => toggleProject(p.id)}
+                  className="s-card"
+                  style={{
+                    position: 'relative', textAlign: 'left', cursor: 'pointer',
+                    background: selected ? S.accentSoft : S.surface,
+                    border: `1px solid ${selected ? S.accentBorder : S.border}`,
+                    borderRadius: 14, padding: 0, overflow: 'hidden', fontFamily: S.font, color: S.textPrimary,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 130,
+                      backgroundColor: S.surfaceHover,
+                      backgroundImage: p.image
+                        ? `linear-gradient(to bottom, rgba(11,13,17,0) 40%, rgba(11,13,17,0.55) 100%), url(${p.image})`
+                        : `linear-gradient(135deg, rgba(0,102,255,0.12) 0%, rgba(0,212,170,0.08) 100%)`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      position: 'relative',
+                      borderBottom: `1px solid ${S.border}`,
+                    }}
+                  >
+                    {!p.image && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'rgba(255,255,255,0.15)', fontSize: 42, fontWeight: 700, fontFamily: S.mono, letterSpacing: '-0.04em',
+                      }}>
+                        {p.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ position: 'absolute', top: 12, left: 12 }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: 6,
+                        background: selected ? S.accent : 'rgba(0,0,0,0.5)',
+                        border: `1.5px solid ${selected ? S.accent : 'rgba(255,255,255,0.35)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                        backdropFilter: 'blur(8px)',
+                      }}>
+                        {selected && <Check size={12} />}
+                      </div>
+                    </div>
+                    <div style={{ position: 'absolute', top: 12, right: 12, padding: '4px 10px', borderRadius: 100, background: 'rgba(16,185,129,0.85)', color: '#fff', fontSize: 10, fontWeight: 600, letterSpacing: '0.02em', backdropFilter: 'blur(6px)' }}>
+                      {statusLabel(p.status)}
                     </div>
                   </div>
-                  <div style={{ position: 'absolute', top: 12, right: 12, padding: '4px 10px', borderRadius: 100, background: S.greenSoft, border: '1px solid rgba(16,185,129,0.3)', color: S.green, fontSize: 11, fontWeight: 600 }}>
-                    {statusLabel(p.status)}
+                  <div style={{ padding: 16 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: S.white, letterSpacing: '-0.01em', marginBottom: 4 }}>{p.name}</div>
+                    <div style={{ fontSize: 13, color: S.textSecondary, marginBottom: 10 }}>{p.neighborhood} · {p.developer}</div>
+                    <div style={{ fontSize: 13, color: '#C8CBD3', fontFamily: S.mono, marginBottom: 10 }}>{p.price}</div>
+                    <div style={{ fontSize: 11, color: S.textMuted, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <span>Completion {p.completion}</span>
+                      <span>·</span>
+                      <span>{p.floors ?? '—'} floors</span>
+                      <span>·</span>
+                      <span>{p.units ?? '—'} units</span>
+                      {p.buildingType && (<><span>·</span><span>{p.buildingType}</span></>)}
+                    </div>
                   </div>
-                </div>
-                <div style={{ padding: 16 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: S.white, letterSpacing: '-0.01em', marginBottom: 4 }}>{p.name}</div>
-                  <div style={{ fontSize: 13, color: S.textSecondary, marginBottom: 10 }}>{p.neighborhood} · {p.developer}</div>
-                  <div style={{ fontSize: 13, color: '#C8CBD3', fontFamily: S.mono, marginBottom: 10 }}>{p.price}</div>
-                  <div style={{ fontSize: 11, color: S.textMuted, display: 'flex', gap: 10 }}>
-                    <span>Completion {p.completion}</span>
-                    <span>·</span>
-                    <span>{p.floors ?? '—'} floors</span>
-                    <span>·</span>
-                    <span>{p.units ?? '—'} units</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -1274,6 +1375,81 @@ function BottomBar({ children }: { children: React.ReactNode }) {
     }}>
       {children}
     </div>
+  );
+}
+
+function FilterSelect({
+  label, value, onChange, options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  const active = value !== 'all';
+  return (
+    <label
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          left: 12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          fontSize: 11,
+          color: S.textMuted,
+          fontWeight: 500,
+          pointerEvents: 'none',
+          letterSpacing: '0.02em',
+        }}
+      >
+        {label}:
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          MozAppearance: 'none',
+          padding: `10px 30px 10px ${label.length * 6 + 22}px`,
+          borderRadius: 10,
+          background: active ? S.accentSoft : S.surface,
+          border: `1px solid ${active ? S.accentBorder : S.border}`,
+          color: active ? S.white : S.textSecondary,
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          fontFamily: S.font,
+          outline: 'none',
+          minWidth: 180,
+        }}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} style={{ background: S.bg, color: S.textPrimary }}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <span
+        style={{
+          position: 'absolute',
+          right: 12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+          color: S.textMuted,
+          display: 'flex',
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M2.5 4l2.5 2.5L7.5 4" /></svg>
+      </span>
+    </label>
   );
 }
 
