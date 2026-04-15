@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  callAI,
+  callAIWithFallback,
+  ScaleAuthError,
   loadScaleConfig,
   buildBrainPrompt,
   ScaleModelConfig,
@@ -106,6 +107,7 @@ interface Channel {
   icon: string;
   disabled?: boolean;
   schemaHint: string;
+  platformGuide: string;
 }
 
 type VariantKey = 'variant_a' | 'variant_b';
@@ -244,40 +246,235 @@ const FALLBACK_PROJECTS: ScaleProject[] = [
 // ═══════════════════════════════════════════════════════════════
 const CHANNELS: Channel[] = [
   {
-    id: 'google_search', name: 'Google Search', subtitle: 'Responsive search ads',
-    description: 'Generates 3 headlines (≤30 chars each) and 2 descriptions (≤90 chars each) per variant. Google will mix them to find the best combination.',
+    id: 'google_search', name: 'Google Search', subtitle: 'Full RSA campaign structure',
+    description:
+      'Generates a complete Google Ads campaign: 15 headlines, 4 descriptions, sitelinks, callouts, keywords (exact + phrase), negatives, and bid / targeting recommendations. Output is API-shaped.',
     color: '#4285F4', icon: 'G',
-    schemaHint: `Each variant MUST have: { "headlines": string[3] (each ≤30 chars, no exclamation marks), "descriptions": string[2] (each ≤90 chars) }.`,
+    schemaHint: `Each variant MUST have:
+{
+  "headlines": string[15],                  // each ≤30 chars, NO exclamation marks, NO double-spaces
+  "headline_pins": { "1": "<project-name-headline>", "2": "<cta-headline>" }, // which headline text to pin to positions 1 and 2
+  "keyword_insertion_headlines": string[3], // must use {KeyWord:Default} syntax
+  "descriptions": string[4],                // each ≤90 chars
+  "paths": { "path1": string, "path2": string }, // each ≤15 chars — show in the display URL
+  "keywords_exact": string[15],             // minimum 15 exact-match keywords for this ad group
+  "keywords_phrase": string[10],            // minimum 10 phrase-match keywords
+  "negatives": string[],                    // include: rental, rent, airbnb, hotel, resale, used, old, cheap, free
+  "sitelinks": [ { "title": string (≤25), "description1": string (≤35), "description2": string (≤35), "url_path": string } ]  // exactly 4 sitelinks: Floor Plans, Pricing, Register, Location
+  "callouts": string[4],                    // each ≤25 chars — e.g. "No Commission", "VIP Access", "Platinum Pricing", "2027 Occupancy"
+  "structured_snippets": { "header": string, "values": string[] }, // e.g. header "Amenities", values the project's top amenities
+  "bid_strategy": { "type": "MANUAL_CPC" | "MAXIMIZE_CLICKS" | "TARGET_CPA", "target_cpa_cad"?: number, "max_cpc_cad"?: number, "reason": string },
+  "ad_schedule": [ { "days": string, "hours": string } ], // e.g. [{ "days": "MON-FRI", "hours": "07:00-22:00" }, { "days": "SAT-SUN", "hours": "09:00-20:00" }] — Toronto timezone
+  "location_targeting": { "include": string[], "radius_km": number, "exclude": string[] }, // include Toronto + 50km; exclude United States
+  "device_bid_adjustments": { "mobile_pct": number, "desktop_pct": number, "tablet_pct": number } // mobile should be +20% for real estate
+}`,
+    platformGuide: `GOOGLE SEARCH (RESPONSIVE SEARCH ADS) EXPERT RULES
+
+Creative constraints
+- RSA minimums: 3 headlines + 2 descriptions. Maximums: 15 headlines + 4 descriptions. ALWAYS output 15 headlines + 4 descriptions for ad strength "Excellent".
+- Headlines ≤30 chars, descriptions ≤90 chars. Count carefully.
+- Never use exclamation marks (against Google editorial policy for RSA).
+- Pin headline 1 = always-show project name ("KING Toronto", "429 Walmer", etc.).
+- Pin headline 2 = always-show CTA ("Register for VIP Access", "Get Floor Plans").
+- Include at least 3 keyword-insertion headlines using the exact syntax {KeyWord:Default} — e.g. {KeyWord:Toronto Condos} lets Google swap the matched keyword in. The Default must work as a standalone headline.
+
+Ad group + keyword structure
+- 1 campaign → 1 ad group per project → that ad group contains 15–25+ exact-match keywords, 10+ phrase-match, and a full negative list.
+- Exact keywords: include brand ("KING Toronto", "KING Toronto condos"), type ("KING Toronto pre construction"), intent ("KING Toronto floor plans", "KING Toronto price").
+- Phrase keywords: neighbourhood-led, e.g. "new condos {neighbourhood}", "pre construction {neighbourhood}", "{neighbourhood} condos for sale".
+- Negative keywords (always): rental, rent, airbnb, hotel, resale, used, old, cheap, free. Add more when obvious ("jobs", "careers").
+
+Extensions
+- Sitelinks: exactly 4, mandatory set — Floor Plans, Pricing, Register, Location. Title ≤25, each description line ≤35.
+- Callouts: at least 4, each ≤25 chars. Typical set: "No Commission", "VIP Access", "Platinum Pricing", "2027 Occupancy" — tailor the completion year to the brief.
+- Structured snippet: use header "Amenities" with the project's real amenities.
+
+Bidding (pick based on daily budget)
+- < $30/day → Manual CPC with max_cpc_cad ~$2.50.
+- $30–$100/day → Maximize Clicks with max_cpc_cad cap to avoid waste.
+- ≥ $100/day → Target CPA; recommend target_cpa_cad = $45 for GTA pre-con leads.
+
+Targeting
+- Location include: Toronto + 50 km radius. Always exclude United States to stop US bot clicks.
+- Ad schedule: weekdays 07:00–22:00, weekends 09:00–20:00 (Toronto timezone).
+- Device bid adjustments: mobile +20% (real estate searches skew mobile), desktop 0, tablet -10%.
+
+The output is a complete Google Ads campaign structure JSON that can be pushed to the Google Ads API without further editing.`,
   },
   {
-    id: 'google_display', name: 'Google Display', subtitle: 'Visual banner ads',
-    description: 'Short headline + descriptive tagline + clear CTA for rich display placements.',
+    id: 'google_display', name: 'Google Display', subtitle: 'Responsive display + placements',
+    description:
+      'Full display campaign: 5 short headlines, 5 long headlines, 5 descriptions, business name, targeting (in-market + affinity + managed placements), and frequency cap.',
     color: '#34A853', icon: 'D',
-    schemaHint: `Each variant MUST have: { "headline": string (≤25 chars), "tagline": string (≤90 chars), "cta": string (≤15 chars, from: Learn More, Register, Book Tour) }.`,
+    schemaHint: `Each variant MUST have:
+{
+  "short_headlines": string[5],  // each ≤30 chars
+  "long_headlines": string[5],   // each ≤90 chars
+  "descriptions": string[5],     // each ≤90 chars
+  "business_name": "CondoWizard.ca",
+  "image_specs": [ { "label": "Landscape 1200x628" | "Square 1200x1200" | "Marketing 1200x628", "prompt": string } ],
+  "in_market_audiences": string[],  // "Real Estate", "New Home Construction", "Condominiums", "Investment Properties"
+  "affinity_audiences": string[],   // "Property Investors", "Urban Living Enthusiasts"
+  "managed_placements": string[],   // suggested sites to target
+  "placement_exclusions": string[], // games, dating apps, children's content, etc.
+  "frequency_cap": { "impressions": 5, "per": "DAY", "scope": "USER" },
+  "cta": string (≤15 chars)
+}`,
+    platformGuide: `GOOGLE DISPLAY EXPERT RULES
+
+- Responsive display ads auto-adapt to 30+ ad sizes. Short headline ≤30 chars shows most often; long headline ≤90 chars appears on larger placements.
+- Always set business_name to "CondoWizard.ca" for the branded footer.
+- Image specs (for the creative team): 1200×628 landscape, 1200×1200 square, 1200×628 marketing image. Generate descriptive image prompts that match the project's real architecture, not generic condo stock.
+- Audiences:
+  - In-market (ready to buy): Real Estate, New Home Construction, Condominiums, Investment Properties.
+  - Affinity (interest-level): Property Investors, Urban Living Enthusiasts.
+- Managed placements to suggest: blogto.com, torontoist.com, narcity.com/toronto, realestatemagazine.ca.
+- Always exclude: Games, dating apps, children's content.
+- Frequency cap: 5 impressions per user per day — keeps CPM sane and avoids banner fatigue.`,
   },
   {
-    id: 'meta_lead_gen', name: 'Meta Lead Gen', subtitle: 'Facebook + Instagram lead form',
-    description: 'Primary text + headline + CTA that opens a lead form inside Meta. Best for capturing registrations at low cost.',
+    id: 'meta_lead_gen', name: 'Meta Lead Gen', subtitle: 'Facebook + Instagram instant form',
+    description:
+      'Complete Meta Advantage+ lead gen: primary text, headline, description, CTA button, full lead-form schema, audience stack, placements, CBO budget, and CPL estimate.',
     color: '#1877F2', icon: 'f',
-    schemaHint: `Each variant MUST have: { "primaryText": string (≤125 chars), "headline": string (≤40 chars), "description": string (≤30 chars), "cta": string (one of: "Learn More", "Sign Up", "Book Now", "Get Offer") }.`,
+    schemaHint: `Each variant MUST have:
+{
+  "primary_text": string,            // ≤125 words (best 40–80). Use single \\n line breaks every 1–2 sentences for mobile readability.
+  "headline": string,                // ≤40 chars (aim 25–30 for mobile)
+  "description": string,             // ≤30 chars (often hidden on mobile — keep the hook in the headline)
+  "cta_button": "Sign Up" | "Learn More" | "Get Quote" | "Subscribe" | "Apply Now" | "Register",
+  "lead_form": {
+    "context_card": { "headline": string, "paragraph": string (includes brokerage: "Tal Shelef, Sales Representative | Rare Real Estate Inc., Brokerage") },
+    "questions": [
+      { "type": "FULL_NAME" },
+      { "type": "EMAIL" },
+      { "type": "PHONE_NUMBER" },
+      { "type": "CUSTOM", "label": "What is your budget?", "options": ["Under $500K", "$500K-$750K", "$750K-$1M", "$1M-$1.5M", "$1.5M-$2M", "$2M+"] },
+      { "type": "CUSTOM", "label": "When are you looking to buy?", "options": ["Immediately", "1-3 months", "3-6 months", "6-12 months", "12+ months"] }
+    ],
+    "privacy_policy_url": "https://condowizard.ca/privacy",
+    "thank_you_headline": string,
+    "thank_you_body": string
+  },
+  "audience_stack": {
+    "interests": string[],           // Real estate, Condominiums, Property investment, Home buying, <project neighbourhood>, Toronto real estate
+    "lookalike": { "source": "existing lead list", "ratio_pct": 1 },
+    "custom_audience_retargeting": { "source": "website visitors", "window_days": 180 },
+    "exclusions": string[],          // existing leads, real estate agents
+    "age_min": 25,
+    "age_max": 55,
+    "location": { "include": string[], "radius_km": 50 }
+  },
+  "placements": ["Facebook Feed", "Instagram Feed", "Instagram Stories"],
+  "disable_audience_network": true,
+  "budget_strategy": "CAMPAIGN_BUDGET_OPTIMIZATION",
+  "estimated_cpl_cad": { "min": 15, "max": 40, "note": string }
+}`,
+    platformGuide: `META LEAD GEN EXPERT RULES
+
+- Primary text technical limit is 125 words, but the best-performing Toronto pre-con ads are 40–80 words. Use \\n line breaks every 1–2 sentences so it stays scannable on mobile.
+- Headline ≤40 chars — but aim 25–30 so nothing gets cut on mobile feeds.
+- Description ≤30 chars; frequently hidden on mobile, so assume the headline does all the work.
+- CTA picks that convert for pre-con: "Sign Up" and "Learn More". "Register" works well if the brand is familiar.
+- Instant Lead Form must include Full Name, Email, Phone, "What is your budget?" (the 6-tier range), and "When are you looking to buy?" (the 5-tier timeline). The context card always includes the brokerage line.
+- Audience stack (pick all that apply):
+  - Interest: Real estate, Condominiums, Property investment, Home buying, <specific neighborhood>, Toronto real estate.
+  - Lookalike: 1% of your existing lead list.
+  - Custom (retargeting): website visitors last 180 days.
+  - Exclusions: existing leads, real estate agents (competitors click up your CPA).
+  - Age 25–55. Location: GTA + 50 km, or the project's specific neighbourhood.
+- Budget: Campaign Budget Optimization (CBO) at campaign level.
+- Placements: Facebook Feed + Instagram Feed + Instagram Stories. Disable Audience Network — it hurts lead quality.
+- Benchmark CPL for Toronto pre-con: $15 (entry-level product) to $40 (ultra-luxury). Note the expected range in the output based on the project's price tier.`,
   },
   {
-    id: 'meta_carousel', name: 'Meta Carousel', subtitle: 'Scrollable 3-card ad',
-    description: 'Primary text + 3 carousel cards, each with its own headline and short description. Great for highlighting multiple amenities.',
+    id: 'meta_carousel', name: 'Meta Carousel', subtitle: 'Scrollable 5-card ad',
+    description:
+      '5-card carousel. Each card is a 1080×1080 image with headline, description, landing URL, and creative prompt. Card 1 is the hero; card 5 is always the CTA.',
     color: '#E1306C', icon: 'C',
-    schemaHint: `Each variant MUST have: { "primaryText": string (≤125 chars), "cards": Array of exactly 3 objects { "headline": string (≤40 chars), "description": string (≤20 chars) } }.`,
+    schemaHint: `Each variant MUST have:
+{
+  "primary_text": string (≤125 chars, prefer 40–80 words),
+  "cards": [
+    { "slot": "hero",         "image_prompt": string, "headline": string (≤40), "description": string (≤20), "landing_path": string },
+    { "slot": "interior",     "image_prompt": string, "headline": string, "description": string, "landing_path": string },
+    { "slot": "amenities",    "image_prompt": string, "headline": string, "description": string, "landing_path": string },
+    { "slot": "neighborhood", "image_prompt": string, "headline": string, "description": string, "landing_path": string },
+    { "slot": "cta",          "image_prompt": string, "headline": string, "description": "Tap to register", "landing_path": "/register" }
+  ],
+  "cta_button": "Learn More" | "Sign Up" | "Register"
+}`,
+    platformGuide: `META CAROUSEL EXPERT RULES
+
+- 3–10 cards allowed; the sweet spot is 5.
+- Each card: 1080×1080 image, headline ≤40 chars, description ≤20 chars.
+- Card sequence drives performance: Hero shot → Suite interior → Amenities → Neighborhood → Register CTA.
+- Card 1 determines whether anyone swipes — make it the strongest architectural shot with the boldest headline.
+- Card 5 (or whatever last slot) must be the CTA card — directional visual + clear "register/tap" language.
+- Keep a consistent visual treatment across cards (same filter, same overlay style, same typography).
+- Image prompts should describe real project architecture — never generic stock.`,
   },
   {
     id: 'ig_stories', name: 'Instagram Stories', subtitle: 'Full-screen vertical story',
-    description: 'Short vertical story caption + overlay text + sticker CTA. Drives registrations from the swipe-up.',
+    description:
+      '3–4 slide vertical story with hook → value → proof → CTA. Includes music / motion notes, safe-area rules, and overlay text guidance.',
     color: '#F56040', icon: 'I',
-    schemaHint: `Each variant MUST have: { "overlayText": string (≤40 chars, 2 lines max), "caption": string (≤90 chars), "cta": string (one of: "Swipe Up", "Tap to Register", "See More") }.`,
+    schemaHint: `Each variant MUST have:
+{
+  "slides": [
+    { "role": "hook",   "duration_sec": 2, "overlay_text": string (≤8 words), "image_prompt": string, "motion_note": string },
+    { "role": "value",  "duration_sec": 4, "overlay_text": string (≤8 words), "image_prompt": string, "motion_note": string },
+    { "role": "proof",  "duration_sec": 4, "overlay_text": string (≤8 words), "image_prompt": string, "motion_note": string },
+    { "role": "cta",    "duration_sec": 3, "overlay_text": "Swipe up", "image_prompt": string, "motion_note": string, "sticker": "SWIPE_UP_ARROW" }
+  ],
+  "caption": string (≤90 chars),
+  "cta_sticker": "Swipe Up" | "Tap to Register" | "See More",
+  "music_note": string,
+  "safe_area_note": "Top 15% and bottom 20% reserved for UI — overlay text must not appear in those zones."
+}`,
+    platformGuide: `INSTAGRAM STORIES EXPERT RULES
+
+- Aspect ratio: 9:16 (1080×1920). Each slide ≤15 seconds.
+- Overlay text: 6–8 words max per slide, large font, high contrast.
+- Safe area: leave the top 15% and bottom 20% clear — Instagram's UI (profile chip, reply bar) covers those zones.
+- Slide sequence: Hook (1–2 sec grab) → Value (what's special) → Proof (price / developer / completion) → CTA (swipe up).
+- Always end with "Swipe Up" or a directional arrow sticker on the last slide.
+- 3–4 slides outperforms 5+. More slides = more drop-off.
+- Include a music / motion note — moving or musical stories get ~30% more engagement.`,
+  },
+  {
+    id: 'email', name: 'Email', subtitle: 'CASL-compliant Toronto real estate email',
+    description:
+      'Subject + preheader + 2–3 paragraph body + CTA + Canadian brokerage footer. Includes send-time recommendation and CASL compliance note.',
+    color: '#EA4335', icon: 'E',
+    schemaHint: `Each variant MUST have:
+{
+  "subject": string (≤50 chars, include project name or neighborhood),
+  "preheader": string (≤100 chars, complements subject — never repeats it),
+  "body_paragraphs": string[3], // structure: hook → project details → CTA paragraph. Max 3 paragraphs.
+  "cta_text": string,
+  "cta_url": string,
+  "footer": "Tal Shelef, Sales Representative | Rare Real Estate Inc., Brokerage | 1701 Avenue Rd, Toronto, ON M5M 3Y3 | 647-890-4082 | Contact@condowizard.ca",
+  "unsubscribe_required": true,
+  "recommended_send_window": { "days": "TUE-THU", "hours": "10:00-14:00", "timezone": "America/Toronto" },
+  "casl_note": "CASL requires express consent from Canadian recipients for commercial emails. Only send to leads who explicitly opted in."
+}`,
+    platformGuide: `EMAIL EXPERT RULES (TORONTO REAL ESTATE + CASL)
+
+- Subject: ≤50 chars. Always include the project name or neighborhood to lift open rates.
+- Preheader: ≤100 chars. Complements the subject — never repeats it (wasted copy).
+- Body: 2–3 paragraphs max. Structure: hook → project details (price, completion, one stand-out fact) → CTA paragraph.
+- Must include: unsubscribe link (CAN-SPAM + Canadian CASL compliance).
+- CASL: commercial emails to Canadian addresses require express consent. Flag this in every output — only leads who explicitly opted in can be contacted.
+- Best send window for Toronto real estate: Tuesday–Thursday, 10am–2pm (America/Toronto).
+- Mandatory footer: "Tal Shelef, Sales Representative | Rare Real Estate Inc., Brokerage | 1701 Avenue Rd, Toronto, ON M5M 3Y3 | 647-890-4082 | Contact@condowizard.ca".`,
   },
   {
     id: 'tiktok', name: 'TikTok', subtitle: 'Coming soon',
     description: 'TikTok Spark ads are on the roadmap. Check back shortly.',
     color: '#69C9D0', icon: 'T', disabled: true,
     schemaHint: '',
+    platformGuide: '',
   },
 ];
 
@@ -416,18 +613,28 @@ ${brief}
 
 CHANNEL: ${channel.name}
 ${channel.description}
+
+${channel.platformGuide ? `=== ${channel.name.toUpperCase()} PLATFORM EXPERTISE ===
+${channel.platformGuide}
+=== END PLATFORM EXPERTISE ===
+` : ''}
+OUTPUT SHAPE
 ${channel.schemaHint}
 
 TASK
-Produce TWO variants: variant_a should lead with the BENEFIT / lifestyle angle. variant_b should lead with the URGENCY / timing angle.
+You are writing as a senior ${channel.name} specialist who has shipped hundreds of Toronto real estate campaigns. Apply EVERY rule in the platform expertise above. Hit every character / word limit. Include every required field in the output shape.
+
+Produce TWO variants:
+- variant_a leads with BENEFIT / lifestyle angle (architecture, neighbourhood, amenities, how it feels to live there).
+- variant_b leads with URGENCY / timing angle (limited suites, completion timing, price tier, platinum access).
 
 Return ONLY a JSON object shaped like:
 {
-  "variant_a": { ...channel schema above },
-  "variant_b": { ...channel schema above }
+  "variant_a": { ...exactly the output shape above },
+  "variant_b": { ...exactly the output shape above }
 }
 
-No prose wrapper. No markdown fences. JSON only.`;
+No prose wrapper. No markdown fences. JSON only. If you are not sure about a char limit, stay BELOW it.`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -503,6 +710,7 @@ export default function CampaignsWizard() {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
   const [config, setConfig] = useState<ScaleModelConfig | null>(null);
+  const [serverAnthropicAvailable, setServerAnthropicAvailable] = useState<boolean | null>(null);
 
   // Wizard state
   const [step, setStep] = useState(1);
@@ -541,6 +749,16 @@ export default function CampaignsWizard() {
 
   useEffect(() => {
     setConfig(loadScaleConfig());
+    // Probe the server to see if ANTHROPIC_API_KEY is available as a fallback.
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/scale/ai/proxy', { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        setServerAnthropicAvailable(Boolean(data?.anthropicConfigured));
+      } catch {
+        setServerAnthropicAvailable(false);
+      }
+    })();
     (async () => {
       try {
         const res = await fetch('/api/admin/scale/projects', { cache: 'no-store' });
@@ -663,6 +881,24 @@ export default function CampaignsWizard() {
 
   const monthlyCost = budget * 30;
 
+  // Auth readiness — true when we can make at least one AI call without the
+  // user needing to touch Settings. Three paths:
+  //   1) User pasted a key in Settings (any provider).
+  //   2) Provider is OpenRouter Free (no key needed).
+  //   3) Provider is Anthropic AND the server has ANTHROPIC_API_KEY set.
+  const authReady = !!(
+    config && (
+      config.apiKey ||
+      config.provider === 'openrouter_free' ||
+      (config.provider === 'anthropic' && serverAnthropicAvailable)
+    )
+  );
+  const authHint = !config
+    ? 'Go to the Settings tab to configure your AI provider and API key.'
+    : config.provider === 'anthropic'
+      ? 'No API key found and no server-side ANTHROPIC_API_KEY is set. Go to the Settings tab to paste your Anthropic key, or ask the platform team to add ANTHROPIC_API_KEY to the environment.'
+      : `No API key found for ${config.provider === 'openrouter' ? 'OpenRouter' : config.provider}. Go to the Settings tab to paste your key.`;
+
   const goNextFromStep = (s: number) => {
     if (s === 1 && skipTargetStep) setStep(3);
     else setStep(s + 1);
@@ -713,7 +949,7 @@ export default function CampaignsWizard() {
       try {
         const system = buildSystemPromptFor(campaignMeta, channel, brain, t);
         const user = `Generate a ${channel.name} ad for: ${t.displayName}. Return JSON only \u2014 variant_a (benefit-led) and variant_b (urgency-led).`;
-        const raw = await callAI(config, system, user);
+        const raw = await callAIWithFallback(config, system, user);
         const parsed = tryParseJson(raw) as { variant_a?: GeneratedVariant; variant_b?: GeneratedVariant } | null;
 
         if (parsed && parsed.variant_a && parsed.variant_b) {
@@ -722,8 +958,19 @@ export default function CampaignsWizard() {
           newResults[t.id] = { ok: false, error: 'Model did not return valid variant_a / variant_b JSON.', raw };
         }
       } catch (err) {
+        const isAuth = err instanceof ScaleAuthError;
         const message = err instanceof Error ? err.message : String(err);
-        newResults[t.id] = { ok: false, error: message };
+        newResults[t.id] = {
+          ok: false,
+          error: isAuth
+            ? `${message} (Go to the Settings tab to configure your AI provider and API key.)`
+            : message,
+        };
+        // If it's auth, abort the loop — no point blasting all targets.
+        if (isAuth) {
+          setResults({ ...newResults });
+          break;
+        }
       }
       setResults({ ...newResults });
     }
@@ -771,7 +1018,7 @@ export default function CampaignsWizard() {
     try {
       const system = buildSystemPromptFor(campaignMeta, channel, brain, target);
       const user = `Generate a ${channel.name} ad for: ${target.displayName}. Return JSON only.`;
-      const raw = await callAI(config, system, user);
+      const raw = await callAIWithFallback(config, system, user);
       const parsed = tryParseJson(raw) as { variant_a?: GeneratedVariant; variant_b?: GeneratedVariant } | null;
       if (parsed && parsed.variant_a && parsed.variant_b) {
         setResults((r) => ({ ...r, [targetId]: { ok: true, data: { variant_a: parsed.variant_a!, variant_b: parsed.variant_b! }, raw } }));
@@ -779,8 +1026,17 @@ export default function CampaignsWizard() {
         setResults((r) => ({ ...r, [targetId]: { ok: false, error: 'Model did not return valid JSON.', raw } }));
       }
     } catch (err) {
+      const isAuth = err instanceof ScaleAuthError;
       const message = err instanceof Error ? err.message : String(err);
-      setResults((r) => ({ ...r, [targetId]: { ok: false, error: message } }));
+      setResults((r) => ({
+        ...r,
+        [targetId]: {
+          ok: false,
+          error: isAuth
+            ? `${message} (Go to the Settings tab to configure your AI provider and API key.)`
+            : message,
+        },
+      }));
     }
   };
 
@@ -912,6 +1168,8 @@ export default function CampaignsWizard() {
             setBudget={setBudget}
             monthlyCost={monthlyCost}
             config={config}
+            authReady={authReady}
+            authHint={authHint}
             onBack={() => goBackFromStep(4)}
             onGenerate={startGeneration}
           />
@@ -1524,10 +1782,12 @@ function StepConfigure(props: {
   setBudget: (n: number) => void;
   monthlyCost: number;
   config: ScaleModelConfig | null;
+  authReady: boolean;
+  authHint: string;
   onBack: () => void;
   onGenerate: () => void;
 }) {
-  const { campaignMeta, targets, channel, budget, setBudget, monthlyCost, config, onBack, onGenerate } = props;
+  const { campaignMeta, targets, channel, budget, setBudget, monthlyCost, config, authReady, authHint, onBack, onGenerate } = props;
   const total = targets.length;
 
   return (
@@ -1538,6 +1798,17 @@ function StepConfigure(props: {
       <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 28px', lineHeight: 1.6 }}>
         Final review before Scale calls the AI.
       </p>
+
+      {!authReady && (
+        <div style={{
+          background: '#FEF3C7', color: '#7C2D12',
+          border: '1px solid #FDE68A', borderRadius: 14, padding: '16px 20px',
+          marginBottom: 20, fontSize: 15, lineHeight: 1.55, fontWeight: 500,
+        }}>
+          <strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>AI provider not configured</strong>
+          {authHint}
+        </div>
+      )}
 
       <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, marginBottom: 20, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
         <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', marginBottom: 22 }}>
@@ -1628,15 +1899,15 @@ function StepConfigure(props: {
         </button>
         <button
           onClick={onGenerate}
-          disabled={!config || total === 0}
+          disabled={!config || total === 0 || !authReady}
           className="s-btn"
           style={{
             padding: '16px 36px', borderRadius: 12,
             background: 'linear-gradient(135deg, #0066FF 0%, #00D4AA 100%)',
             color: S.white, border: 'none', fontSize: 17, fontWeight: 600,
-            cursor: !config || total === 0 ? 'not-allowed' : 'pointer',
+            cursor: !config || total === 0 || !authReady ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 12, fontFamily: S.font,
-            opacity: !config || total === 0 ? 0.5 : 1,
+            opacity: !config || total === 0 || !authReady ? 0.5 : 1,
             boxShadow: '0 6px 22px rgba(0,102,255,0.3)',
           }}
         >

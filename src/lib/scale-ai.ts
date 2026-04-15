@@ -149,3 +149,77 @@ export async function callAI(
   const data = await res.json();
   return data?.choices?.[0]?.message?.content || '';
 }
+
+/** Sentinel used by UI code to show a clear "go set up your API key" message. */
+export class ScaleAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ScaleAuthError';
+  }
+}
+
+/**
+ * Like callAI, but:
+ *   1. If the user's localStorage config has no apiKey AND the provider is
+ *      Anthropic, fall back to the server proxy so it can sign with the
+ *      ANTHROPIC_API_KEY env var.
+ *   2. Surfaces ScaleAuthError with actionable copy when nothing will work.
+ *
+ * OpenRouter still needs a client-provided key; there is no server fallback
+ * for it (we'd be paying from a shared credit pool). The error message
+ * steers the user to Settings.
+ */
+export async function callAIWithFallback(
+  config: ScaleModelConfig,
+  systemPrompt: string,
+  userMessage: string,
+  history: ScaleChatMessage[] = []
+): Promise<string> {
+  const { provider, model, apiKey } = config;
+
+  if (apiKey) {
+    try {
+      return await callAI(config, systemPrompt, userMessage, history);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (/401|403|invalid.*api.*key|authentication/i.test(message)) {
+        throw new ScaleAuthError(
+          'Your API key was rejected. Go to the Settings tab to re-enter your AI provider key.'
+        );
+      }
+      throw err;
+    }
+  }
+
+  // No client-side key — try the Anthropic server proxy.
+  if (provider === 'anthropic') {
+    const res = await fetch('/api/admin/scale/ai/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'anthropic',
+        model,
+        system: systemPrompt,
+        messages: [...history, { role: 'user', content: userMessage }],
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new ScaleAuthError(
+          (data?.error as string) ||
+            'No API key available. Go to the Settings tab to configure your AI provider and API key.'
+        );
+      }
+      throw new Error((data?.error as string) || `Proxy error ${res.status}`);
+    }
+    return typeof data.text === 'string' ? data.text : '';
+  }
+
+  // OpenRouter has no server fallback — tell the user plainly.
+  throw new ScaleAuthError(
+    'No API key set for ' +
+      (provider === 'openrouter_free' ? 'OpenRouter Free' : 'OpenRouter') +
+      '. Go to the Settings tab to configure your AI provider and API key.'
+  );
+}
