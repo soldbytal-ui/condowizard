@@ -9,6 +9,13 @@ import {
   buildBrainPrompt,
   ScaleModelConfig,
 } from '@/lib/scale-ai';
+import {
+  MediaAsset, MediaCategory, MEDIA_CATEGORIES,
+  TEMPLATES, CreativeSpec, SavedCreative,
+  CHANNEL_CREATIVE_DIMS, VISUAL_CHANNELS,
+  loadMedia, ensureSeededMedia, addMediaFromFile,
+  renderCreativeToDataUrl,
+} from '@/lib/scale-media';
 
 // Shared with the dashboard — change here and the dashboard reflects.
 export const SCALE_HISTORY_STORAGE_KEY = 'scale-campaign-history';
@@ -662,9 +669,17 @@ function CampaignIcon({ path, color, size = 28 }: { path: string; color: string;
 // ═══════════════════════════════════════════════════════════════
 // Step indicator (5 steps; adapts label for step 2 by campaign type)
 // ═══════════════════════════════════════════════════════════════
-function StepIndicator({ current, stepLabels, skipStep2 }: { current: number; stepLabels: string[]; skipStep2: boolean }) {
-  const labels = skipStep2 ? stepLabels.filter((_, i) => i !== 1) : stepLabels;
-  const logicalCurrent = skipStep2 && current > 2 ? current - 1 : current;
+function StepIndicator({
+  current, stepLabels, skipStep2, skipCreative,
+}: { current: number; stepLabels: string[]; skipStep2: boolean; skipCreative: boolean }) {
+  // Build the visible labels, filtering out steps that don't apply to this channel.
+  const hidden = new Set<number>();
+  if (skipStep2) hidden.add(1);      // index 1 == "Select target"
+  if (skipCreative) hidden.add(4);   // index 4 == "Creative"
+  const labels = stepLabels.filter((_, i) => !hidden.has(i));
+  const countHiddenBelow = (step: number) =>
+    Array.from(hidden).filter((i) => i + 1 < step).length;
+  const logicalCurrent = current - countHiddenBelow(current);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '24px 0 40px', maxWidth: 1000 }}>
       {labels.map((label, i) => {
@@ -730,6 +745,7 @@ export default function CampaignsWizard() {
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [activeVariant, setActiveVariant] = useState<VariantKey>('variant_a');
   const [copiedKey, setCopiedKey] = useState<string>('');
+  const [creatives, setCreatives] = useState<Record<string, SavedCreative[]>>({});
   const cancelRef = useRef(false);
   const historyIdRef = useRef<string>('');
   const searchParams = useSearchParams();
@@ -785,6 +801,7 @@ export default function CampaignsWizard() {
   );
   const channel = useMemo(() => CHANNELS.find((c) => c.id === channelId) || CHANNELS[0], [channelId]);
   const skipTargetStep = campaignType === 'condo_staging';
+  const skipCreativeStep = !VISUAL_CHANNELS.has(channel.id);
 
   // Filtered projects for Step 2 (pre_construction, short_term_rentals)
   const neighborhoodOptions = useMemo(() => {
@@ -900,12 +917,19 @@ export default function CampaignsWizard() {
       : `No API key found for ${config.provider === 'openrouter' ? 'OpenRouter' : config.provider}. Go to the Settings tab to paste your key.`;
 
   const goNextFromStep = (s: number) => {
-    if (s === 1 && skipTargetStep) setStep(3);
-    else setStep(s + 1);
+    // Step 1 → 3 when staging skips the target step
+    if (s === 1 && skipTargetStep) { setStep(3); return; }
+    // Step 4 (Configure) → 6 (Review) when channel has no creative step
+    if (s === 4 && skipCreativeStep) { setStep(6); return; }
+    // Step 5 (Creative) → 6 (Review)
+    setStep(s + 1);
   };
   const goBackFromStep = (s: number) => {
-    if (s === 3 && skipTargetStep) setStep(1);
-    else setStep(s - 1);
+    // Step 3 (Channel) back skips target for staging
+    if (s === 3 && skipTargetStep) { setStep(1); return; }
+    // Step 6 (Review) back skips creative for text-only channels
+    if (s === 6 && skipCreativeStep) { setStep(4); return; }
+    setStep(s - 1);
   };
 
   const startGeneration = async () => {
@@ -914,7 +938,8 @@ export default function CampaignsWizard() {
     setGenerating(true);
     setResults({});
     setGenProgress({ current: 0, total: selectedTargets.length, currentName: '' });
-    setStep(5);
+    // After generation: visual channels go to Creative (5), text-only skip to Review (6).
+    setStep(skipCreativeStep ? 6 : 5);
 
     // Create a history entry up-front so the dashboard shows it immediately.
     const firstProject = selectedTargets[0]?.displayName || 'Campaign';
@@ -1047,7 +1072,7 @@ export default function CampaignsWizard() {
   };
 
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify({ campaignType, channel: channel.id, results }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ campaignType, channel: channel.id, results, creatives }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1078,6 +1103,7 @@ export default function CampaignsWizard() {
     campaignMeta?.stepLabel || 'Select target',
     'Choose Channel',
     'Configure',
+    'Creative',
     'Review Output',
     'Push to Ads',
   ];
@@ -1102,7 +1128,7 @@ export default function CampaignsWizard() {
       `}</style>
 
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '32px 40px 96px', animation: 'sSlideIn 0.25s ease' }}>
-        <StepIndicator current={step} stepLabels={stepLabels} skipStep2={skipTargetStep} />
+        <StepIndicator current={step} stepLabels={stepLabels} skipStep2={skipTargetStep} skipCreative={skipCreativeStep} />
 
         {usingFallback && step === 2 && campaignMeta?.targetKind === 'projects' && (
           <div style={{
@@ -1175,10 +1201,22 @@ export default function CampaignsWizard() {
           />
         )}
 
-        {step === 5 && campaignMeta && (
+        {step === 5 && campaignMeta && !skipCreativeStep && (
+          <StepCreative
+            channel={channel}
+            targets={selectedTargets}
+            creatives={creatives}
+            onSaveCreatives={(targetId, saved) => setCreatives((prev) => ({ ...prev, [targetId]: saved }))}
+            onBack={() => goBackFromStep(5)}
+            onContinue={() => setStep(6)}
+          />
+        )}
+
+        {step === 6 && campaignMeta && (
           <StepReview
             targets={selectedTargets}
             results={results}
+            creatives={creatives}
             channel={channel}
             campaignMeta={campaignMeta}
             activeResultId={activeResultId || selectedTargets[0]?.id || null}
@@ -1190,20 +1228,21 @@ export default function CampaignsWizard() {
             regenerate={regenerateOne}
             exportJson={exportJson}
             copyCsv={copyCsv}
-            onBack={() => setStep(4)}
-            onContinue={() => setStep(6)}
+            onBack={() => goBackFromStep(6)}
+            onContinue={() => setStep(7)}
           />
         )}
 
-        {step === 6 && campaignMeta && (
+        {step === 7 && campaignMeta && (
           <StepPushAds
             channel={channel}
             campaignMeta={campaignMeta}
             targets={selectedTargets}
             results={results}
+            creatives={creatives}
             budget={budget}
             historyId={historyIdRef.current}
-            onBack={() => setStep(5)}
+            onBack={() => setStep(6)}
           />
         )}
       </div>
@@ -1924,6 +1963,7 @@ function StepConfigure(props: {
 function StepReview(props: {
   targets: TargetRef[];
   results: ResultMap;
+  creatives: Record<string, SavedCreative[]>;
   channel: Channel;
   campaignMeta: CampaignTypeMeta;
   activeResultId: string | null;
@@ -1939,7 +1979,7 @@ function StepReview(props: {
   onContinue: () => void;
 }) {
   const {
-    targets, results, channel, campaignMeta,
+    targets, results, creatives, channel, campaignMeta,
     activeResultId, setActiveResultId,
     activeVariant, setActiveVariant,
     copiedKey, copy, regenerate, exportJson, copyCsv, onBack, onContinue,
@@ -2098,6 +2138,43 @@ function StepReview(props: {
                     copiedKey={copiedKey}
                   />
                 )}
+
+                {/* Creative thumbnails for this target */}
+                {active && creatives[active.id] && creatives[active.id].length > 0 && (
+                  <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${S.border}` }}>
+                    <div style={sectionLabelStyle}>Creative</div>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      {creatives[active.id].map((c) => (
+                        <div key={c.id} style={{
+                          display: 'flex', flexDirection: 'column', gap: 6,
+                          background: 'rgba(255,255,255,0.03)', border: `1px solid ${S.border}`,
+                          borderRadius: 11, padding: 10,
+                        }}>
+                          <img
+                            src={c.dataUrl}
+                            alt={c.slot || 'creative'}
+                            style={{
+                              width: 150, height: 150, objectFit: 'cover',
+                              borderRadius: 8, background: '#000',
+                            }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono, textTransform: 'capitalize' }}>
+                              {c.slot || 'creative'}
+                            </span>
+                            <a
+                              href={c.dataUrl}
+                              download={`scale-creative-${active.id}-${c.slot || 'hero'}.png`}
+                              style={{ fontSize: 12, color: S.accent, textDecoration: 'none', fontFamily: S.font }}
+                            >
+                              Download
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -2142,12 +2219,13 @@ interface PushState {
 }
 
 function StepPushAds({
-  channel, campaignMeta, targets, results, budget, historyId, onBack,
+  channel, campaignMeta, targets, results, creatives, budget, historyId, onBack,
 }: {
   channel: Channel;
   campaignMeta: CampaignTypeMeta;
   targets: TargetRef[];
   results: ResultMap;
+  creatives: Record<string, SavedCreative[]>;
   budget: number;
   historyId: string;
   onBack: () => void;
@@ -2371,6 +2449,27 @@ function StepPushAds({
                 Final URL: {finalUrl}
               </div>
 
+              {creatives[target.id] && creatives[target.id].length > 0 && (
+                <div style={{ marginBottom: 20, padding: 16, background: 'rgba(255,255,255,0.02)', border: `1px dashed ${S.border}`, borderRadius: 11 }}>
+                  <div style={{ fontSize: 13, color: S.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                    Creative assets ({creatives[target.id].length})
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                    {creatives[target.id].map((c) => (
+                      <img
+                        key={c.id}
+                        src={c.dataUrl}
+                        alt={c.slot || 'creative'}
+                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, background: '#000' }}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: S.textMuted, lineHeight: 1.5 }}>
+                    Upload ad images to Google Ads manually — image push coming soon.
+                  </div>
+                </div>
+              )}
+
               {state.kind === 'idle' && (
                 <button
                   onClick={() => setConfirming(target.id)}
@@ -2534,6 +2633,596 @@ function ConfirmModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Step 5 — Creative generator (visual channels only)
+// ═══════════════════════════════════════════════════════════════
+interface ChannelSlotDef { id: string; label: string; width: number; height: number }
+
+function slotsForChannel(channelId: string): ChannelSlotDef[] {
+  const base = CHANNEL_CREATIVE_DIMS[channelId];
+  if (channelId === 'meta_carousel') {
+    return Array.from({ length: 5 }, (_, i) => ({
+      id: `card_${i + 1}`, label: `Card ${i + 1}`,
+      width: 1080, height: 1080,
+    }));
+  }
+  if (channelId === 'ig_stories') {
+    return Array.from({ length: 3 }, (_, i) => ({
+      id: `slide_${i + 1}`, label: `Slide ${i + 1}`,
+      width: 1080, height: 1920,
+    }));
+  }
+  if (channelId === 'google_display') {
+    return [
+      { id: 'landscape', label: 'Landscape 1200×628', width: 1200, height: 628 },
+      { id: 'square',    label: 'Square 1080×1080',   width: 1080, height: 1080 },
+    ];
+  }
+  // meta_lead_gen + default
+  return [{ id: 'hero', label: 'Hero', width: base?.width ?? 1080, height: base?.height ?? 1080 }];
+}
+
+function defaultSpec(slot: ChannelSlotDef, project: TargetRef, logoUrl: string | null, accent: string): CreativeSpec {
+  return {
+    template: 'minimal',
+    imageDataUrl: null,
+    logoDataUrl: logoUrl,
+    headline: project.displayName,
+    subtitle: project.subtitle || '',
+    cta: 'Register Now',
+    showLogo: true,
+    textColor: 'light',
+    accentColor: accent,
+    fontScale: 'medium',
+    footer: 'Tal Shelef | Rare Real Estate Inc.',
+    width: slot.width,
+    height: slot.height,
+  };
+}
+
+interface WorkingSlot { slot: ChannelSlotDef; spec: CreativeSpec; previewDataUrl: string | null; rendering: boolean }
+
+function StepCreative({
+  channel, targets, creatives, onSaveCreatives, onBack, onContinue,
+}: {
+  channel: Channel;
+  targets: TargetRef[];
+  creatives: Record<string, SavedCreative[]>;
+  onSaveCreatives: (targetId: string, saved: SavedCreative[]) => void;
+  onBack: () => void;
+  onContinue: () => void;
+}) {
+  const [activeTargetId, setActiveTargetId] = useState<string>(targets[0]?.id || '');
+  const [media, setMedia] = useState<MediaAsset[]>([]);
+  const [projectImages, setProjectImages] = useState<string[]>([]);
+  const [imageTab, setImageTab] = useState<'project' | 'brand' | 'upload'>('project');
+  const [brandCategoryFilter, setBrandCategoryFilter] = useState<'all' | MediaCategory>('all');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Per-target slot working copy: { [targetId]: WorkingSlot[] }
+  const [workingByTarget, setWorkingByTarget] = useState<Record<string, WorkingSlot[]>>({});
+  const [activeSlotId, setActiveSlotId] = useState<string>('');
+
+  const slots = useMemo(() => slotsForChannel(channel.id), [channel.id]);
+  const activeTarget = targets.find((t) => t.id === activeTargetId);
+  const logoAsset = useMemo(() => media.find((m) => m.category === 'logo'), [media]);
+
+  // Load media + project images
+  useEffect(() => {
+    setMedia(ensureSeededMedia());
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/scale/projects', { cache: 'no-store' });
+        const data = await res.json();
+        const imgs: string[] = [];
+        (data.projects as Array<{ image?: string; images?: string[] }> || []).forEach((p) => {
+          if (p.image) imgs.push(p.image);
+          (p.images || []).forEach((i) => imgs.push(i));
+        });
+        setProjectImages(Array.from(new Set(imgs)));
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  // Seed working slots for every target the first time we see them
+  useEffect(() => {
+    setWorkingByTarget((prev) => {
+      const next = { ...prev };
+      targets.forEach((t) => {
+        if (!next[t.id]) {
+          next[t.id] = slots.map((s) => ({
+            slot: s,
+            spec: defaultSpec(s, t, logoAsset?.dataUrl ?? null, '#0066FF'),
+            previewDataUrl: null,
+            rendering: false,
+          }));
+        }
+      });
+      return next;
+    });
+    if (!activeSlotId && slots.length > 0) setActiveSlotId(slots[0].id);
+  }, [targets, slots, logoAsset]);
+
+  // If user has a saved logo, patch in-flight specs (for slots with showLogo + no logo).
+  useEffect(() => {
+    if (!logoAsset) return;
+    setWorkingByTarget((prev) => {
+      const next: typeof prev = {};
+      for (const [tid, ws] of Object.entries(prev)) {
+        next[tid] = ws.map((w) => ({ ...w, spec: { ...w.spec, logoDataUrl: w.spec.logoDataUrl ?? logoAsset.dataUrl } }));
+      }
+      return next;
+    });
+  }, [logoAsset?.id]);
+
+  const workingSlots = workingByTarget[activeTargetId] || [];
+  const activeWorking = workingSlots.find((w) => w.slot.id === activeSlotId);
+
+  const patchActiveSpec = (patch: Partial<CreativeSpec>) => {
+    if (!activeTarget || !activeWorking) return;
+    setWorkingByTarget((prev) => {
+      const list = [...(prev[activeTargetId] || [])];
+      const idx = list.findIndex((w) => w.slot.id === activeSlotId);
+      if (idx < 0) return prev;
+      list[idx] = { ...list[idx], spec: { ...list[idx].spec, ...patch }, previewDataUrl: list[idx].previewDataUrl };
+      return { ...prev, [activeTargetId]: list };
+    });
+  };
+
+  // Debounced preview render
+  useEffect(() => {
+    if (!activeWorking || !activeTarget) return;
+    if (!activeWorking.spec.imageDataUrl) return;
+    const t = setTimeout(async () => {
+      try {
+        const url = await renderCreativeToDataUrl(activeWorking.spec);
+        setWorkingByTarget((prev) => {
+          const list = [...(prev[activeTargetId] || [])];
+          const idx = list.findIndex((w) => w.slot.id === activeSlotId);
+          if (idx < 0) return prev;
+          list[idx] = { ...list[idx], previewDataUrl: url, rendering: false };
+          return { ...prev, [activeTargetId]: list };
+        });
+      } catch { /* ignore */ }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [activeWorking?.spec, activeTargetId, activeSlotId]);
+
+  const handleUpload = async (files: FileList | File[]) => {
+    for (const f of Array.from(files)) {
+      try {
+        const asset = await addMediaFromFile(f, 'project_photo');
+        setMedia((m) => [asset, ...m]);
+        patchActiveSpec({ imageDataUrl: asset.dataUrl });
+      } catch (err) {
+        alert(err instanceof Error ? err.message : String(err));
+      }
+    }
+  };
+
+  const saveAllForTarget = async () => {
+    if (!activeTarget) return;
+    const slotsWork = workingSlots;
+    const saved: SavedCreative[] = [];
+    for (const w of slotsWork) {
+      if (!w.spec.imageDataUrl) continue;  // skip empty slots
+      try {
+        const dataUrl = await renderCreativeToDataUrl(w.spec);
+        saved.push({
+          id: `creative_${activeTargetId}_${w.slot.id}`,
+          slot: w.slot.id,
+          spec: w.spec,
+          dataUrl,
+          createdAt: new Date().toISOString(),
+        });
+      } catch { /* skip */ }
+    }
+    onSaveCreatives(activeTargetId, saved);
+  };
+
+  const filteredBrandAssets = brandCategoryFilter === 'all'
+    ? media
+    : media.filter((m) => m.category === brandCategoryFilter);
+
+  return (
+    <div style={{ animation: 'sSlideIn 0.25s ease' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: S.pageHeading, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+        Ad creative
+      </h1>
+      <p style={{ fontSize: 17, color: S.pageSubtitle, margin: '12px 0 24px', lineHeight: 1.6 }}>
+        Build your ad visuals. Pick images, choose a template, preview the result.
+      </p>
+
+      {/* Target tabs (which project/target are we building creative for) */}
+      {targets.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+          {targets.map((t) => {
+            const active = t.id === activeTargetId;
+            const savedCount = creatives[t.id]?.length || 0;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTargetId(t.id)}
+                style={{
+                  padding: '10px 18px', borderRadius: 10,
+                  background: active ? S.accent : '#fff',
+                  border: `1px solid ${active ? S.accent : 'rgba(0,0,0,0.12)'}`,
+                  color: active ? '#fff' : S.pageHeading,
+                  fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                }}
+              >
+                {t.displayName}
+                {savedCount > 0 && (
+                  <span style={{
+                    fontSize: 11, padding: '2px 7px', borderRadius: 100,
+                    background: active ? 'rgba(255,255,255,0.25)' : S.accentSoft,
+                    color: active ? '#fff' : S.accent,
+                    fontFamily: S.mono,
+                  }}>
+                    {savedCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Slot tabs (cards / slides / formats) */}
+      {slots.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
+          {slots.map((s) => {
+            const active = s.id === activeSlotId;
+            const hasImage = workingSlots.find((w) => w.slot.id === s.id)?.spec.imageDataUrl;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActiveSlotId(s.id)}
+                style={{
+                  padding: '9px 14px', borderRadius: 9,
+                  background: active ? S.accentSoft : '#fff',
+                  border: `1px solid ${active ? S.accentBorder : 'rgba(0,0,0,0.12)'}`,
+                  color: active ? S.accent : S.pageHeading,
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                }}
+              >
+                {s.label} {hasImage && <span style={{ width: 6, height: 6, borderRadius: '50%', background: S.accent }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)',
+        gap: 20, alignItems: 'flex-start',
+      }}>
+        {/* LEFT — image picker */}
+        <div style={{
+          background: S.surface, color: S.textPrimary,
+          border: `1px solid ${S.border}`, borderRadius: 16,
+          padding: 20, boxShadow: CARD_SHADOW,
+        }}>
+          <div style={sectionLabelStyle}>Select image</div>
+
+          <div style={{ display: 'inline-flex', padding: 4, borderRadius: 11, background: 'rgba(255,255,255,0.03)', border: `1px solid ${S.border}`, marginBottom: 14 }}>
+            {(['project', 'brand', 'upload'] as const).map((tab) => {
+              const labelMap: Record<string, string> = { project: 'Project', brand: 'Brand Assets', upload: 'Upload New' };
+              const active = imageTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setImageTab(tab)}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8,
+                    background: active ? S.accent : 'transparent',
+                    color: active ? '#fff' : S.textSecondary,
+                    border: 'none', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 600, fontFamily: S.font,
+                  }}
+                >
+                  {labelMap[tab]}
+                </button>
+              );
+            })}
+          </div>
+
+          {imageTab === 'project' && (
+            <div>
+              {projectImages.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: S.textMuted, border: `1px dashed ${S.border}`, borderRadius: 11 }}>
+                  No project images found — upload or use brand assets.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, maxHeight: 440, overflowY: 'auto' }}>
+                  {projectImages.map((url) => (
+                    <ImageThumb
+                      key={url}
+                      url={url}
+                      selected={activeWorking?.spec.imageDataUrl === url}
+                      onClick={() => patchActiveSpec({ imageDataUrl: url })}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {imageTab === 'brand' && (
+            <div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                {(['all', ...MEDIA_CATEGORIES.map((c) => c.id)] as const).map((c) => {
+                  const active = brandCategoryFilter === c;
+                  const label = c === 'all' ? 'All' : MEDIA_CATEGORIES.find((x) => x.id === c)!.label;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setBrandCategoryFilter(c)}
+                      style={{
+                        padding: '5px 10px', borderRadius: 6,
+                        background: active ? S.accentSoft : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${active ? S.accentBorder : S.border}`,
+                        color: active ? '#93C5FD' : S.textSecondary,
+                        fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: S.font,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {filteredBrandAssets.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', fontSize: 13, color: S.textMuted, border: `1px dashed ${S.border}`, borderRadius: 11 }}>
+                  No assets in this category.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, maxHeight: 440, overflowY: 'auto' }}>
+                  {filteredBrandAssets.map((a) => (
+                    <ImageThumb
+                      key={a.id}
+                      url={a.dataUrl}
+                      selected={activeWorking?.spec.imageDataUrl === a.dataUrl}
+                      onClick={() => patchActiveSpec({ imageDataUrl: a.dataUrl })}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {imageTab === 'upload' && (
+            <div>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length) handleUpload(e.dataTransfer.files); }}
+                style={{
+                  padding: 32, textAlign: 'center',
+                  border: `2px dashed ${S.borderHover}`, borderRadius: 12,
+                  cursor: 'pointer', background: 'rgba(255,255,255,0.02)',
+                }}
+              >
+                <div style={{ fontSize: 32, marginBottom: 8 }}>⬆</div>
+                <div style={{ fontSize: 14, color: S.textSecondary }}>Drop images here or click to browse</div>
+                <div style={{ fontSize: 12, color: S.textMuted, marginTop: 6 }}>Saved to your media library automatically.</div>
+                <input
+                  ref={fileInputRef} type="file" accept="image/*" multiple
+                  style={{ display: 'none' }}
+                  onChange={(e) => { if (e.target.files?.length) handleUpload(e.target.files); e.currentTarget.value = ''; }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — template + preview + controls */}
+        <div style={{
+          background: S.surface, color: S.textPrimary,
+          border: `1px solid ${S.border}`, borderRadius: 16,
+          padding: 20, boxShadow: CARD_SHADOW,
+        }}>
+          {/* Templates */}
+          <div style={sectionLabelStyle}>Template</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8, marginBottom: 18 }}>
+            {TEMPLATES.map((t) => {
+              const active = activeWorking?.spec.template === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => patchActiveSpec({ template: t.id })}
+                  style={{
+                    padding: 10, borderRadius: 10,
+                    background: active ? S.accentSoft : 'rgba(255,255,255,0.03)',
+                    border: `1.5px solid ${active ? S.accentBorder : S.border}`,
+                    color: active ? '#fff' : S.textPrimary,
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: S.font,
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t.label}</div>
+                  <div style={{ fontSize: 11, color: S.textMuted, lineHeight: 1.45 }}>{t.description}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Preview */}
+          <div style={sectionLabelStyle}>Live preview</div>
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            padding: 18, background: '#000', borderRadius: 12, marginBottom: 18,
+            minHeight: 240,
+          }}>
+            {activeWorking ? (
+              <CreativePreview working={activeWorking} />
+            ) : (
+              <div style={{ color: S.textMuted, fontSize: 14, alignSelf: 'center' }}>Pick an image to preview.</div>
+            )}
+          </div>
+
+          {/* Controls */}
+          {activeWorking && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <LabeledInput label="Headline" value={activeWorking.spec.headline} onChange={(v) => patchActiveSpec({ headline: v })} />
+              <LabeledInput label="Subtitle" value={activeWorking.spec.subtitle} onChange={(v) => patchActiveSpec({ subtitle: v })} />
+              <LabeledInput label="CTA" value={activeWorking.spec.cta} onChange={(v) => patchActiveSpec({ cta: v })} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                <LabeledPick
+                  label="Text color"
+                  value={activeWorking.spec.textColor}
+                  onChange={(v) => patchActiveSpec({ textColor: v as 'light' | 'dark' })}
+                  options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]}
+                />
+                <LabeledPick
+                  label="Font size"
+                  value={activeWorking.spec.fontScale}
+                  onChange={(v) => patchActiveSpec({ fontScale: v as 'small' | 'medium' | 'large' })}
+                  options={[{ value: 'small', label: 'Small' }, { value: 'medium', label: 'Medium' }, { value: 'large', label: 'Large' }]}
+                />
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: S.textMuted, fontWeight: 500 }}>Accent color</span>
+                  <input
+                    type="color" value={activeWorking.spec.accentColor}
+                    onChange={(e) => patchActiveSpec({ accentColor: e.target.value })}
+                    style={{ width: '100%', height: 42, padding: 0, border: `1px solid ${S.border}`, borderRadius: 10, background: 'transparent', cursor: 'pointer' }}
+                  />
+                </label>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${S.border}`, borderRadius: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox" checked={activeWorking.spec.showLogo}
+                  onChange={(e) => patchActiveSpec({ showLogo: e.target.checked })}
+                  style={{ accentColor: S.accent }}
+                />
+                <span style={{ fontSize: 14, color: S.textPrimary }}>Show logo corner</span>
+                {logoAsset && (
+                  <span style={{ fontSize: 12, color: S.textMuted, marginLeft: 'auto' }}>
+                    Using: {logoAsset.name}
+                  </span>
+                )}
+              </label>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <BottomBar>
+        <button onClick={onBack} className="s-btn" style={navButtonStyle('ghost')}>
+          <ArrowLeft /> Back
+        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={saveAllForTarget} className="s-btn" style={navButtonStyle('ghost')}>
+            Save creatives for this target
+          </button>
+          <button onClick={onContinue} className="s-btn" style={navButtonStyle('primary')}>
+            Continue <ArrowRight />
+          </button>
+        </div>
+      </BottomBar>
+    </div>
+  );
+}
+
+function CreativePreview({ working }: { working: WorkingSlot }) {
+  const { spec, previewDataUrl } = working;
+  const ratio = spec.width / spec.height;
+  const maxW = 360;
+  const maxH = 460;
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) { h = maxH; w = h * ratio; }
+  return (
+    <div style={{
+      width: w, height: h,
+      borderRadius: 10, overflow: 'hidden',
+      background: '#0B0D11',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: '1px solid rgba(255,255,255,0.08)',
+    }}>
+      {previewDataUrl ? (
+        <img src={previewDataUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : spec.imageDataUrl ? (
+        <div style={{ color: S.textMuted, fontSize: 13 }}>Rendering…</div>
+      ) : (
+        <div style={{ color: S.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>
+          Select an image to see the preview.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImageThumb({ url, selected, onClick }: { url: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        position: 'relative', padding: 0, background: 'transparent',
+        border: `2px solid ${selected ? S.accent : 'transparent'}`,
+        borderRadius: 9, overflow: 'hidden', cursor: 'pointer',
+        aspectRatio: '1 / 1',
+      }}
+    >
+      <img src={url} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {selected && (
+        <span style={{
+          position: 'absolute', top: 4, right: 4,
+          width: 18, height: 18, borderRadius: 6,
+          background: S.accent, color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 700,
+        }}>
+          ✓
+        </span>
+      )}
+    </button>
+  );
+}
+
+function LabeledInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 12, color: S.textMuted, fontWeight: 500 }}>{label}</span>
+      <input
+        type="text" value={value} onChange={(e) => onChange(e.target.value)}
+        style={{
+          padding: '10px 12px', borderRadius: 9,
+          background: 'rgba(255,255,255,0.04)', border: `1px solid ${S.border}`,
+          color: S.textPrimary, fontSize: 14, fontFamily: S.font, outline: 'none',
+        }}
+      />
+    </label>
+  );
+}
+
+function LabeledPick({
+  label, value, onChange, options,
+}: { label: string; value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }> }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 12, color: S.textMuted, fontWeight: 500 }}>{label}</span>
+      <div style={{ display: 'flex', gap: 4, padding: 3, background: 'rgba(255,255,255,0.03)', border: `1px solid ${S.border}`, borderRadius: 9 }}>
+        {options.map((o) => (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              flex: 1, padding: '7px 10px', borderRadius: 7,
+              background: value === o.value ? S.accent : 'transparent',
+              color: value === o.value ? '#fff' : S.textSecondary,
+              border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: S.font,
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </label>
   );
 }
 
