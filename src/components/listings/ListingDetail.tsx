@@ -7,6 +7,7 @@ import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/ty
 import { useAuth } from '@/contexts/AuthContext';
 import { throttledPost } from '@/lib/throttled-fetch';
 import VOWLocked from '@/components/auth/VOWLocked';
+import { slugifyFullAddress } from '@/lib/building-address';
 
 const ListingMiniMap = dynamic(() => import('./ListingMiniMap'), { ssr: false });
 
@@ -333,6 +334,19 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                 )}
                 <p className="text-lg text-text-muted mt-1">{listing.address}</p>
                 <p className="text-sm text-text-muted">{listing.neighborhood}, {listing.city}</p>
+                {listing.source === 'mls' && /condo|apart|co-op/i.test(listing.propertyType || '') && (() => {
+                  const buildingAddr = listing.address.replace(/[,#].*$/, '').replace(/\bunit\s+\S+/gi, '').trim();
+                  const buildingSlug = slugifyFullAddress(listing.address);
+                  if (!buildingSlug || !buildingAddr) return null;
+                  return (
+                    <Link
+                      href={`/building/${buildingSlug}`}
+                      className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-accent-blue hover:underline"
+                    >
+                      View all units at {buildingAddr} →
+                    </Link>
+                  );
+                })()}
               </div>
               <div className="text-right text-sm text-text-muted">
                 <p>MLS# {listing.mlsNumber}</p>

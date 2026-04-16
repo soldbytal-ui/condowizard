@@ -4,6 +4,7 @@ import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import Map, { Popup, NavigationControl, FullscreenControl, Source, Layer } from 'react-map-gl/mapbox';
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/mapbox';
 import { UnifiedListing, BUILDING_TYPE_COLORS } from '@/types/listing';
+import { slugifyFullAddress } from '@/lib/building-address';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
@@ -54,11 +55,27 @@ const HOVER_LINE_PAINT = { 'line-color': '#0066FF', 'line-width': 2.5, 'line-opa
 const SELECTED_FILL_PAINT = { 'fill-color': '#0066FF', 'fill-opacity': 0.25 };
 const SELECTED_LINE_PAINT = { 'line-color': '#0066FF', 'line-width': 3, 'line-opacity': 0.9 };
 const CIRCLE_PAINT = {
-  'circle-radius': 5,
+  'circle-radius': [
+    'case',
+    ['>', ['get', 'count'], 10], 16,
+    ['>', ['get', 'count'], 3], 12,
+    ['>', ['get', 'count'], 1], 9,
+    5,
+  ],
   'circle-color': ['get', 'color'],
   'circle-stroke-width': 2,
   'circle-stroke-color': '#ffffff',
   'circle-opacity': 0.9,
+};
+const COUNT_LAYOUT = {
+  'text-field': ['to-string', ['get', 'count']],
+  'text-size': 11,
+  'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+  'text-allow-overlap': true,
+  'text-ignore-placement': true,
+};
+const COUNT_PAINT = {
+  'text-color': '#ffffff',
 };
 
 function pointInPolygon(point: [number, number], ring: number[][]): boolean {
@@ -84,6 +101,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
   const [hoveredCommunity, setHoveredCommunity] = useState<string | null>(null);
   const [communityTooltip, setCommunityTooltip] = useState<{ name: string; x: number; y: number } | null>(null);
   const [popupListing, setPopupListing] = useState<UnifiedListing | null>(null);
+  const [popupGroup, setPopupGroup] = useState<{ lat: number; lng: number; address: string; slug: string; count: number; sample: UnifiedListing[] } | null>(null);
   const [showLegend, setShowLegend] = useState(true);
 
   // GTA center, flat 2D view
@@ -178,18 +196,53 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
     return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: b.boundary }, properties: { name: b.name } }] };
   }, [selectedNeighbourhood, boundaries]);
 
+  // Group listings by building address so multiple units at the same
+  // address render as a single pin with a count badge. Pre-con (no unit
+  // number, single entry) and any listing without a parseable address key
+  // falls back to individual pins keyed by listing id.
+  const listingGroups = useMemo(() => {
+    const groups = new Map<string, { listings: UnifiedListing[]; lat: number; lng: number; address: string; slug: string }>();
+    for (const l of listings) {
+      if (!l.lat || !l.lng) continue;
+      // Pre-con listings keep their own pin — each project is its own entity.
+      if (l.source === 'precon') {
+        groups.set(`precon:${l.id}`, { listings: [l], lat: l.lat, lng: l.lng, address: l.address, slug: l.slug || '' });
+        continue;
+      }
+      const buildingAddr = (l.address || '').replace(/[,#].*$/, '').replace(/\bunit\s+\S+/gi, '').trim();
+      const slug = slugifyFullAddress(l.address || '');
+      const key = slug || `mls:${l.id}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.listings.push(l);
+      } else {
+        groups.set(key, { listings: [l], lat: l.lat, lng: l.lng, address: buildingAddr || l.address, slug });
+      }
+    }
+    return Array.from(groups.values());
+  }, [listings]);
+
   const listingsGeoJSON = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
-    features: listings.filter((l) => l.lat && l.lng).map((l) => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [l.lng, l.lat] },
-      properties: {
-        id: l.id,
-        color: (isSoldView || l.soldPrice) ? SOLD_PIN_COLOR : l.source === 'precon' ? '#FBBF24' : (BUILDING_TYPE_COLORS[l.buildingType] || '#6B7280'),
-        mlsNumber: l.mlsNumber || '', slug: l.slug || '', source: l.source,
-      },
-    })),
-  }), [listings, isSoldView]);
+    features: listingGroups.map((g) => {
+      const first = g.listings[0];
+      const count = g.listings.length;
+      return {
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [g.lng, g.lat] },
+        properties: {
+          id: first.id,
+          count,
+          color: (isSoldView || first.soldPrice) ? SOLD_PIN_COLOR : first.source === 'precon' ? '#FBBF24' : (BUILDING_TYPE_COLORS[first.buildingType] || '#6B7280'),
+          mlsNumber: first.mlsNumber || '',
+          slug: first.slug || '',
+          source: first.source,
+          buildingSlug: count > 1 ? g.slug : '',
+          buildingAddress: g.address,
+        },
+      };
+    }),
+  }), [listingGroups, isSoldView]);
 
   const handleMoveEnd = useCallback(() => {
     if (!mapRef.current || !onBoundsChange) return;
@@ -201,6 +254,12 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
   const handleClick = useCallback((e: MapLayerMouseEvent) => {
     const pinFeature = e.features?.find((f: any) => f.layer?.id === 'listings-circle');
     if (pinFeature) {
+      const count = Number(pinFeature.properties?.count || 1);
+      const buildingSlug = pinFeature.properties?.buildingSlug as string | undefined;
+      if (count > 1 && buildingSlug) {
+        window.open(`/building/${buildingSlug}`, '_blank');
+        return;
+      }
       const id = pinFeature.properties?.id;
       const listing = listings.find((l) => l.id === id);
       if (listing && onPinClick) onPinClick(listing);
@@ -222,8 +281,26 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
   const handleMouseMove = useCallback((e: MapLayerMouseEvent) => {
     const pinFeature = e.features?.find((f: any) => f.layer?.id === 'listings-circle');
     if (pinFeature) {
+      const count = Number(pinFeature.properties?.count || 1);
+      const buildingSlug = pinFeature.properties?.buildingSlug as string | undefined;
       const id = pinFeature.properties?.id;
-      setPopupListing(listings.find((l) => l.id === id) || null);
+      if (count > 1 && buildingSlug) {
+        const group = listingGroups.find((g) => g.slug === buildingSlug);
+        if (group) {
+          setPopupGroup({
+            lat: group.lat,
+            lng: group.lng,
+            address: group.address,
+            slug: group.slug,
+            count: group.listings.length,
+            sample: group.listings.slice(0, 3),
+          });
+          setPopupListing(null);
+        }
+      } else {
+        setPopupListing(listings.find((l) => l.id === id) || null);
+        setPopupGroup(null);
+      }
       onMarkerHover(id || null);
       setHoveredCommunity(null); setCommunityTooltip(null);
       return;
@@ -234,12 +311,12 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
       setCommunityTooltip({ name: community.name, x: e.point.x, y: e.point.y });
       setPopupListing(null); onMarkerHover(null);
     } else {
-      setHoveredCommunity(null); setCommunityTooltip(null); setPopupListing(null); onMarkerHover(null);
+      setHoveredCommunity(null); setCommunityTooltip(null); setPopupListing(null); setPopupGroup(null); onMarkerHover(null);
     }
-  }, [findCommunityAtPoint, listings, onMarkerHover]);
+  }, [findCommunityAtPoint, listings, listingGroups, onMarkerHover]);
 
   const handleMouseLeave = useCallback(() => {
-    setHoveredCommunity(null); setCommunityTooltip(null); setPopupListing(null); onMarkerHover(null);
+    setHoveredCommunity(null); setCommunityTooltip(null); setPopupListing(null); setPopupGroup(null); onMarkerHover(null);
   }, [onMarkerHover]);
 
   const interactiveLayers = useMemo(() => listings.length > 0 ? ['listings-circle'] : undefined, [listings.length]);
@@ -282,7 +359,7 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         interactiveLayerIds={interactiveLayers}
-        cursor={(hoveredCommunity || popupListing) ? 'pointer' : 'grab'}
+        cursor={(hoveredCommunity || popupListing || popupGroup) ? 'pointer' : 'grab'}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/light-v11"
         style={{ width: '100%', height: '100%' }}
@@ -316,6 +393,13 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
         {/* Listing pins */}
         <Source id="listings-pins" type="geojson" data={listingsGeoJSON}>
           <Layer id="listings-circle" type="circle" paint={CIRCLE_PAINT as any} />
+          <Layer
+            id="listings-count"
+            type="symbol"
+            filter={['>', ['get', 'count'], 1]}
+            layout={COUNT_LAYOUT as any}
+            paint={COUNT_PAINT as any}
+          />
         </Source>
 
         {/* Community labels */}
@@ -333,6 +417,29 @@ export default function SearchMap({ listings, highlightedId, onMarkerHover, onBo
               minzoom={10}
             />
           </Source>
+        )}
+
+        {/* Grouped building popup */}
+        {popupGroup && (
+          <Popup latitude={popupGroup.lat} longitude={popupGroup.lng} closeButton={false} closeOnClick={false} anchor="bottom" offset={18}>
+            <div className="p-0 min-w-[220px] bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="p-3">
+                <p className="font-serif font-bold text-sm text-gray-900 truncate">{popupGroup.address}</p>
+                <p className="text-xs text-accent-blue font-medium mt-0.5">{popupGroup.count} units</p>
+                <ul className="mt-2 space-y-1">
+                  {popupGroup.sample.map((l) => (
+                    <li key={l.id} className="text-xs text-gray-600 flex items-center justify-between gap-2">
+                      <span className="truncate">{l.beds > 0 ? `${l.beds}bd` : ''} {l.sqft ? `· ${l.sqft} sqft` : ''}</span>
+                      <span className="font-medium text-gray-900 flex-shrink-0">{l.priceDisplay}</span>
+                    </li>
+                  ))}
+                </ul>
+                {popupGroup.slug && (
+                  <p className="mt-2 text-xs font-medium text-accent-blue">View Building Profile →</p>
+                )}
+              </div>
+            </div>
+          </Popup>
         )}
 
         {/* Listing popup */}

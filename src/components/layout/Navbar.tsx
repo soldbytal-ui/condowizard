@@ -34,6 +34,7 @@ const NEIGHBORHOODS = [
 ];
 
 const EXPLORE_LINKS = [
+  { href: '/condos', label: 'Condo Profiles', desc: 'Every building with live listings' },
   { href: '/staging', label: 'Staging', desc: 'Sell faster for more' },
   { href: '/airbnb-friendly', label: 'Airbnb Condos', desc: 'STR-friendly buildings' },
   { href: '/market', label: 'Market Stats', desc: 'TRREB data & trends' },
@@ -165,6 +166,7 @@ export default function Navbar() {
             <Link href="/new-condos" className="block py-2.5 text-text-muted hover:text-accent-blue transition-colors">Pre-Construction</Link>
             <div className="pt-2 border-t border-border mt-2">
               <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Explore</p>
+              <Link href="/condos" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Condo Profiles</Link>
               <Link href="/staging" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Staging</Link>
               <Link href="/airbnb-friendly" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Airbnb Condos</Link>
               <Link href="/market" className="block py-2 text-text-muted hover:text-accent-blue transition-colors">Market Stats</Link>
