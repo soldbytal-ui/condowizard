@@ -293,105 +293,189 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
           <span className="text-text-primary">{listing.mlsNumber}</span>
         </nav>
 
-        {/* Image Gallery */}
-        <div className="rounded-xl overflow-hidden bg-surface2 mb-6">
-          {images.length > 0 ? (
-            <div className="relative">
-              <img src={images[activeImage] || images[0]} alt={listing.address} className="w-full aspect-[16/10] object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-property.jpg'; }} />
-              {images.length > 1 && (
+        {/* SPLIT: gallery left, sticky details/contact right */}
+        <div className="lg:flex lg:gap-6 lg:items-start">
+          {/* LEFT: Image gallery */}
+          <div className="lg:w-[60%]">
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-surface2">
+              {images.length > 0 ? (
                 <>
-                  <button onClick={() => setActiveImage((p) => (p - 1 + images.length) % images.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
-                  <button onClick={() => setActiveImage((p) => (p + 1) % images.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
-                  <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded">{activeImage + 1}/{images.length}</div>
+                  <img
+                    src={images[activeImage] || images[0]}
+                    alt={listing.address}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-property.jpg'; }}
+                  />
+                  {images.length > 1 && (
+                    <>
+                      <button onClick={() => setActiveImage((p) => (p - 1 + images.length) % images.length)} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 text-text-primary rounded-full flex items-center justify-center shadow hover:bg-white">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                      </button>
+                      <button onClick={() => setActiveImage((p) => (p + 1) % images.length)} aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 text-text-primary rounded-full flex items-center justify-center shadow hover:bg-white">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                      <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">{activeImage + 1}/{images.length}</div>
+                    </>
+                  )}
                 </>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-text-muted">No images</div>
               )}
             </div>
-          ) : <div className="aspect-[16/10] flex items-center justify-center text-text-muted">No images</div>}
-          {images.length > 1 && (
-            <div className="flex gap-1 p-2 overflow-x-auto">
-              {images.slice(0, 12).map((img, i) => (
-                <button key={i} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 ${i === activeImage ? 'border-accent-blue' : 'border-transparent'}`}>
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            {/* Price + Stats */}
-            <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-              <div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="font-serif text-3xl font-bold">{listing.priceDisplay || 'Contact'}</h1>
-                  <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full" style={{ backgroundColor: buildingColor + '20', color: buildingColor }}>
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: buildingColor }} />{buildingLabel}
-                  </span>
-                </div>
-                {estimate?.estimatedValue && (
-                  <p className="text-sm mt-1"><span className="text-text-muted">AI Estimate:</span> <span className="text-accent-green font-medium">${estimate.estimatedValue.toLocaleString()}</span></p>
-                )}
-                <p className="text-lg text-text-muted mt-1">{listing.address}</p>
-                <p className="text-sm text-text-muted">{listing.neighborhood}, {listing.city}</p>
-                {listing.source === 'mls' && /condo|apart|co-op/i.test(listing.propertyType || '') && (() => {
-                  const buildingAddr = listing.address.replace(/[,#].*$/, '').replace(/\bunit\s+\S+/gi, '').trim();
-                  const buildingSlug = slugifyFullAddress(listing.address);
-                  if (!buildingSlug || !buildingAddr) return null;
-                  return (
-                    <Link
-                      href={`/building/${buildingSlug}`}
-                      className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-accent-blue hover:underline"
-                    >
-                      View all units at {buildingAddr} →
-                    </Link>
-                  );
-                })()}
-              </div>
-              <div className="text-right text-sm text-text-muted">
-                <p>MLS# {listing.mlsNumber}</p>
-                <p>{listing.dom || 0} days on market</p>
-              </div>
-            </div>
-
-            {/* Quick stats */}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
-              {[
-                { label: 'Beds', value: listing.beds },
-                { label: 'Baths', value: listing.baths },
-                { label: 'Sqft', value: listing.sqft || 'N/A' },
-                { label: 'Parking', value: listing.parking || 0 },
-                { label: 'Year', value: listing.yearBuilt || 'N/A' },
-                { label: 'DOM', value: listing.dom || 0 },
-              ].map((s) => (
-                <div key={s.label} className="bg-white rounded-lg border border-border p-3 text-center">
-                  <p className="text-lg font-bold text-text-primary">{s.value}</p>
-                  <p className="text-[10px] text-text-muted uppercase">{s.label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Action bar */}
-            <div className="flex gap-3 mb-6">
-              <button onClick={() => toggleSaveListing(listing.id, listing.source)} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm transition-colors ${savedListingIds.has(listing.id) ? 'border-red-200 text-red-500 bg-red-50' : 'border-border text-text-muted hover:border-accent-blue/30'}`}>
-                <svg className="w-4 h-4" fill={savedListingIds.has(listing.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                {savedListingIds.has(listing.id) ? 'Saved' : 'Save'}
-              </button>
-              <button onClick={() => navigator.share?.({ title: listing.address, url: window.location.href }).catch(() => navigator.clipboard.writeText(window.location.href))} className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-sm text-text-muted hover:border-accent-blue/30">Share</button>
-              <a href="tel:6478904082" className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent-blue text-white text-sm font-medium hover:bg-accent-blue/90">Contact Agent</a>
-            </div>
-
-            {/* Tab bar (sticky) */}
-            <div className="sticky top-14 z-20 bg-bg border-b border-border -mx-4 px-4 overflow-x-auto">
-              <div className="flex gap-0 min-w-max">
-                {tabs.map((t) => (
-                  <button key={t.key} onClick={() => setActiveTab(t.key)} className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === t.key ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-muted hover:text-text-primary'}`}>{t.label}</button>
+            {images.length > 1 && (
+              <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+                {images.slice(0, 12).map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImage(i)}
+                    className={`flex-shrink-0 w-20 h-16 rounded overflow-hidden border-2 transition-opacity ${i === activeImage ? 'border-accent-blue opacity-100' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Tab content */}
-            <div className="mt-6">
+          {/* RIGHT: Sticky sidebar */}
+          <div className="lg:w-[40%] mt-6 lg:mt-0">
+            <div className="lg:sticky lg:top-20">
+              {/* Price + badge */}
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <h1 className="font-serif text-3xl font-bold text-text-primary">{listing.priceDisplay || 'Contact'}</h1>
+                <span className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: buildingColor + '20', color: buildingColor }}>
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: buildingColor }} />{buildingLabel}
+                </span>
+              </div>
+              {estimate?.estimatedValue && (
+                <p className="text-sm mb-2"><span className="text-text-muted">AI Estimate:</span> <span className="text-accent-green font-medium">${estimate.estimatedValue.toLocaleString()}</span></p>
+              )}
+
+              {/* Address */}
+              <p className="text-lg font-medium text-text-primary">{listing.address}</p>
+              <p className="text-sm text-text-muted">{listing.neighborhood}, {listing.city}</p>
+              {listing.source === 'mls' && /condo|apart|co-op/i.test(listing.propertyType || '') && (() => {
+                const buildingAddr = listing.address.replace(/[,#].*$/, '').replace(/\bunit\s+\S+/gi, '').trim();
+                const buildingSlug = slugifyFullAddress(listing.address);
+                if (!buildingSlug || !buildingAddr) return null;
+                return (
+                  <Link
+                    href={`/building/${buildingSlug}`}
+                    className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-accent-blue hover:underline"
+                  >
+                    View all units at {buildingAddr} →
+                  </Link>
+                );
+              })()}
+
+              {/* MLS & DOM */}
+              <div className="flex justify-between text-xs text-text-muted mt-4 mb-4">
+                <span>MLS# {listing.mlsNumber}</span>
+                <span>{listing.dom || 0} days on market</span>
+              </div>
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="text-center p-2 bg-surface2 rounded-lg">
+                  <p className="text-lg font-bold text-text-primary">{listing.beds || '—'}</p>
+                  <p className="text-[10px] text-text-muted uppercase">Beds</p>
+                </div>
+                <div className="text-center p-2 bg-surface2 rounded-lg">
+                  <p className="text-lg font-bold text-text-primary">{listing.baths || '—'}</p>
+                  <p className="text-[10px] text-text-muted uppercase">Baths</p>
+                </div>
+                <div className="text-center p-2 bg-surface2 rounded-lg">
+                  <p className="text-sm font-bold text-text-primary">{listing.sqft || '—'}</p>
+                  <p className="text-[10px] text-text-muted uppercase">Sqft</p>
+                </div>
+              </div>
+
+              {/* Save / Share */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => toggleSaveListing(listing.id, listing.source)}
+                  className={`flex-1 py-2 rounded-lg border text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    savedListingIds.has(listing.id) ? 'border-red-200 text-red-500 bg-red-50' : 'border-border text-text-muted hover:bg-surface2'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill={savedListingIds.has(listing.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                  {savedListingIds.has(listing.id) ? 'Saved' : 'Save'}
+                </button>
+                <button
+                  onClick={() => navigator.share?.({ title: listing.address, url: window.location.href }).catch(() => navigator.clipboard.writeText(window.location.href))}
+                  className="flex-1 py-2 rounded-lg border border-border text-sm font-medium text-text-muted hover:bg-surface2"
+                >
+                  Share
+                </button>
+              </div>
+
+              {/* Agent card + form */}
+              <div className="p-4 bg-white border border-border rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-full bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-accent-blue font-bold text-sm">TS</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-text-primary">Tal Shelef</p>
+                    <p className="text-xs text-text-muted">Sales Representative</p>
+                    <p className="text-xs text-text-muted truncate">Rare Real Estate Inc., Brokerage</p>
+                  </div>
+                </div>
+
+                <a href="tel:6478904082" className="block w-full py-2.5 bg-accent-blue text-white text-center rounded-lg text-sm font-semibold hover:bg-accent-blue/90 mb-3">
+                  Call 647-890-4082
+                </a>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const fd = new FormData(form);
+                  await fetch('/api/leads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      name: fd.get('name'),
+                      email: fd.get('email'),
+                      phone: fd.get('phone'),
+                      message: fd.get('message') || `Inquiry about MLS# ${listing.mlsNumber}`,
+                      source: 'listing_page',
+                      projectSlug: listing.mlsNumber,
+                    }),
+                  });
+                  form.reset();
+                  alert('Inquiry sent!');
+                }} className="space-y-2">
+                  <input name="name" placeholder="Your name" required className="w-full px-3 py-2 border border-border rounded-lg text-sm" />
+                  <input name="email" type="email" placeholder="Email" required className="w-full px-3 py-2 border border-border rounded-lg text-sm" />
+                  <input name="phone" placeholder="Phone" className="w-full px-3 py-2 border border-border rounded-lg text-sm" />
+                  <textarea name="message" placeholder="I'm interested in this property..." rows={3} className="w-full px-3 py-2 border border-border rounded-lg text-sm h-16 resize-none" />
+                  <button type="submit" className="w-full py-2.5 bg-accent-green text-white rounded-lg text-sm font-semibold hover:bg-accent-green/90">
+                    Send Inquiry
+                  </button>
+                </form>
+
+                <p className="text-[10px] text-text-muted mt-3 text-center">
+                  Rare Real Estate Inc., Brokerage<br />
+                  1701 Avenue Rd, Toronto, ON M5M 3Y3
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* TABS — full width below the split */}
+        <div className="mt-8 border-t border-border pt-2">
+          {/* Tab bar (sticky) */}
+          <div className="sticky top-14 z-20 bg-bg border-b border-border -mx-4 px-4 overflow-x-auto">
+            <div className="flex gap-0 min-w-max">
+              {tabs.map((t) => (
+                <button key={t.key} onClick={() => setActiveTab(t.key)} className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === t.key ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-muted hover:text-text-primary'}`}>{t.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab content */}
+          <div className="mt-6">
               {activeTab === 'overview' && (
                 <div className="space-y-6">
                   {pd.description && <div><h3 className="font-semibold text-lg mb-2">Description</h3><p className="text-sm text-text-muted leading-relaxed whitespace-pre-line">{pd.description}</p></div>}
@@ -701,32 +785,6 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                   )}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Sidebar — Agent card */}
-          <div>
-            <div className="bg-white rounded-xl border border-border p-6 sticky top-20">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-accent-blue/10 flex items-center justify-center mx-auto mb-3"><span className="text-accent-blue font-bold text-xl">TS</span></div>
-                <h3 className="font-semibold">Tal Shelef</h3>
-                <p className="text-sm text-text-muted">Sales Representative</p>
-                <p className="text-xs text-text-muted">Rare Real Estate Inc., Brokerage</p>
-              </div>
-              <a href="tel:6478904082" className="block w-full text-center bg-accent-blue text-white py-2.5 rounded-lg font-medium hover:bg-accent-blue/90 mb-2">Call 647-890-4082</a>
-              <form onSubmit={async (e) => {
-                e.preventDefault(); const form = e.target as HTMLFormElement; const fd = new FormData(form);
-                await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone'), message: fd.get('message') || `Inquiry about MLS# ${listing.mlsNumber}`, source: 'listing_page', projectSlug: listing.mlsNumber }) });
-                form.reset(); alert('Inquiry sent!');
-              }} className="space-y-3 mt-4">
-                <input name="name" placeholder="Your name" required className="w-full px-3 py-2 border border-border rounded-lg text-sm" />
-                <input name="email" type="email" placeholder="Email" required className="w-full px-3 py-2 border border-border rounded-lg text-sm" />
-                <input name="phone" placeholder="Phone" className="w-full px-3 py-2 border border-border rounded-lg text-sm" />
-                <textarea name="message" placeholder="I'm interested..." rows={3} className="w-full px-3 py-2 border border-border rounded-lg text-sm resize-none" />
-                <button type="submit" className="w-full bg-accent-green text-white py-2.5 rounded-lg font-medium hover:bg-accent-green/90">Send Inquiry</button>
-              </form>
-              <p className="text-[10px] text-text-muted mt-4 text-center">Rare Real Estate Inc., Brokerage<br />1701 Avenue Rd, Toronto, ON M5M 3Y3</p>
-            </div>
           </div>
         </div>
 
