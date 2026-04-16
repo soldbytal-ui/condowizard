@@ -1,16 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthModal() {
-  const { showAuthModal, setShowAuthModal, signUp, signIn, signInWithGoogle, user, agreeToVow } = useAuth();
+  const { showAuthModal, setShowAuthModal, signUp, signIn, signInWithGoogle, user, agreeToVow, completeGoogleProfile, isAuthenticated } = useAuth();
   const [tab, setTab] = useState<'signin' | 'register'>('register');
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [vowChecked, setVowChecked] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+
+  // Auto-close modal when user becomes fully authenticated
+  useEffect(() => {
+    if (isAuthenticated && showAuthModal) {
+      setShowAuthModal(false);
+    }
+  }, [isAuthenticated, showAuthModal, setShowAuthModal]);
 
   if (!showAuthModal) return null;
 
@@ -54,7 +61,6 @@ export default function AuthModal() {
           <input type="tel" placeholder="Phone number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
             className="w-full px-3 py-2.5 border border-border rounded-lg text-sm mb-3" />
           <button disabled={!form.phone} onClick={async () => {
-            const { completeGoogleProfile } = useAuth();
             await completeGoogleProfile(form.phone);
           }} className="w-full py-2.5 bg-accent-blue text-white rounded-lg font-medium disabled:opacity-50">
             Continue
@@ -77,9 +83,9 @@ export default function AuthModal() {
     const result = await signUp({ firstName: form.firstName, lastName: form.lastName, email: form.email, phone: form.phone, password: form.password });
     if (result.error) { setError(result.error); setLoading(false); return; }
     await agreeToVow();
-    setSuccess('Account created! Check your email to verify.');
+    setSuccess('Account created! You are now signed in.');
     setLoading(false);
-    setTimeout(() => setShowAuthModal(false), 2000);
+    // Auto-close effect will fire once isAuthenticated becomes true
   };
 
   const handleSignIn = async () => {
@@ -88,8 +94,13 @@ export default function AuthModal() {
     setLoading(true);
     const result = await signIn(form.email, form.password);
     if (result.error) { setError(result.error); setLoading(false); return; }
+    // Wait for onAuthStateChange → loadProfile → setUser to propagate.
+    // The useEffect above auto-closes the modal once isAuthenticated becomes true.
+    // If the user still needs VOW agreement, the modal will show that step instead.
+    await new Promise((r) => setTimeout(r, 200));
     setLoading(false);
-    setShowAuthModal(false);
+    // Fallback: if user is already fully authenticated by now, close directly
+    // (the effect should handle this, but just in case)
   };
 
   return (

@@ -89,26 +89,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSavedListingIds(new Set((data || []).map((d: any) => d.listing_id)));
   }, [user?.id]);
 
-  // Init: check session
+  // Init: listen for all auth state changes (INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadProfile(session.user.id, session.user.email || '');
-      }
-      setLoading(false);
-    })();
+    let mounted = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (!mounted) return;
+      console.log('[Auth] State change:', event, session?.user?.email);
+
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         await loadProfile(session.user.id, session.user.email || '');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setSavedListingIds(new Set());
       }
+
+      if (event === 'INITIAL_SESSION') {
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Fallback: if INITIAL_SESSION never fires (older client versions), set loading false
+    const timeout = setTimeout(() => { if (mounted) setLoading(false); }, 2000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [loadProfile]);
 
   // Load saved listings when user changes
