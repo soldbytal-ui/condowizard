@@ -3,9 +3,9 @@
 import { useState } from 'react';
 
 const INK   = '#0B0D11';
-const INK2  = '#141720';
+const INK2  = '#141414';
 const INK3  = '#1A1D25';
-const PAPER = '#E8E4DF';
+const PAPER = '#F3F0E8';
 const ACCENT = '#FF4A1C';
 const ACCENT_DIM = 'rgba(255,74,28,0.10)';
 const LINE  = 'rgba(255,255,255,0.07)';

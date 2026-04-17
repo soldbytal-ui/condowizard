@@ -3,9 +3,9 @@
 import { useState } from 'react';
 
 const INK   = '#0B0D11';
-const INK2  = '#141720';
+const INK2  = '#141414';
 const INK3  = '#1A1D25';
-const PAPER = '#E8E4DF';
+const PAPER = '#F3F0E8';
 const ACCENT = '#FF4A1C';
 const ACCENT_DIM = 'rgba(255,74,28,0.10)';
 const LINE  = 'rgba(255,255,255,0.07)';
@@ -188,7 +188,7 @@ export default function IntelligencePage() {
       `}</style>
 
       <div style={{ animation: 'slideIn 0.25s ease' }}>
-        <h1 style={{ fontFamily: FONT_HEADING, fontSize: 36, fontWeight: 400, margin: '0 0 8px', color: PAPER }}>
+        <h1 style={{ fontFamily: FONT_HEADING, fontSize: 36, fontWeight: 400, letterSpacing: '-0.035em', margin: '0 0 8px', color: PAPER }}>
           Intelligence
         </h1>
         <p style={{ fontSize: 15, color: MUTED, margin: '0 0 28px', lineHeight: 1.6 }}>

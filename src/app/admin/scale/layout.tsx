@@ -6,17 +6,22 @@ import { useState, useEffect } from 'react';
 import { getCredits, getMonthlyAllocation } from '@/lib/scale-credits';
 import IndustryPickerModal, { isIndustrySelected } from '@/components/scale/IndustryPickerModal';
 
+// ─── Design tokens ───
 const INK   = '#0B0D11';
-const INK2  = '#141720';
+const INK2  = '#141414';
 const INK3  = '#1A1D25';
-const PAPER = '#E8E4DF';
+const PAPER = '#F3F0E8';
 const ACCENT = '#FF4A1C';
 const ACCENT_DIM = 'rgba(255,74,28,0.10)';
 const LINE  = 'rgba(255,255,255,0.07)';
+const LINE_STRONG = 'rgba(255,255,255,0.14)';
 const MUTED = '#8B8FA3';
+const GREEN = '#10B981';
 const FONT_HEADING = "'Fraunces', Georgia, serif";
 const FONT_BODY = "'Inter Tight', -apple-system, sans-serif";
 const FONT_MONO = "'JetBrains Mono', monospace";
+
+const NOISE_BG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
 interface NavItem {
   href: string;
@@ -42,7 +47,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'INTELLIGENCE',
     items: [
-      { href: '/admin/scale/intelligence', label: 'Intelligence', match: (p) => p.startsWith('/admin/scale/intelligence'), badge: { text: 'NEW', color: '#fff', bg: '#10B981' } },
+      { href: '/admin/scale/intelligence', label: 'Intelligence', match: (p) => p.startsWith('/admin/scale/intelligence'), badge: { text: 'NEW', color: '#fff', bg: GREEN } },
       { href: '/admin/scale/skills',       label: 'Skills',       match: (p) => p.startsWith('/admin/scale/skills'), badgeCount: () => '47' },
       { href: '/admin/scale/brain',        label: 'Agent Brain',  match: (p) => p.startsWith('/admin/scale/brain') },
     ],
@@ -57,22 +62,23 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
+// ─── Animated logo mark ───
 function ScaleMark() {
   return (
     <div style={{
-      width: 36, height: 36, borderRadius: 9,
-      background: `linear-gradient(135deg, ${ACCENT} 0%, #FF8C42 100%)`,
+      width: 30, height: 30, borderRadius: '50%',
+      background: PAPER, position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      boxShadow: `0 4px 14px rgba(255,74,28,0.28)`,
     }}>
-      <svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M8 1.5L14 4.5v3c0 4-2.7 6.7-6 7-3.3-.3-6-3-6-7v-3L8 1.5z" />
-        <path d="M6 8l1.5 1.5L10.5 6.5" />
-      </svg>
+      <div style={{
+        width: 10, height: 10, borderRadius: '50%', background: ACCENT,
+        animation: 'pulse 2.6s infinite ease-in-out',
+      }} />
     </div>
   );
 }
 
+// ─── Credits widget ───
 function CreditsWidget() {
   const [balance, setBalance] = useState(0);
   const [total, setTotal] = useState(10000);
@@ -93,10 +99,9 @@ function CreditsWidget() {
       <div style={{ fontFamily: FONT_MONO, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: MUTED, marginBottom: 8 }}>
         AI Credits
       </div>
-      <div style={{ fontFamily: FONT_HEADING, fontSize: 22, fontWeight: 400, color: PAPER, marginBottom: 8, lineHeight: 1 }}>
+      <div style={{ fontFamily: FONT_HEADING, fontSize: 22, fontWeight: 400, letterSpacing: '-0.025em', color: PAPER, marginBottom: 8, lineHeight: 1 }}>
         {balance.toLocaleString()} <span style={{ fontSize: 14, color: MUTED }}>/ {total.toLocaleString()}</span>
       </div>
-      {/* Progress bar */}
       <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)', marginBottom: 8, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 3,
@@ -132,7 +137,7 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <link
-        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&family=Fraunces:opsz,ital,wght,SOFT@9..144,1,100..900,0..100&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap"
         rel="stylesheet"
       />
       <style>{`
@@ -141,6 +146,8 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
         body:has(.scale-app) { overflow: hidden; }
         .scale-nav-link { transition: all 0.12s ease; }
         .scale-nav-link:hover { background: rgba(255,255,255,0.04) !important; }
+        @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.65); opacity: 0.8; } }
+        @keyframes sSlideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
       <div
@@ -153,27 +160,38 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
           display: 'flex', overflow: 'hidden',
         }}
       >
+        {/* Noise overlay */}
+        <div style={{
+          position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999,
+          opacity: 0.04, mixBlendMode: 'overlay' as const,
+          backgroundImage: NOISE_BG,
+        }} />
+
         {/* Sidebar */}
         <aside style={{
           width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column',
           borderRight: `1px solid ${LINE}`, background: INK2,
           overflowY: 'auto', overflowX: 'hidden',
         }}>
-          {/* Logo */}
-          <Link href="/admin/scale" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 18px 16px' }}>
+          {/* Tenant switcher */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '20px 18px 8px', cursor: 'pointer',
+          }}>
             <ScaleMark />
-            <div style={{ lineHeight: 1.1 }}>
-              <span style={{ fontFamily: FONT_HEADING, fontSize: 20, fontWeight: 400, color: '#fff', display: 'block' }}>Scale</span>
-              <span style={{ fontSize: 11, color: MUTED, fontWeight: 500, letterSpacing: '0.04em' }}>by CondoWizard</span>
+            <div style={{ flex: 1, lineHeight: 1.1, minWidth: 0 }}>
+              <span style={{ fontFamily: FONT_HEADING, fontSize: 18, fontWeight: 400, letterSpacing: '-0.025em', color: PAPER, display: 'block' }}>CondoWizard</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: MUTED, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>PRO · REAL ESTATE</span>
             </div>
-          </Link>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round"><path d="M3 5l3 3 3-3"/></svg>
+          </div>
 
           {/* Nav sections */}
-          <nav style={{ flex: 1, padding: '4px 10px' }}>
+          <nav style={{ flex: 1, padding: '12px 10px 4px' }}>
             {SECTIONS.map((section) => (
               <div key={section.title} style={{ marginBottom: 16 }}>
                 <div style={{
-                  fontFamily: FONT_MONO, fontSize: 9, textTransform: 'uppercase',
+                  fontFamily: FONT_MONO, fontSize: 10, textTransform: 'uppercase',
                   letterSpacing: '0.12em', color: MUTED, padding: '0 8px', marginBottom: 4,
                   fontWeight: 500,
                 }}>
@@ -191,9 +209,10 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
                         display: 'flex', alignItems: 'center', gap: 8,
                         padding: '8px 10px', borderRadius: 8, marginBottom: 2,
                         fontSize: 13.5, fontWeight: 500,
-                        color: active ? '#fff' : '#A0A4B0',
+                        color: active ? ACCENT : '#A0A4B0',
                         background: active ? ACCENT_DIM : 'transparent',
-                        border: `1px solid ${active ? 'rgba(255,74,28,0.25)' : 'transparent'}`,
+                        borderLeft: active ? `3px solid ${ACCENT}` : '3px solid transparent',
+                        position: 'relative',
                       }}
                     >
                       <span style={{ flex: 1 }}>{item.label}</span>
@@ -223,10 +242,8 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
             ))}
           </nav>
 
-          {/* Credits widget */}
           <CreditsWidget />
 
-          {/* Back to admin */}
           <Link href="/admin" style={{
             display: 'block', textAlign: 'center', padding: '12px 14px',
             borderTop: `1px solid ${LINE}`, fontSize: 12, color: MUTED,

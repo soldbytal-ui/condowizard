@@ -5,9 +5,9 @@ import { callAIWithFallback, loadScaleConfig, buildBrainPrompt } from '@/lib/sca
 import { useCredits, estimateCost } from '@/lib/scale-credits';
 
 const INK   = '#0B0D11';
-const INK2  = '#141720';
+const INK2  = '#141414';
 const INK3  = '#1A1D25';
-const PAPER = '#E8E4DF';
+const PAPER = '#F3F0E8';
 const ACCENT = '#FF4A1C';
 const ACCENT_DIM = 'rgba(255,74,28,0.10)';
 const LINE  = 'rgba(255,255,255,0.07)';
@@ -92,7 +92,7 @@ export default function StudioPage() {
       {/* Header */}
       <div style={{ padding: '20px 28px', borderBottom: `1px solid ${LINE}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <h1 style={{ fontFamily: FONT_HEADING, fontSize: 28, fontWeight: 400, margin: 0, color: PAPER }}>
+          <h1 style={{ fontFamily: FONT_HEADING, fontSize: 28, fontWeight: 400, letterSpacing: '-0.025em', margin: 0, color: PAPER }}>
             Scale Studio
           </h1>
           <span style={{
