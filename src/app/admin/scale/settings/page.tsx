@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   callAI,
   loadScaleConfig,
@@ -8,6 +8,13 @@ import {
   ScaleModelConfig,
   ScaleProvider,
 } from '@/lib/scale-ai';
+import {
+  isConnected as isIntegrationConnected,
+  getIntegration,
+  removeIntegration,
+  IntegrationName,
+} from '@/lib/scale-integrations';
+import IntegrationModal from '@/components/scale/IntegrationModal';
 
 // ─── Provider configs ───
 interface ModelOption {
@@ -104,6 +111,24 @@ interface GoogleAdsStatus {
   developerTokenConfigured?: boolean;
 }
 
+// ─── Integration row definition ───
+interface IntegrationRowDef {
+  displayName: string;
+  integrationKey: IntegrationName | null; // null = handled separately (Google Ads, Repliers)
+  description: string;
+  color: string;
+  optional?: boolean;
+  alwaysConnected?: boolean; // e.g. Repliers — hardcoded as connected
+}
+
+const INTEGRATION_ROWS: IntegrationRowDef[] = [
+  { displayName: 'Meta Ads', integrationKey: 'meta', description: 'Run lead gen, carousel, and story campaigns on Facebook and Instagram.', color: '#1877F2' },
+  { displayName: 'DataForSEO', integrationKey: 'dataforseo', description: 'Keyword research, SERP analysis, and rank tracking for the Intelligence tab.', color: '#10B981' },
+  { displayName: 'Firecrawl', integrationKey: 'firecrawl', description: 'Web scraping for competitor analysis and content enrichment.', color: '#F59E0B' },
+  { displayName: 'Stripe', integrationKey: 'stripe', description: 'Credit top-ups and subscription billing for Scale plans.', color: '#635BFF' },
+  { displayName: 'Apollo.io', integrationKey: 'apollo', description: 'Lead enrichment — company data, job titles, and contact info.', color: '#FF6B35', optional: true },
+];
+
 export default function ModelRouter() {
   const [config, setConfig] = useState<ScaleModelConfig>({
     provider: 'anthropic',
@@ -119,9 +144,46 @@ export default function ModelRouter() {
   const [googleStatus, setGoogleStatus] = useState<GoogleAdsStatus | null>(null);
   const [googleFlash, setGoogleFlash] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
 
+  // Integration state
+  const [integrationModal, setIntegrationModal] = useState<string | null>(null);
+  const [integrationStatuses, setIntegrationStatuses] = useState<Record<string, boolean>>({});
+  const [disconnectConfirm, setDisconnectConfirm] = useState<string | null>(null);
+
+  const refreshIntegrationStatuses = useCallback(() => {
+    const statuses: Record<string, boolean> = {};
+    INTEGRATION_ROWS.forEach((row) => {
+      if (row.integrationKey) {
+        statuses[row.displayName] = isIntegrationConnected(row.integrationKey);
+      }
+    });
+    setIntegrationStatuses(statuses);
+  }, []);
+
+  const handleDisconnect = (row: IntegrationRowDef) => {
+    if (!row.integrationKey) return;
+    removeIntegration(row.integrationKey);
+    setDisconnectConfirm(null);
+    refreshIntegrationStatuses();
+  };
+
+  const getIntegrationSubtitle = (row: IntegrationRowDef): string | null => {
+    if (!row.integrationKey || !integrationStatuses[row.displayName]) return null;
+    const creds = getIntegration(row.integrationKey);
+    if (!creds) return null;
+    switch (row.integrationKey) {
+      case 'meta': return `act_${((creds as { adAccountId?: string }).adAccountId || '').replace('act_', '').slice(0, 10)}...`;
+      case 'dataforseo': return (creds as { login?: string }).login || null;
+      case 'firecrawl': return 'fc-••••';
+      case 'stripe': return ((creds as { publishableKey?: string }).publishableKey || '').startsWith('pk_test') ? 'Test mode' : 'Live mode';
+      case 'apollo': return 'API key configured';
+      default: return null;
+    }
+  };
+
   useEffect(() => {
     setConfig(loadScaleConfig());
     setHydrated(true);
+    refreshIntegrationStatuses();
 
     // Surface a flash from the OAuth callback if the URL has one
     if (typeof window !== 'undefined') {
@@ -545,71 +607,171 @@ export default function ModelRouter() {
             Connect third-party services to unlock Scale features. Each integration enables specific capabilities.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {([
-              { name: 'Google Ads', description: 'Push campaigns to Google Ads. Create RSA, Display, and Performance Max.', status: googleStatus?.connected ? 'connected' : 'disconnected', color: '#4285F4' },
-              { name: 'Meta Ads', description: 'Run lead gen, carousel, and story campaigns on Facebook and Instagram.', status: 'disconnected', color: '#1877F2' },
-              { name: 'DataForSEO', description: 'Keyword research, SERP analysis, and rank tracking for the Intelligence tab.', status: 'disconnected', color: '#10B981' },
-              { name: 'Firecrawl', description: 'Web scraping for competitor analysis and content enrichment.', status: 'disconnected', color: '#F59E0B' },
-              { name: 'Repliers API', description: 'MLS listing data for Community Listings campaigns and market stats.', status: 'connected', color: '#8B5CF6' },
-              { name: 'Stripe', description: 'Credit top-ups and subscription billing for Scale plans.', status: 'disconnected', color: '#635BFF' },
-              { name: 'Apollo.io', description: 'Lead enrichment — company data, job titles, and contact info.', status: 'disconnected', color: '#FF6B35', optional: true },
-            ] as { name: string; description: string; status: string; color: string; optional?: boolean }[]).map((integration) => (
-              <div key={integration.name} style={{
-                background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14,
-                padding: '16px 20px', boxShadow: CARD_SHADOW, color: S.textPrimary,
-                display: 'flex', alignItems: 'center', gap: 16,
-              }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 9,
-                  background: `${integration.color}18`, color: integration.color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, fontWeight: 700, fontFamily: S.mono, flexShrink: 0,
+            {/* Google Ads — handled by OAuth above, shown as status-only row */}
+            <div style={{
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14,
+              padding: '16px 20px', boxShadow: CARD_SHADOW, color: S.textPrimary,
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: 'rgba(66,133,244,0.1)', color: '#4285F4',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 700, fontFamily: S.mono, flexShrink: 0,
+              }}>G</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: S.white }}>Google Ads</div>
+                <div style={{ fontSize: 13, color: S.textMuted, marginTop: 2, lineHeight: 1.4 }}>Push campaigns to Google Ads. Managed via OAuth above.</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, fontFamily: S.mono,
+                  padding: '4px 10px', borderRadius: 6,
+                  background: googleStatus?.connected ? S.greenSoft : 'rgba(239,68,68,0.08)',
+                  color: googleStatus?.connected ? S.green : S.red,
                 }}>
-                  {integration.name.charAt(0)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: S.white, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {integration.name}
-                    {integration.optional && (
-                      <span style={{ fontSize: 10, fontFamily: S.mono, color: S.textMuted, fontWeight: 500 }}>OPTIONAL</span>
+                  {googleStatus?.connected ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+            </div>
+
+            {/* Dynamic integration rows */}
+            {INTEGRATION_ROWS.map((row) => {
+              const connected = integrationStatuses[row.displayName] || false;
+              const subtitle = connected ? getIntegrationSubtitle(row) : null;
+              return (
+                <div key={row.displayName} style={{
+                  background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14,
+                  padding: '16px 20px', boxShadow: CARD_SHADOW, color: S.textPrimary,
+                  display: 'flex', alignItems: 'center', gap: 16,
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 9,
+                    background: `${row.color}18`, color: row.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 16, fontWeight: 700, fontFamily: S.mono, flexShrink: 0,
+                  }}>
+                    {row.displayName.charAt(0)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: S.white, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {row.displayName}
+                      {row.optional && (
+                        <span style={{ fontSize: 10, fontFamily: S.mono, color: S.textMuted, fontWeight: 500 }}>OPTIONAL</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13, color: S.textMuted, marginTop: 2, lineHeight: 1.4 }}>
+                      {row.description}
+                      {subtitle && (
+                        <span style={{ marginLeft: 6, fontFamily: S.mono, fontSize: 11, color: S.textSecondary }}>
+                          · {subtitle}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    {connected ? (
+                      <>
+                        <span style={{
+                          fontSize: 12, fontWeight: 600, fontFamily: S.mono,
+                          padding: '4px 10px', borderRadius: 6,
+                          background: S.greenSoft, color: S.green,
+                        }}>
+                          Connected
+                        </span>
+                        {disconnectConfirm === row.displayName ? (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              onClick={() => handleDisconnect(row)}
+                              style={{
+                                padding: '7px 14px', borderRadius: 8,
+                                background: 'rgba(239,68,68,0.12)', border: `1px solid rgba(239,68,68,0.3)`,
+                                color: S.red, fontSize: 12, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: S.font,
+                              }}
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => setDisconnectConfirm(null)}
+                              style={{
+                                padding: '7px 10px', borderRadius: 8,
+                                background: 'transparent', border: `1px solid ${S.border}`,
+                                color: S.textMuted, fontSize: 12, fontWeight: 500,
+                                cursor: 'pointer', fontFamily: S.font,
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDisconnectConfirm(row.displayName)}
+                            style={{
+                              padding: '7px 14px', borderRadius: 8,
+                              background: 'transparent', border: `1px solid ${S.border}`,
+                              color: S.textSecondary, fontSize: 12, fontWeight: 500,
+                              cursor: 'pointer', fontFamily: S.font,
+                            }}
+                          >
+                            Disconnect
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setIntegrationModal(row.displayName)}
+                        style={{
+                          padding: '7px 16px', borderRadius: 8,
+                          background: S.accent, border: 'none',
+                          color: S.white, fontSize: 12, fontWeight: 600,
+                          cursor: 'pointer', fontFamily: S.font,
+                        }}
+                      >
+                        Connect
+                      </button>
                     )}
                   </div>
-                  <div style={{ fontSize: 13, color: S.textMuted, marginTop: 2, lineHeight: 1.4 }}>{integration.description}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                  {integration.status === 'connected' ? (
-                    <>
-                      <span style={{
-                        fontSize: 12, fontWeight: 600, fontFamily: S.mono,
-                        padding: '4px 10px', borderRadius: 6,
-                        background: S.greenSoft, color: S.green,
-                      }}>
-                        Connected
-                      </span>
-                      <button style={{
-                        padding: '7px 14px', borderRadius: 8,
-                        background: 'transparent', border: `1px solid ${S.border}`,
-                        color: S.textSecondary, fontSize: 12, fontWeight: 500,
-                        cursor: 'pointer', fontFamily: S.font,
-                      }}>
-                        Disconnect
-                      </button>
-                    </>
-                  ) : (
-                    <button style={{
-                      padding: '7px 16px', borderRadius: 8,
-                      background: S.accent, border: 'none',
-                      color: S.white, fontSize: 12, fontWeight: 600,
-                      cursor: 'pointer', fontFamily: S.font,
-                    }}>
-                      Connect
-                    </button>
-                  )}
-                </div>
+              );
+            })}
+
+            {/* Repliers API — always connected, status-only */}
+            <div style={{
+              background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14,
+              padding: '16px 20px', boxShadow: CARD_SHADOW, color: S.textPrimary,
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: 'rgba(139,92,246,0.1)', color: '#8B5CF6',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 700, fontFamily: S.mono, flexShrink: 0,
+              }}>R</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: S.white }}>Repliers API</div>
+                <div style={{ fontSize: 13, color: S.textMuted, marginTop: 2, lineHeight: 1.4 }}>MLS listing data for Community Listings campaigns and market stats.</div>
               </div>
-            ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, fontFamily: S.mono,
+                  padding: '4px 10px', borderRadius: 6,
+                  background: S.greenSoft, color: S.green,
+                }}>
+                  Connected
+                </span>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Integration modal */}
+        <IntegrationModal
+          integrationDisplayName={integrationModal || ''}
+          open={integrationModal !== null}
+          onClose={() => setIntegrationModal(null)}
+          onSaved={refreshIntegrationStatuses}
+        />
 
         {/* Integration guide */}
         <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
