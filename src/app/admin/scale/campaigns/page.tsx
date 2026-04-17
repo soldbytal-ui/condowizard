@@ -69,7 +69,9 @@ type CampaignType =
   | 'community_listings'
   | 'condo_staging'
   | 'short_term_rentals'
-  | 'custom';
+  | 'custom'
+  | 'email_nurture'
+  | 'seo_landing_page';
 
 type TargetKind = 'projects' | 'neighborhoods' | 'communities' | 'none' | 'custom';
 
@@ -203,6 +205,71 @@ const CAMPAIGN_TYPES: CampaignTypeMeta[] = [
     stepLabel: 'Custom brief',
     promptAngle:
       'Ad focus: whatever the user described in their custom brief. Follow their wording closely but still respect all Agent Brain rules (tone, legal, banned words).',
+  },
+  {
+    id: 'email_nurture',
+    label: 'Email Nurture',
+    description: '7-part email sequence for new leads. Segmented by project, price range, and buyer stage.',
+    color: '#EA4335',
+    iconPath: 'M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z M22 6l-10 7L2 6',
+    targetKind: 'projects',
+    stepLabel: 'Select project for nurture',
+    promptAngle:
+      `Ad focus: 7-email drip nurture sequence for a pre-construction condo project. Generate all 7 emails in a structured JSON format.
+
+SEQUENCE STRUCTURE:
+- Email 1 (Day 0): Welcome + project details — introduce the project, key selling points, why it matters
+- Email 2 (Day 2): Floor plans and pricing — highlight unit types, price ranges, deposit structure
+- Email 3 (Day 5): Neighborhood guide — transit, restaurants, amenities, walkability score
+- Email 4 (Day 9): Similar projects — 2-3 comparable projects they might also like
+- Email 5 (Day 14): Market update — relevant market data, price trends, rental yields
+- Email 6 (Day 21): "Still interested?" re-engagement — personal tone, offer to schedule a call
+- Email 7 (Day 30): Final value-add + exclusive offer — urgency, limited VIP pricing, final CTA
+
+EACH EMAIL MUST INCLUDE:
+- subject: max 50 chars
+- preheader: max 100 chars
+- body_html: full HTML email body with inline styles
+- body_text: plain text version
+- cta_text: button text
+- cta_url: landing page URL
+- brokerage_disclosure: "Tal Shelef, Sales Representative | Rare Real Estate Inc., Brokerage"
+- unsubscribe_note: "CASL compliance — includes unsubscribe link"
+- send_day: number of days after opt-in
+
+OUTPUT FORMAT: JSON with "emails" array containing all 7 email objects. Include "export_formats" field with values ["mailchimp", "hubspot", "convertkit"] to indicate compatibility.`,
+  },
+  {
+    id: 'seo_landing_page',
+    label: 'SEO Landing Page',
+    description: 'Full neighbourhood or area page — H1, intro, 6 sections, schema markup, internal links, RECO disclosure.',
+    color: '#10B981',
+    iconPath: 'M9 12h6 M9 16h6 M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z M13 2v7h7',
+    targetKind: 'neighborhoods',
+    stepLabel: 'Select neighbourhood',
+    promptAngle:
+      `Generate a full SEO-optimized landing page for a Toronto neighbourhood. Output MUST be a JSON object with ALL of these fields:
+
+PAGE STRUCTURE:
+- meta_title: exactly 60 chars, include neighbourhood name + "Pre-Construction Condos"
+- meta_description: exactly 155 chars, compelling with keyword
+- h1: main heading featuring the neighbourhood name
+- intro: 300-word introduction about the neighbourhood and its pre-construction scene
+- sections: array of 6 objects, each with h2 heading and 200+ word body:
+  1. "Why [neighbourhood] is popular with buyers"
+  2. "Current market trends in [neighbourhood]"
+  3. "Transit and amenities"
+  4. "Schools and demographics"
+  5. "Pre-construction projects in [neighbourhood]"
+  6. "What to know before buying in [neighbourhood]"
+- faq: array of 5 {question, answer} objects
+- internal_links: array of {text, url} linking to other CondoWizard pages
+- schema_markup: JSON-LD for Place and LocalBusiness schemas
+- reco_disclosure: "Tal Shelef, Sales Representative | Rare Real Estate Inc., Brokerage | This is not intended to solicit buyers or sellers currently under contract."
+
+Also output:
+- html_version: full HTML with semantic markup
+- markdown_version: clean markdown for CMS import`,
   },
 ];
 

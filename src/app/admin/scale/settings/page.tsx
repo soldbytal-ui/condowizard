@@ -538,6 +538,79 @@ export default function ModelRouter() {
           )}
         </div>
 
+        {/* Integrations */}
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Integrations</h2>
+          <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
+            Connect third-party services to unlock Scale features. Each integration enables specific capabilities.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {([
+              { name: 'Google Ads', description: 'Push campaigns to Google Ads. Create RSA, Display, and Performance Max.', status: googleStatus?.connected ? 'connected' : 'disconnected', color: '#4285F4' },
+              { name: 'Meta Ads', description: 'Run lead gen, carousel, and story campaigns on Facebook and Instagram.', status: 'disconnected', color: '#1877F2' },
+              { name: 'DataForSEO', description: 'Keyword research, SERP analysis, and rank tracking for the Intelligence tab.', status: 'disconnected', color: '#10B981' },
+              { name: 'Firecrawl', description: 'Web scraping for competitor analysis and content enrichment.', status: 'disconnected', color: '#F59E0B' },
+              { name: 'Repliers API', description: 'MLS listing data for Community Listings campaigns and market stats.', status: 'connected', color: '#8B5CF6' },
+              { name: 'Stripe', description: 'Credit top-ups and subscription billing for Scale plans.', status: 'disconnected', color: '#635BFF' },
+              { name: 'Apollo.io', description: 'Lead enrichment — company data, job titles, and contact info.', status: 'disconnected', color: '#FF6B35', optional: true },
+            ] as { name: string; description: string; status: string; color: string; optional?: boolean }[]).map((integration) => (
+              <div key={integration.name} style={{
+                background: S.surface, border: `1px solid ${S.border}`, borderRadius: 14,
+                padding: '16px 20px', boxShadow: CARD_SHADOW, color: S.textPrimary,
+                display: 'flex', alignItems: 'center', gap: 16,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 9,
+                  background: `${integration.color}18`, color: integration.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, fontWeight: 700, fontFamily: S.mono, flexShrink: 0,
+                }}>
+                  {integration.name.charAt(0)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: S.white, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {integration.name}
+                    {integration.optional && (
+                      <span style={{ fontSize: 10, fontFamily: S.mono, color: S.textMuted, fontWeight: 500 }}>OPTIONAL</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: S.textMuted, marginTop: 2, lineHeight: 1.4 }}>{integration.description}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  {integration.status === 'connected' ? (
+                    <>
+                      <span style={{
+                        fontSize: 12, fontWeight: 600, fontFamily: S.mono,
+                        padding: '4px 10px', borderRadius: 6,
+                        background: S.greenSoft, color: S.green,
+                      }}>
+                        Connected
+                      </span>
+                      <button style={{
+                        padding: '7px 14px', borderRadius: 8,
+                        background: 'transparent', border: `1px solid ${S.border}`,
+                        color: S.textSecondary, fontSize: 12, fontWeight: 500,
+                        cursor: 'pointer', fontFamily: S.font,
+                      }}>
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button style={{
+                      padding: '7px 16px', borderRadius: 8,
+                      background: S.accent, border: 'none',
+                      color: S.white, fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: S.font,
+                    }}>
+                      Connect
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Integration guide */}
         <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: S.white, margin: '0 0 14px', letterSpacing: '-0.01em' }}>How this connects to Scale</h3>
