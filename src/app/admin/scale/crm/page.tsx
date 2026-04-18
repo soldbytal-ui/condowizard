@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -216,6 +217,7 @@ function isWithinDays(iso: string, days: number): boolean {
 // Main page
 // ═══════════════════════════════════════════════════════════════
 export default function CrmPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<'board' | 'table'>('board');
@@ -223,7 +225,6 @@ export default function CrmPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | LeadStatus>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | LeadSource>('all');
   const [sort, setSort] = useState<{ key: keyof Lead; dir: 'asc' | 'desc' }>({ key: 'createdAt', dir: 'desc' });
-  const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | null>(null);
 
@@ -272,7 +273,7 @@ export default function CrmPage() {
     return arr;
   }, [filtered, sort]);
 
-  const activeLead = leads.find((l) => l.id === activeLeadId) || null;
+  const openLead = (id: string) => router.push(`/admin/scale/crm/${id}`);
 
   // ── Lead mutations ───────────────────────────────────────────
   const addLead = (input: Omit<Lead, 'id' | 'activities' | 'createdAt' | 'updatedAt' | 'notes'> & { notes?: string }) => {
@@ -302,35 +303,6 @@ export default function CrmPage() {
         updatedAt: nowIso(),
         activities: [
           { id: uid('act'), type: 'status_changed', description: `Status changed to ${prettyStatus(status)}.`, timestamp: nowIso() },
-          ...l.activities,
-        ],
-      };
-    }));
-  };
-
-  const updateLead = (id: string, patch: Partial<Lead>, activityDescription?: string) => {
-    setLeads((prev) => prev.map((l) => {
-      if (l.id !== id) return l;
-      const merged: Lead = { ...l, ...patch, updatedAt: nowIso() };
-      if (activityDescription) {
-        merged.activities = [
-          { id: uid('act'), type: 'edited', description: activityDescription, timestamp: nowIso() },
-          ...l.activities,
-        ];
-      }
-      return merged;
-    }));
-  };
-
-  const addNote = (id: string, text: string) => {
-    if (!text.trim()) return;
-    setLeads((prev) => prev.map((l) => {
-      if (l.id !== id) return l;
-      return {
-        ...l,
-        updatedAt: nowIso(),
-        activities: [
-          { id: uid('act'), type: 'note_added', description: text.trim(), timestamp: nowIso() },
           ...l.activities,
         ],
       };
@@ -447,7 +419,7 @@ export default function CrmPage() {
         {view === 'board' ? (
           <Board
             leads={filtered}
-            onOpen={(id) => setActiveLeadId(id)}
+            onOpen={openLead}
             onMove={moveLead}
             dragOverColumn={dragOverColumn}
             setDragOverColumn={setDragOverColumn}
@@ -457,7 +429,7 @@ export default function CrmPage() {
             leads={sorted}
             sort={sort}
             setSort={setSort}
-            onOpen={(id) => setActiveLeadId(id)}
+            onOpen={openLead}
           />
         )}
 
@@ -465,16 +437,6 @@ export default function CrmPage() {
           <AddLeadModal
             onClose={() => setAddOpen(false)}
             onAdd={(payload) => { addLead(payload); setAddOpen(false); }}
-          />
-        )}
-
-        {activeLead && (
-          <LeadDetailPanel
-            lead={activeLead}
-            onClose={() => setActiveLeadId(null)}
-            onMove={(s) => moveLead(activeLead.id, s)}
-            onAddNote={(text) => addNote(activeLead.id, text)}
-            onUpdate={(patch, desc) => updateLead(activeLead.id, patch, desc)}
           />
         )}
       </div>
@@ -935,283 +897,6 @@ function AddLeadModal({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Lead detail slide-over
-// ═══════════════════════════════════════════════════════════════
-function LeadDetailPanel({
-  lead, onClose, onMove, onAddNote, onUpdate,
-}: {
-  lead: Lead;
-  onClose: () => void;
-  onMove: (s: LeadStatus) => void;
-  onAddNote: (text: string) => void;
-  onUpdate: (patch: Partial<Lead>, activityDescription?: string) => void;
-}) {
-  const [noteInput, setNoteInput] = useState('');
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<Lead>(lead);
-  const noteRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => { setDraft(lead); }, [lead.id]);
-
-  const save = () => {
-    const desc: string[] = [];
-    if (draft.email !== lead.email) desc.push('email');
-    if (draft.phone !== lead.phone) desc.push('phone');
-    if (draft.interest !== lead.interest) desc.push('interest');
-    if (draft.budget !== lead.budget) desc.push('budget');
-    if (draft.timeline !== lead.timeline) desc.push('timeline');
-    if (draft.assignedTo !== lead.assignedTo) desc.push('assignee');
-    if (draft.nextFollowUp !== lead.nextFollowUp) desc.push('follow-up date');
-    onUpdate({
-      email: draft.email, phone: draft.phone, interest: draft.interest,
-      budget: draft.budget, timeline: draft.timeline,
-      assignedTo: draft.assignedTo, nextFollowUp: draft.nextFollowUp,
-    }, desc.length ? `Edited ${desc.join(', ')}.` : undefined);
-    setEditing(false);
-  };
-
-  return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10000,
-        background: 'rgba(0,0,0,0.32)', backdropFilter: 'blur(2px)',
-        display: 'flex', justifyContent: 'flex-end',
-        fontFamily: S.font,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 460, maxWidth: '100vw', height: '100%',
-          background: S.bg, color: S.textPrimary,
-          borderLeft: `1px solid ${S.border}`,
-          boxShadow: '-12px 0 40px rgba(0,0,0,0.4)',
-          overflowY: 'auto',
-          animation: 'sSlideRight 0.25s ease',
-          padding: 28,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: S.white, margin: 0, letterSpacing: '-0.015em' }}>
-            {lead.name}
-          </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: S.textMuted, cursor: 'pointer', fontSize: 24, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
-          <StatusBadge status={lead.status} />
-          <span style={{ fontSize: 13, color: S.textMuted, fontFamily: S.mono }}>
-            Created {timeAgo(lead.createdAt)}
-          </span>
-        </div>
-
-        {/* Move-to dropdown */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={sectionLabelStyle()}>Move to</div>
-          <Select
-            value={lead.status}
-            onChange={(v) => onMove(v as LeadStatus)}
-            options={STAGES.map((s) => ({ value: s.id, label: s.label }))}
-          />
-        </div>
-
-        {/* Quick actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginBottom: 24 }}>
-          <QuickAction label="Call"  href={lead.phone ? `tel:${lead.phone}` : undefined} />
-          <QuickAction label="Email" href={lead.email ? `mailto:${lead.email}` : undefined} />
-          <QuickAction label="SMS"   href={lead.phone ? `sms:${lead.phone}` : undefined} />
-          <QuickAction label="Note"  onClick={() => noteRef.current?.focus()} />
-        </div>
-
-        {/* Contact info */}
-        <div style={{ background: S.surfaceInner, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          <ContactRow label="Email" value={lead.email} mono href={lead.email ? `mailto:${lead.email}` : undefined} />
-          <ContactRow label="Phone" value={lead.phone} mono href={lead.phone ? `tel:${lead.phone}` : undefined} />
-        </div>
-
-        {/* Lead details — view or edit */}
-        <div style={{
-          background: S.surfaceInner, border: `1px solid ${S.border}`,
-          borderRadius: 12, padding: 16, marginBottom: 24,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={sectionLabelStyle()}>Lead details</span>
-            {editing ? (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => { setDraft(lead); setEditing(false); }} style={tinyGhostBtn()}>Cancel</button>
-                <button onClick={save} style={tinyPrimaryBtn()}>Save</button>
-              </div>
-            ) : (
-              <button onClick={() => setEditing(true)} style={tinyGhostBtn()}>Edit</button>
-            )}
-          </div>
-
-          {editing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Field label="Email">
-                <Input value={draft.email} onChange={(v) => setDraft({ ...draft, email: v })} type="email" />
-              </Field>
-              <Field label="Phone">
-                <Input value={draft.phone} onChange={(v) => setDraft({ ...draft, phone: v })} type="tel" />
-              </Field>
-              <Field label="Interest">
-                <Input value={draft.interest} onChange={(v) => setDraft({ ...draft, interest: v })} />
-              </Field>
-              <Field label="Budget">
-                <Select value={draft.budget} onChange={(v) => setDraft({ ...draft, budget: v })} options={BUDGETS.map((b) => ({ value: b, label: b }))} />
-              </Field>
-              <Field label="Timeline">
-                <Select value={draft.timeline} onChange={(v) => setDraft({ ...draft, timeline: v })} options={TIMELINES.map((t) => ({ value: t, label: t }))} />
-              </Field>
-              <Field label="Next Follow-Up">
-                <Input
-                  value={draft.nextFollowUp || ''}
-                  onChange={(v) => setDraft({ ...draft, nextFollowUp: v || null })}
-                  type="date"
-                />
-              </Field>
-              <Field label="Assigned to">
-                <Input value={draft.assignedTo || ''} onChange={(v) => setDraft({ ...draft, assignedTo: v || null })} />
-              </Field>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <DetailRow label="Source" value={lead.source} />
-              <DetailRow label="Interest" value={lead.interest || '—'} />
-              <DetailRow label="Budget" value={lead.budget} />
-              <DetailRow label="Timeline" value={lead.timeline} />
-              <DetailRow
-                label="Next follow-up"
-                value={lead.nextFollowUp ? formatDate(lead.nextFollowUp) : '—'}
-                accent={isOverdue(lead.nextFollowUp) ? S.red : undefined}
-              />
-              <DetailRow label="Assigned to" value={lead.assignedTo || '—'} />
-            </div>
-          )}
-        </div>
-
-        {/* Activity timeline */}
-        <div>
-          <div style={sectionLabelStyle()}>Activity</div>
-          <div style={{ marginBottom: 12 }}>
-            <textarea
-              ref={noteRef}
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              placeholder="Add a note…"
-              rows={2}
-              style={inputStyle()}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-              <button
-                onClick={() => { onAddNote(noteInput); setNoteInput(''); }}
-                disabled={!noteInput.trim()}
-                style={tinyPrimaryBtn(!noteInput.trim())}
-              >
-                Add note
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {lead.activities.length === 0 && (
-              <div style={{ fontSize: 13, color: S.textMuted, padding: 12, textAlign: 'center' }}>
-                No activity yet.
-              </div>
-            )}
-            {lead.activities.map((a) => (
-              <div key={a.id} style={{
-                background: S.surfaceInner, border: `1px solid ${S.border}`,
-                borderRadius: 10, padding: 12,
-                display: 'flex', gap: 10, alignItems: 'flex-start',
-              }}>
-                <ActivityIcon type={a.type} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, color: S.textPrimary, lineHeight: 1.5 }}>
-                    {a.description}
-                  </div>
-                  <div style={{ fontSize: 12, color: S.textMuted, fontFamily: S.mono, marginTop: 4 }}>
-                    {timeAgo(a.timestamp)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DetailRow({ label, value, accent }: { label: string; value: string; accent?: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-      <span style={{ fontSize: 13, color: S.textMuted }}>{label}</span>
-      <span style={{ fontSize: 14, color: accent || S.textPrimary, fontWeight: accent ? 600 : 500, textAlign: 'right' }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function ContactRow({ label, value, mono, href }: { label: string; value: string; mono?: boolean; href?: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', padding: '4px 0' }}>
-      <span style={{ fontSize: 13, color: S.textMuted }}>{label}</span>
-      {href ? (
-        <a href={href} style={{
-          fontSize: 14, color: S.accent, textDecoration: 'none',
-          fontFamily: mono ? S.mono : S.font, textAlign: 'right',
-        }}>
-          {value}
-        </a>
-      ) : (
-        <span style={{ fontSize: 14, color: S.textMuted, fontFamily: mono ? S.mono : S.font }}>
-          {value || '—'}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function QuickAction({ label, href, onClick }: { label: string; href?: string; onClick?: () => void }) {
-  const disabled = !href && !onClick;
-  const style: React.CSSProperties = {
-    padding: '10px 14px', borderRadius: 9,
-    background: disabled ? 'rgba(255,255,255,0.02)' : S.surfaceInner,
-    border: `1px solid ${S.border}`,
-    color: disabled ? S.textMuted : S.textPrimary,
-    fontSize: 13, fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer',
-    fontFamily: S.font, textAlign: 'center', textDecoration: 'none',
-    display: 'block',
-  };
-  if (href) return <a href={href} style={style}>{label}</a>;
-  return <button onClick={onClick} disabled={disabled} style={style}>{label}</button>;
-}
-
-function ActivityIcon({ type }: { type: Activity['type'] }) {
-  const map: Record<Activity['type'], { color: string; symbol: string }> = {
-    created:              { color: S.accent, symbol: '✦' },
-    status_changed:       { color: '#8B5CF6', symbol: '→' },
-    note_added:           { color: '#F59E0B', symbol: '✎' },
-    follow_up_scheduled:  { color: '#06B6D4', symbol: '☉' },
-    campaign_sent:        { color: '#10B981', symbol: '↗' },
-    edited:               { color: S.textSecondary, symbol: '·' },
-  };
-  const { color, symbol } = map[type];
-  return (
-    <span style={{
-      width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-      background: hexAlpha(color.startsWith('#') ? color : '#0066FF', 0.15),
-      color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 14, fontWeight: 700,
-    }}>
-      {symbol}
-    </span>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════
 // Generic field/input/select for the modal + edit form (dark)

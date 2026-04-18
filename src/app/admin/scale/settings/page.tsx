@@ -773,6 +773,12 @@ export default function ModelRouter() {
           onSaved={refreshIntegrationStatuses}
         />
 
+        {/* Email Templates */}
+        <EmailTemplatesSection />
+
+        {/* Inbound Webhook */}
+        <InboundWebhookSection />
+
         {/* Integration guide */}
         <div style={{ background: S.surface, border: `1px solid ${S.border}`, borderRadius: 16, padding: 28, boxShadow: CARD_SHADOW, color: S.textPrimary }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: S.white, margin: '0 0 14px', letterSpacing: '-0.01em' }}>How this connects to Scale</h3>
@@ -785,6 +791,272 @@ export default function ModelRouter() {
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Email Templates section
+// ═══════════════════════════════════════════════════════════════
+const EMAIL_TEMPLATES_KEY = 'scale-email-templates';
+const TEMPLATE_VARS = ['{firstName}', '{lastName}', '{interest}', '{neighborhood}', '{budget}', '{agentName}', '{brokerage}', '{agentPhone}', '{agentEmail}'];
+
+interface EmailTemplate { id: string; name: string; subject: string; body: string }
+
+function loadTemplates(): EmailTemplate[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(EMAIL_TEMPLATES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function saveTemplates(t: EmailTemplate[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(EMAIL_TEMPLATES_KEY, JSON.stringify(t));
+}
+
+function EmailTemplatesSection() {
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+
+  useEffect(() => { setTemplates(loadTemplates()); }, []);
+
+  const persist = (next: EmailTemplate[]) => { setTemplates(next); saveTemplates(next); };
+
+  const startEdit = (t: EmailTemplate) => { setEditId(t.id); setName(t.name); setSubject(t.subject); setBody(t.body); setAdding(true); };
+  const startNew = () => { setEditId(null); setName(''); setSubject(''); setBody(''); setAdding(true); };
+  const cancel = () => { setAdding(false); setEditId(null); };
+
+  const save = () => {
+    if (!name.trim() || !subject.trim()) return;
+    const entry: EmailTemplate = { id: editId || `tpl_${Date.now().toString(36)}`, name: name.trim(), subject: subject.trim(), body: body.trim() };
+    if (editId) {
+      persist(templates.map((t) => t.id === editId ? entry : t));
+    } else {
+      persist([...templates, entry]);
+    }
+    cancel();
+  };
+
+  const remove = (id: string) => persist(templates.filter((t) => t.id !== id));
+
+  const S2 = S; // alias
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <h2 style={{ fontSize: 24, fontWeight: 700, color: S2.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Email Templates</h2>
+      <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
+        Manage templates used in the CRM email composer. Variables are auto-replaced when applied to a lead.
+      </p>
+
+      {/* Template list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+        {templates.length === 0 && !adding && (
+          <div style={{ padding: 20, textAlign: 'center', color: S2.textMuted, fontSize: 14, background: S2.surface, borderRadius: 14, border: `1px solid ${S2.border}` }}>
+            No custom templates yet. Templates are seeded automatically when you open a lead detail page.
+          </div>
+        )}
+        {templates.map((t) => (
+          <div key={t.id} style={{
+            background: S2.surface, border: `1px solid ${S2.border}`, borderRadius: 14,
+            padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16, color: S2.textPrimary,
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: S2.white }}>{t.name}</div>
+              <div style={{ fontSize: 12, color: S2.textMuted, fontFamily: S2.mono, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {t.subject}
+              </div>
+            </div>
+            <button onClick={() => startEdit(t)} style={{ padding: '6px 12px', borderRadius: 7, background: 'transparent', border: `1px solid ${S2.border}`, color: S2.textSecondary, fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: S2.font }}>Edit</button>
+            <button onClick={() => remove(t.id)} style={{ padding: '6px 12px', borderRadius: 7, background: 'transparent', border: `1px solid ${S2.border}`, color: S2.red, fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: S2.font }}>Delete</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Add/Edit form */}
+      {adding ? (
+        <div style={{ background: S2.surface, border: `1px solid ${S2.border}`, borderRadius: 14, padding: 20, color: S2.textPrimary }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: S2.white, marginBottom: 16 }}>{editId ? 'Edit template' : 'New template'}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, color: S2.textMuted, display: 'block', marginBottom: 4 }}>Template name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Introduction" style={{ width: '100%', padding: '10px 14px', borderRadius: 9, background: S2.surfaceHover, border: `1px solid ${S2.border}`, color: S2.textPrimary, fontSize: 14, fontFamily: S2.font, outline: 'none' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: S2.textMuted, display: 'block', marginBottom: 4 }}>Subject</label>
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Great to connect, {firstName}" style={{ width: '100%', padding: '10px 14px', borderRadius: 9, background: S2.surfaceHover, border: `1px solid ${S2.border}`, color: S2.textPrimary, fontSize: 14, fontFamily: S2.mono, outline: 'none' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: S2.textMuted, display: 'block', marginBottom: 4 }}>Body</label>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Email body with {variables}..." rows={6} style={{ width: '100%', padding: '10px 14px', borderRadius: 9, background: S2.surfaceHover, border: `1px solid ${S2.border}`, color: S2.textPrimary, fontSize: 14, fontFamily: S2.font, outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
+            </div>
+            <div style={{ fontSize: 11, color: S2.textMuted, lineHeight: 1.5 }}>
+              Available variables: {TEMPLATE_VARS.map((v) => <code key={v} style={{ fontFamily: S2.mono, fontSize: 10, padding: '1px 5px', borderRadius: 3, background: S2.surfaceHover, marginRight: 4 }}>{v}</code>)}
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+            <button onClick={cancel} style={{ padding: '8px 16px', borderRadius: 8, background: 'transparent', border: `1px solid ${S2.border}`, color: S2.textSecondary, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: S2.font }}>Cancel</button>
+            <button onClick={save} disabled={!name.trim() || !subject.trim()} style={{ padding: '8px 18px', borderRadius: 8, background: (!name.trim() || !subject.trim()) ? 'rgba(255,255,255,0.05)' : S2.accent, border: 'none', color: (!name.trim() || !subject.trim()) ? S2.textMuted : S2.white, fontSize: 12, fontWeight: 600, cursor: (!name.trim() || !subject.trim()) ? 'not-allowed' : 'pointer', fontFamily: S2.font }}>Save template</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={startNew} style={{ padding: '10px 20px', borderRadius: 9, background: S2.accent, border: 'none', color: S2.white, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: S2.font }}>
+          + New Template
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Inbound Webhook section
+// ═══════════════════════════════════════════════════════════════
+const WEBHOOK_KEY_STORAGE = 'scale-inbound-api-key';
+
+function InboundWebhookSection() {
+  const [apiKey, setApiKey] = useState('');
+  const [copied, setCopied] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let key = window.localStorage.getItem(WEBHOOK_KEY_STORAGE);
+    if (!key) {
+      key = 'scale_' + Array.from(crypto.getRandomValues(new Uint8Array(16))).map((b) => b.toString(16).padStart(2, '0')).join('');
+      window.localStorage.setItem(WEBHOOK_KEY_STORAGE, key);
+    }
+    setApiKey(key);
+  }, []);
+
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/admin/scale/crm/inbound`
+    : '/api/admin/scale/crm/inbound';
+
+  const copyText = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const curlExample = `curl -X POST ${webhookUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "phone": "416-555-1234",
+    "source": "condowizard.ca",
+    "interest": "KING Toronto",
+    "budget": "500k-750k",
+    "timeline": "3-6 months",
+    "message": "Looking for a 2bed pre-construction",
+    "apiKey": "${apiKey}"
+  }'`;
+
+  const testWebhook = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/admin/scale/crm/inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Test Lead (webhook)',
+          email: 'test@example.com',
+          phone: '416-555-0000',
+          source: 'Webhook Test',
+          interest: 'Test — will appear in CRM',
+          budget: '$500K-$750K',
+          timeline: '3-6 months',
+          message: 'This is a test lead from the webhook test button.',
+          apiKey,
+        }),
+      });
+      const data = await res.json();
+      setTestResult({ ok: data.success, message: data.success ? `Lead created: ${data.leadId}` : data.error });
+    } catch (err) {
+      setTestResult({ ok: false, message: err instanceof Error ? err.message : 'Request failed' });
+    }
+    setTesting(false);
+  };
+
+  const S2 = S;
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <h2 style={{ fontSize: 24, fontWeight: 700, color: S2.pageHeading, margin: '0 0 10px', letterSpacing: '-0.015em' }}>Inbound Webhook</h2>
+      <p style={{ fontSize: 15, color: '#6B7185', margin: '0 0 20px', lineHeight: 1.6 }}>
+        Accept leads from landing pages, Zapier, or any external source via POST request.
+      </p>
+
+      <div style={{ background: S2.surface, border: `1px solid ${S2.border}`, borderRadius: 16, padding: 24, color: S2.textPrimary, marginBottom: 16 }}>
+        {/* Webhook URL */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: S2.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Webhook URL</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <code style={{ flex: 1, padding: '10px 14px', borderRadius: 9, background: S2.surfaceHover, border: `1px solid ${S2.border}`, fontFamily: S2.mono, fontSize: 12, color: S2.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {webhookUrl}
+            </code>
+            <button onClick={() => copyText(webhookUrl, 'url')} style={{ padding: '8px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${S2.border}`, color: copied === 'url' ? S2.green : S2.textSecondary, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: S2.font, whiteSpace: 'nowrap' }}>
+              {copied === 'url' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+
+        {/* API Key */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: S2.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>API Key</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <code style={{ flex: 1, padding: '10px 14px', borderRadius: 9, background: S2.surfaceHover, border: `1px solid ${S2.border}`, fontFamily: S2.mono, fontSize: 12, color: S2.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {apiKey}
+            </code>
+            <button onClick={() => copyText(apiKey, 'key')} style={{ padding: '8px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${S2.border}`, color: copied === 'key' ? S2.green : S2.textSecondary, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: S2.font, whiteSpace: 'nowrap' }}>
+              {copied === 'key' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+
+        {/* Example curl */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: S2.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Example curl</div>
+            <button onClick={() => copyText(curlExample, 'curl')} style={{ padding: '4px 10px', borderRadius: 6, background: 'transparent', border: `1px solid ${S2.border}`, color: copied === 'curl' ? S2.green : S2.textSecondary, fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: S2.font }}>
+              {copied === 'curl' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <pre style={{ padding: '14px 16px', borderRadius: 10, background: S2.surfaceHover, border: `1px solid ${S2.border}`, fontFamily: S2.mono, fontSize: 11, color: '#C8CBD3', lineHeight: 1.6, overflow: 'auto', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {curlExample}
+          </pre>
+        </div>
+
+        {/* Test button */}
+        <button onClick={testWebhook} disabled={testing} style={{
+          padding: '10px 22px', borderRadius: 9,
+          background: testing ? S2.surfaceHover : S2.accent,
+          border: 'none', color: S2.white, fontSize: 13, fontWeight: 600,
+          cursor: testing ? 'not-allowed' : 'pointer', fontFamily: S2.font,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {testing ? 'Sending…' : 'Test webhook'}
+        </button>
+
+        {testResult && (
+          <div style={{
+            marginTop: 12, padding: '10px 14px', borderRadius: 9,
+            background: testResult.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `1px solid ${testResult.ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            fontSize: 12, fontFamily: S2.mono, color: testResult.ok ? S2.green : S2.red,
+          }}>
+            {testResult.message}
+          </div>
+        )}
       </div>
     </div>
   );
