@@ -204,3 +204,125 @@ model DealActivity {
   @@index([agentId])
   @@map("deal_activities")
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Scale Multi-Tenant SaaS
+// ═══════════════════════════════════════════════════════════════
+
+model ScaleTenant {
+  id                   String   @id @default(cuid())
+  businessName         String
+  industry             String   // real_estate, home_services, legal, fitness, ecommerce, healthcare
+  ownerEmail           String   @unique
+  ownerName            String
+  plan                 String   @default("starter") // starter, pro, team, enterprise
+  status               String   @default("trial")   // trial, active, paused, churned
+  creditsBalance       Int      @default(2000)
+  creditsMonthly       Int      @default(2000)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  brandColor           String?  @default("#FF4A1C")
+  logo                 String?
+  invitedAt            DateTime @default(now())
+  acceptedAt           DateTime?
+  lastActiveAt         DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  leads      ScaleTenantLead[]
+  activities ScaleTenantActivity[]
+  users      ScaleTenantUser[]
+  invites    ScaleTenantInvite[]
+
+  @@map("scale_tenants")
+}
+
+model ScaleTenantInvite {
+  id        String    @id @default(cuid())
+  tenantId  String
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  tenant    ScaleTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("scale_tenant_invites")
+}
+
+model ScaleTenantUser {
+  id           String    @id @default(cuid())
+  tenantId     String
+  email        String
+  name         String
+  role         String    @default("owner") // owner, admin, member
+  passwordHash String?
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  tenant       ScaleTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@map("scale_tenant_users")
+}
+
+model ScaleTenantLead {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  email        String?
+  phone        String?
+  status       String   @default("new")
+  source       String?
+  interest     String?
+  budget       String?
+  timeline     String?
+  assignedTo   String?
+  customFields Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       ScaleTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("scale_leads")
+}
+
+model ScaleTenantActivity {
+  id          String   @id @default(cuid())
+  tenantId    String
+  type        String   // email, call, ai_call, campaign, credit_used, lead_created, login, plan_change
+  description String   @db.Text
+  metadata    Json?
+  creditsUsed Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  tenant      ScaleTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("scale_activities")
+}
+
+model ScaleSuperAdmin {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  @@map("scale_super_admins")
+}
+
+model ScaleAuditLog {
+  id          String   @id @default(cuid())
+  adminEmail  String
+  action      String   // tenant_created, plan_changed, credits_adjusted, impersonation_started, tenant_suspended, password_reset, tenant_deleted
+  tenantId    String?
+  details     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("scale_audit_log")
+}
