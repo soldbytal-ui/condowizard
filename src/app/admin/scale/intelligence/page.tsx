@@ -181,7 +181,8 @@ export default function IntelligencePage() {
   const compData = COMPETITOR_DATA[competitorDomain] ?? COMPETITOR_DATA['condos.ca'];
 
   return (
-    <div style={{ padding: '28px 32px', fontFamily: FONT_BODY, color: PAPER, maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: '28px 32px', fontFamily: FONT_BODY, color: PAPER, background: INK, minHeight: '100%' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <style>{`
         @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .intel-row:hover { background: rgba(255,255,255,0.02) !important; }
@@ -559,6 +560,7 @@ export default function IntelligencePage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

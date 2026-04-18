@@ -83,7 +83,7 @@ export default function StudioPage() {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: FONT_BODY, color: PAPER }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: FONT_BODY, color: PAPER, background: INK }}>
       <style>{`
         @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes bounce { 0%,80%,100% { transform:translateY(0); } 40% { transform:translateY(-4px); } }

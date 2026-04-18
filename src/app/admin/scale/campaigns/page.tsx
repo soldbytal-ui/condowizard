@@ -1176,7 +1176,7 @@ export default function CampaignsWizard() {
   ];
 
   return (
-    <div style={{ fontFamily: S.font, color: S.textPrimary, fontSize: 16, lineHeight: 1.6 }}>
+    <div style={{ fontFamily: S.font, color: S.textPrimary, fontSize: 16, lineHeight: 1.6, background: S.pageBg, minHeight: '100%' }}>
       <style>{`
         @keyframes sSlideIn { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:translateY(0);} }
         @keyframes sSpin { to { transform: rotate(360deg); } }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCredits, getMonthlyAllocation } from '@/lib/scale-credits';
 import IndustryPickerModal, { isIndustrySelected } from '@/components/scale/IndustryPickerModal';
 
@@ -127,12 +127,18 @@ function CreditsWidget() {
 export default function ScaleLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
   const [showIndustry, setShowIndustry] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!isIndustrySelected()) {
       setShowIndustry(true);
     }
   }, []);
+
+  // Reset scroll to top when navigating between pages
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <>
@@ -253,10 +259,13 @@ export default function ScaleLayout({ children }: { children: React.ReactNode })
         </aside>
 
         {/* Main content */}
-        <main style={{
-          flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
-          background: INK, color: PAPER,
-        }}>
+        <main
+          ref={mainRef}
+          style={{
+            flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
+            background: INK, color: PAPER,
+          }}
+        >
           {children}
         </main>
       </div>

@@ -93,7 +93,7 @@ export default function SkillsPage() {
   const enabledCount = skills.filter((s) => s.enabled).length;
 
   return (
-    <div style={{ padding: '0', fontFamily: FONT_BODY, color: PAPER }}>
+    <div style={{ padding: '0', fontFamily: FONT_BODY, color: PAPER, background: INK, minHeight: '100%' }}>
       <style>{`
         @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .skill-card { transition: all 0.15s ease; }

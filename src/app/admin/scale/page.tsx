@@ -179,7 +179,7 @@ export default function ScaleDashboard() {
   ];
 
   return (
-    <div style={{ fontFamily: FONT_BODY, color: PAPER, fontSize: 14, lineHeight: 1.6, minHeight: '100%' }}>
+    <div style={{ fontFamily: FONT_BODY, color: PAPER, fontSize: 14, lineHeight: 1.6, background: INK, minHeight: '100%' }}>
       <style>{`
         .kpi-card { transition: all 0.15s ease; }
         .kpi-card:hover { border-color: ${LINE_STRONG} !important; transform: translateY(-2px); }
