@@ -41,7 +41,8 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
         try { const r = window.localStorage.getItem('scale-crm-leads'); return r ? JSON.parse(r).length.toString() : ''; } catch { return ''; }
       }},
       { href: '/admin/scale/campaigns', label: 'Campaigns',  match: (p) => p.startsWith('/admin/scale/campaigns') },
-      { href: '/admin/scale/agents',    label: 'Agents',     match: (p) => p.startsWith('/admin/scale/agents') },
+      { href: '/admin/scale/agents',    label: 'Agents',     match: (p) => p.startsWith('/admin/scale/agents') && !p.startsWith('/admin/scale/agents/voice') },
+      { href: '/admin/scale/voice-agents', label: 'Voice Agents', match: (p) => p.startsWith('/admin/scale/voice-agents'), badge: { text: 'NEW', color: '#fff', bg: GREEN } },
     ],
   },
   {

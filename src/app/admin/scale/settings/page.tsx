@@ -129,6 +129,8 @@ const INTEGRATION_ROWS: IntegrationRowDef[] = [
   { displayName: 'Resend', integrationKey: 'resend', description: 'Send emails from your domain. Transactional emails, nurture sequences, and CRM outreach.', color: '#FF4A1C' },
   { displayName: 'Twilio Voice', integrationKey: 'twilio', description: 'Phone calling with automatic recording, transcription, and AI summaries.', color: '#F22F46' },
   { displayName: 'OpenAI (Whisper)', integrationKey: 'openai', description: 'Audio transcription via OpenAI Whisper model. Used for call recording analysis.', color: '#10A37F' },
+  { displayName: 'Vapi.ai', integrationKey: 'vapi', description: 'AI voice agents that make and receive phone calls autonomously.', color: '#FF4A1C' },
+  { displayName: 'ElevenLabs', integrationKey: 'elevenlabs', description: 'High-quality AI voice synthesis for your voice agents.', color: '#000000' },
   { displayName: 'Apollo.io', integrationKey: 'apollo', description: 'Lead enrichment — company data, job titles, and contact info.', color: '#FF6B35', optional: true },
 ];
 
@@ -182,6 +184,8 @@ export default function ModelRouter() {
       case 'resend': return (creds as { senderEmail?: string }).senderEmail || 'Connected';
       case 'twilio': return (creds as { phoneNumber?: string }).phoneNumber || 'Connected';
       case 'openai': return 'Whisper enabled';
+      case 'vapi': return 'Voice agents ready';
+      case 'elevenlabs': return 'Voices available';
       default: return null;
     }
   };

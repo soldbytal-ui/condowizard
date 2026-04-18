@@ -123,6 +123,25 @@ const INTEGRATION_CONFIGS: Record<string, IntegrationConfig> = {
     ],
     helpText: 'Get your key at platform.openai.com/api-keys. Used for Whisper transcription of call recordings.',
   },
+  'Vapi.ai': {
+    name: 'vapi',
+    displayName: 'Vapi.ai',
+    color: '#FF4A1C',
+    fields: [
+      { key: 'apiKey', label: 'Public Key', placeholder: 'Your Vapi public key', password: false, required: true },
+      { key: 'privateKey', label: 'Private Key', placeholder: 'Your Vapi private/secret key', password: true, required: true },
+    ],
+    helpText: 'Sign up at vapi.ai — free tier available. Get your keys from Dashboard → API Keys.',
+  },
+  ElevenLabs: {
+    name: 'elevenlabs',
+    displayName: 'ElevenLabs',
+    color: '#000000',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'Your ElevenLabs API key', password: true, required: true },
+    ],
+    helpText: 'Get your key at elevenlabs.io → Settings → API Keys. Free tier: 10,000 characters/month.',
+  },
 };
 
 // ─── Eye icons ───

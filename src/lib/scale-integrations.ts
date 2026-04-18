@@ -3,7 +3,7 @@
  * All credentials are stored in localStorage under "scale-integrations".
  */
 
-export type IntegrationName = 'meta' | 'dataforseo' | 'firecrawl' | 'stripe' | 'apollo' | 'resend' | 'twilio' | 'openai';
+export type IntegrationName = 'meta' | 'dataforseo' | 'firecrawl' | 'stripe' | 'apollo' | 'resend' | 'twilio' | 'openai' | 'vapi' | 'elevenlabs';
 
 export interface MetaCredentials {
   appId: string;
@@ -58,6 +58,17 @@ export interface OpenAICredentials {
   connectedAt: string;
 }
 
+export interface VapiCredentials {
+  apiKey: string;
+  privateKey: string;
+  connectedAt: string;
+}
+
+export interface ElevenLabsCredentials {
+  apiKey: string;
+  connectedAt: string;
+}
+
 export interface IntegrationsStore {
   meta?: MetaCredentials;
   dataforseo?: DataForSEOCredentials;
@@ -67,6 +78,8 @@ export interface IntegrationsStore {
   resend?: ResendCredentials;
   twilio?: TwilioCredentials;
   openai?: OpenAICredentials;
+  vapi?: VapiCredentials;
+  elevenlabs?: ElevenLabsCredentials;
 }
 
 type CredentialsFor<T extends IntegrationName> =
@@ -78,6 +91,8 @@ type CredentialsFor<T extends IntegrationName> =
   T extends 'resend' ? ResendCredentials :
   T extends 'twilio' ? TwilioCredentials :
   T extends 'openai' ? OpenAICredentials :
+  T extends 'vapi' ? VapiCredentials :
+  T extends 'elevenlabs' ? ElevenLabsCredentials :
   never;
 
 const STORAGE_KEY = 'scale-integrations';
