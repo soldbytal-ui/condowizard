@@ -235,6 +235,7 @@ export interface VoiceAgent {
   maxDuration: number;
   status: 'active' | 'paused';
   vapiAssistantId: string | null;
+  elevenLabsAgentId: string | null; // Real ElevenLabs agent ID for outbound calls
   callsMade: number;
   avgDuration: number;
   successRate: number;

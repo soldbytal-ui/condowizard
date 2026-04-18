@@ -375,7 +375,7 @@ export default function LeadDetailPage() {
   const [aiCallAgentId, setAiCallAgentId] = useState('');
   const [aiCallStatus, setAiCallStatus] = useState<'' | 'confirming' | 'dialing' | 'in-progress' | 'completed'>('');
   const [aiCallConvId, setAiCallConvId] = useState('');
-  const [voiceAgents, setVoiceAgents] = useState<Array<{ id: string; name: string; voiceName: string; templateId: string; vapiAssistantId: string | null }>>([]);
+  const [voiceAgents, setVoiceAgents] = useState<Array<{ id: string; name: string; voiceName: string; templateId: string; vapiAssistantId: string | null; elevenLabsAgentId: string | null }>>([]);
 
   // Timeline filter
   const [activityFilter, setActivityFilter] = useState<string>('all');
