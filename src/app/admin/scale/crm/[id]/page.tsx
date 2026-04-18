@@ -13,7 +13,7 @@ type LeadSource = 'Website Form' | 'Google Ads' | 'Meta Ads' | 'Instagram' | 'Re
 
 interface Activity {
   id: string;
-  type: 'created' | 'status_changed' | 'note_added' | 'follow_up_scheduled' | 'campaign_sent' | 'edited' | 'email' | 'text' | 'call' | 'note' | 'inquiry';
+  type: 'created' | 'status_changed' | 'note_added' | 'follow_up_scheduled' | 'campaign_sent' | 'edited' | 'email' | 'text' | 'call' | 'note' | 'inquiry' | 'ai_call';
   description: string;
   timestamp: string;
   meta?: Record<string, string>;
@@ -312,6 +312,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
   follow_up_scheduled: '#0066FF',
   campaign_sent: '#EC4899',
   edited: '#6B7185',
+  ai_call: '#B670E8',
 };
 
 const ACTIVITY_ICONS: Record<string, string> = {
@@ -326,6 +327,7 @@ const ACTIVITY_ICONS: Record<string, string> = {
   follow_up_scheduled: '\uD83D\uDCC5', // calendar
   campaign_sent: '\uD83D\uDCE7', // email
   edited: '\u270F',    // pencil
+  ai_call: '\uD83E\uDD16', // robot
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -341,7 +343,7 @@ export default function LeadDetailPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   // Composer state
-  const [activeTab, setActiveTab] = useState<'email' | 'note' | 'text' | 'call'>('email');
+  const [activeTab, setActiveTab] = useState<'email' | 'note' | 'text' | 'call' | 'ai_call'>('email');
 
   // Email composer
   const [emailTo, setEmailTo] = useState('');
@@ -368,6 +370,12 @@ export default function LeadDetailPage() {
   const [twilioProcessing, setTwilioProcessing] = useState<string>('');
   const twilioTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const twilioPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // AI Call state
+  const [aiCallAgentId, setAiCallAgentId] = useState('');
+  const [aiCallStatus, setAiCallStatus] = useState<'' | 'confirming' | 'dialing' | 'in-progress' | 'completed'>('');
+  const [aiCallConvId, setAiCallConvId] = useState('');
+  const [voiceAgents, setVoiceAgents] = useState<Array<{ id: string; name: string; voiceName: string; templateId: string; vapiAssistantId: string | null }>>([]);
 
   // Timeline filter
   const [activityFilter, setActivityFilter] = useState<string>('all');
@@ -424,6 +432,14 @@ export default function LeadDetailPage() {
       setFiles(loadFiles(found.id));
       setDeals(loadDeals(found.id));
     }
+    // Load voice agents from localStorage
+    try {
+      const raw = localStorage.getItem('scale-voice-agents');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setVoiceAgents(parsed);
+      }
+    } catch { /* ignore */ }
     setHydrated(true);
   }, [id]);
 
@@ -702,6 +718,94 @@ export default function LeadDetailPage() {
     };
   }, []);
 
+  // ── AI Call ───────────────────────────────────────────────────
+  const handleAiCall = useCallback(async () => {
+    if (!lead?.phone || !aiCallAgentId) return;
+    setAiCallStatus('dialing');
+
+    try {
+      const integrations = JSON.parse(localStorage.getItem('scale-integrations') || '{}');
+      const elevenLabsKey = integrations.elevenlabs?.apiKey;
+      const twilioConfig = integrations.twilio;
+
+      if (!elevenLabsKey) {
+        showToast('Connect ElevenLabs in Settings first');
+        setAiCallStatus('');
+        return;
+      }
+
+      const agent = voiceAgents.find(a => a.id === aiCallAgentId);
+      const res = await fetch('/api/admin/scale/voice-agents/call/outbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          elevenLabsApiKey: elevenLabsKey,
+          agentId: agent?.vapiAssistantId || aiCallAgentId,
+          agentPhoneNumberId: twilioConfig?.elevenLabsPhoneId || undefined,
+          leadPhone: lead.phone,
+          leadContext: {
+            name: lead.name,
+            interest: lead.interest,
+            budget: lead.budget,
+            timeline: lead.timeline,
+            neighborhood: lead.interest,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        showToast(data.error || 'AI call failed');
+        setAiCallStatus('');
+        return;
+      }
+
+      setAiCallConvId(data.conversationId || '');
+      setAiCallStatus('in-progress');
+
+      // Poll for completion
+      const pollInterval = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/admin/scale/voice-agents/webhook?callId=${data.conversationId}`);
+          const pollData = await pollRes.json();
+          if (pollData.result) {
+            clearInterval(pollInterval);
+            const r = pollData.result as Record<string, unknown>;
+            addActivity('ai_call', (r.summary as string) || `AI call with ${lead.name} — ${Math.round((r.duration as number) || 0)}s`, {
+              agentName: agent?.name || 'Voice Agent',
+              duration: String(r.duration || 0),
+              transcript: (r.transcript as string) || '',
+              summary: (r.summary as string) || '',
+              conversationId: data.conversationId,
+              recordingUrl: (r.recordingUrl as string) || '',
+              status: (r.status as string) || 'completed',
+            });
+            setAiCallStatus('completed');
+            showToast('AI call completed — transcript saved');
+            setTimeout(() => setAiCallStatus(''), 3000);
+          }
+        } catch { /* keep polling */ }
+      }, 10000);
+
+      // Stop polling after 10 minutes max
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (aiCallStatus === 'in-progress') {
+          addActivity('ai_call', `AI call with ${lead.name} — result pending`, {
+            agentName: agent?.name || 'Voice Agent',
+            conversationId: data.conversationId,
+            status: 'pending',
+          });
+          setAiCallStatus('');
+          showToast('Call may still be in progress. Results will appear when available.');
+        }
+      }, 600000);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'AI call failed');
+      setAiCallStatus('');
+    }
+  }, [lead, aiCallAgentId, voiceAgents, addActivity, showToast, aiCallStatus]);
+
   // ── Save detail edits ─────────────────────────────────────────
   const handleSaveDetails = useCallback(() => {
     if (!lead) return;
@@ -791,7 +895,7 @@ export default function LeadDetailPage() {
     if (activityFilter === 'all') return true;
     if (activityFilter === 'emails') return a.type === 'email' || a.type === 'campaign_sent';
     if (activityFilter === 'texts') return a.type === 'text';
-    if (activityFilter === 'calls') return a.type === 'call';
+    if (activityFilter === 'calls') return a.type === 'call' || a.type === 'ai_call';
     if (activityFilter === 'notes') return a.type === 'note' || a.type === 'note_added';
     if (activityFilter === 'inquiries') return a.type === 'inquiry' || a.type === 'created';
     return true;
@@ -801,7 +905,7 @@ export default function LeadDetailPage() {
     all: lead.activities.length,
     emails: lead.activities.filter(a => a.type === 'email' || a.type === 'campaign_sent').length,
     texts: lead.activities.filter(a => a.type === 'text').length,
-    calls: lead.activities.filter(a => a.type === 'call').length,
+    calls: lead.activities.filter(a => a.type === 'call' || a.type === 'ai_call').length,
     notes: lead.activities.filter(a => a.type === 'note' || a.type === 'note_added').length,
     inquiries: lead.activities.filter(a => a.type === 'inquiry' || a.type === 'created').length,
   } : { all: 0, emails: 0, texts: 0, calls: 0, notes: 0, inquiries: 0 };
@@ -1165,6 +1269,7 @@ export default function LeadDetailPage() {
               { id: 'note' as const, label: 'Note' },
               { id: 'text' as const, label: 'Text' },
               { id: 'call' as const, label: 'Log Call' },
+              { id: 'ai_call' as const, label: 'AI Call' },
             ]).map(tab => (
               <button
                 key={tab.id}
@@ -1453,6 +1558,102 @@ export default function LeadDetailPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ── AI CALL TAB ───────────────────────────────────── */}
+            {activeTab === 'ai_call' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {voiceAgents.length === 0 ? (
+                  <div style={{ background: INK3, borderRadius: 12, border: `1px solid ${LINE}`, padding: 24, textAlign: 'center' }}>
+                    <div style={{ fontSize: 14, color: PAPER, marginBottom: 8 }}>No voice agents configured</div>
+                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Create an AI voice agent to make autonomous calls.</div>
+                    <a href="/admin/scale/voice-agents" style={{ padding: '8px 18px', borderRadius: 8, background: ACCENT, color: '#fff', fontSize: 12, fontWeight: 600, fontFamily: FONT_BODY, textDecoration: 'none' }}>
+                      Create voice agent →
+                    </a>
+                  </div>
+                ) : aiCallStatus === '' || aiCallStatus === 'confirming' ? (
+                  <>
+                    <div style={{ background: INK3, borderRadius: 12, border: `1px solid ${LINE}`, padding: 18 }}>
+                      <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                        SEND AN AI AGENT TO CALL THIS LEAD
+                      </div>
+                      <div style={{ marginBottom: 14 }}>
+                        <label style={{ fontSize: 12, color: MUTED, display: 'block', marginBottom: 6 }}>Which voice agent?</label>
+                        <select value={aiCallAgentId} onChange={(e) => setAiCallAgentId(e.target.value)} style={{ ...composerInputStyle(), cursor: 'pointer' }}>
+                          <option value="" style={{ background: INK3, color: PAPER }}>Select an agent...</option>
+                          {voiceAgents.map(a => (
+                            <option key={a.id} value={a.id} style={{ background: INK3, color: PAPER }}>{a.name} ({a.voiceName})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {aiCallAgentId && (() => {
+                        const agent = voiceAgents.find(a => a.id === aiCallAgentId);
+                        return agent ? (
+                          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: `1px solid ${LINE}`, padding: 14, marginBottom: 14 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #8B3FBF, #B670E8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_HEADING, fontSize: 14, fontStyle: 'italic', color: '#fff' }}>AI</div>
+                              <div>
+                                <div style={{ fontSize: 14, fontWeight: 600, color: PAPER }}>{agent.name}</div>
+                                <div style={{ fontSize: 11, color: MUTED }}>Voice: {agent.voiceName}</div>
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
+                              <strong style={{ color: PAPER }}>Lead context:</strong> {lead?.name} · {lead?.interest || 'No interest'} · {lead?.budget || 'No budget'} · {lead?.timeline || 'No timeline'}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+
+                      {aiCallStatus === 'confirming' ? (
+                        <div style={{ background: 'rgba(255,74,28,0.06)', borderRadius: 10, border: '1px solid rgba(255,74,28,0.15)', padding: 14, marginBottom: 14, fontSize: 12, color: MUTED }}>
+                          <strong style={{ color: PAPER }}>Confirm:</strong> AI agent will call <strong style={{ color: PAPER }}>{lead?.name}</strong> at {lead?.phone}. Cost: ~$0.50–$1.00.
+                          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                            <button onClick={handleAiCall} style={{ padding: '8px 18px', borderRadius: 8, background: '#10B981', border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: FONT_BODY }}>
+                              Confirm & Call
+                            </button>
+                            <button onClick={() => setAiCallStatus('')} style={{ padding: '8px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${LINE}`, color: MUTED, fontSize: 12, cursor: 'pointer', fontFamily: FONT_BODY }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { if (!aiCallAgentId) { showToast('Select an agent first'); return; } if (!lead?.phone) { showToast('Lead has no phone number'); return; } setAiCallStatus('confirming'); }}
+                          disabled={!aiCallAgentId}
+                          style={{ padding: '10px 22px', borderRadius: 8, background: aiCallAgentId ? 'linear-gradient(135deg, #8B3FBF, #B670E8)' : 'rgba(255,255,255,0.05)', border: 'none', color: aiCallAgentId ? '#fff' : MUTED, fontSize: 13, fontWeight: 600, cursor: aiCallAgentId ? 'pointer' : 'not-allowed', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                          Use AI to call now
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ background: INK3, borderRadius: 12, border: `1px solid ${LINE}`, padding: 24, textAlign: 'center' }}>
+                    {aiCallStatus === 'dialing' && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                        <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#B670E8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: 14, color: PAPER }}>Dialing {lead?.name}...</span>
+                      </div>
+                    )}
+                    {aiCallStatus === 'in-progress' && (
+                      <div>
+                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#B670E8', margin: '0 auto 10px', animation: 'pulse 2s infinite ease-in-out' }} />
+                        <div style={{ fontSize: 15, color: PAPER, marginBottom: 4 }}>AI agent is talking to {lead?.name}</div>
+                        <div style={{ fontSize: 11, color: MUTED }}>Transcript will appear in the timeline when the call ends</div>
+                        {aiCallConvId && <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: MUTED, marginTop: 8 }}>ID: {aiCallConvId.slice(0, 16)}...</div>}
+                      </div>
+                    )}
+                    {aiCallStatus === 'completed' && (
+                      <div>
+                        <div style={{ fontSize: 20, marginBottom: 6 }}>✓</div>
+                        <div style={{ fontSize: 14, color: '#10B981' }}>AI call completed — see timeline below</div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
