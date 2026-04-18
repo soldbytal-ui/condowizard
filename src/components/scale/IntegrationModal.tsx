@@ -101,6 +101,28 @@ const INTEGRATION_CONFIGS: Record<string, IntegrationConfig> = {
     ],
     helpText: 'Sign up at resend.com. Free tier: 3,000 emails/month, 100/day. You\'ll need to verify your domain before sending. Get your API key at resend.com/api-keys.',
   },
+  'Twilio Voice': {
+    name: 'twilio',
+    displayName: 'Twilio Voice',
+    color: '#F22F46',
+    fields: [
+      { key: 'accountSid', label: 'Account SID', placeholder: 'AC...', password: false, required: true },
+      { key: 'authToken', label: 'Auth Token', placeholder: 'Your Twilio auth token', password: true, required: true },
+      { key: 'phoneNumber', label: 'Twilio Phone Number', placeholder: '+16475551234', password: false, required: true },
+      { key: 'userPhone', label: 'Your Mobile Number', placeholder: '+16479991234', password: false, required: true },
+      { key: 'twimlAppSid', label: 'TwiML App SID (optional)', placeholder: 'AP...', password: false, required: false },
+    ],
+    helpText: 'Sign up at twilio.com, buy a phone number ($1/month), and grab your credentials from the console. Phone numbers must be in E.164 format (+1234567890).',
+  },
+  'OpenAI (Whisper)': {
+    name: 'openai',
+    displayName: 'OpenAI (Whisper)',
+    color: '#10A37F',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', password: true, required: true },
+    ],
+    helpText: 'Get your key at platform.openai.com/api-keys. Used for Whisper transcription of call recordings.',
+  },
 };
 
 // ─── Eye icons ───

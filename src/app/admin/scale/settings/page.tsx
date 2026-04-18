@@ -127,6 +127,8 @@ const INTEGRATION_ROWS: IntegrationRowDef[] = [
   { displayName: 'Firecrawl', integrationKey: 'firecrawl', description: 'Web scraping for competitor analysis and content enrichment.', color: '#F59E0B' },
   { displayName: 'Stripe', integrationKey: 'stripe', description: 'Credit top-ups and subscription billing for Scale plans.', color: '#635BFF' },
   { displayName: 'Resend', integrationKey: 'resend', description: 'Send emails from your domain. Transactional emails, nurture sequences, and CRM outreach.', color: '#FF4A1C' },
+  { displayName: 'Twilio Voice', integrationKey: 'twilio', description: 'Phone calling with automatic recording, transcription, and AI summaries.', color: '#F22F46' },
+  { displayName: 'OpenAI (Whisper)', integrationKey: 'openai', description: 'Audio transcription via OpenAI Whisper model. Used for call recording analysis.', color: '#10A37F' },
   { displayName: 'Apollo.io', integrationKey: 'apollo', description: 'Lead enrichment — company data, job titles, and contact info.', color: '#FF6B35', optional: true },
 ];
 
@@ -178,6 +180,8 @@ export default function ModelRouter() {
       case 'stripe': return ((creds as { publishableKey?: string }).publishableKey || '').startsWith('pk_test') ? 'Test mode' : 'Live mode';
       case 'apollo': return 'API key configured';
       case 'resend': return (creds as { senderEmail?: string }).senderEmail || 'Connected';
+      case 'twilio': return (creds as { phoneNumber?: string }).phoneNumber || 'Connected';
+      case 'openai': return 'Whisper enabled';
       default: return null;
     }
   };

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { sendEmail, isResendConnected, wrapInEmailTemplate } from '@/lib/scale-email';
+import { isTwilioConnected, initiateCall, pollCallStatus, transcribeRecording, formatDuration, type CallAnalysis } from '@/lib/scale-calls';
 
 // ═══════════════════════════════════════════════════════════════
 // Types (mirrors CRM page types with extended activity types)
@@ -355,10 +356,18 @@ export default function LeadDetailPage() {
   // Text composer
   const [textBody, setTextBody] = useState('');
 
-  // Call log
+  // Call log (manual)
   const [callOutcome, setCallOutcome] = useState('Connected');
   const [callDuration, setCallDuration] = useState('');
   const [callNotes, setCallNotes] = useState('');
+
+  // Twilio call state
+  const [twilioCallSid, setTwilioCallSid] = useState<string | null>(null);
+  const [twilioCallStatus, setTwilioCallStatus] = useState<string>('');
+  const [twilioCallTimer, setTwilioCallTimer] = useState(0);
+  const [twilioProcessing, setTwilioProcessing] = useState<string>('');
+  const twilioTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const twilioPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Timeline filter
   const [activityFilter, setActivityFilter] = useState<string>('all');
@@ -570,6 +579,128 @@ export default function LeadDetailPage() {
     setCallNotes('');
     showToast('Call logged');
   }, [lead, callOutcome, callDuration, callNotes, addActivity, showToast]);
+
+  // ── Twilio call ──────────────────────────────────────────────
+  const handleStartTwilioCall = useCallback(async () => {
+    if (!lead?.phone) { showToast('No phone number for this lead'); return; }
+    setTwilioCallStatus('initiating');
+    setTwilioCallTimer(0);
+
+    const result = await initiateCall(lead.phone, lead.id, lead.name);
+    if (!result.success) {
+      showToast(result.error || 'Call failed');
+      setTwilioCallStatus('');
+      return;
+    }
+
+    setTwilioCallSid(result.callSid || null);
+    setTwilioCallStatus('ringing');
+
+    // Start timer when answered
+    twilioPollRef.current = setInterval(async () => {
+      if (!result.callSid) return;
+      const poll = await pollCallStatus(result.callSid);
+      const status = poll.status?.status || '';
+
+      if (status === 'answered' || status === 'in-progress') {
+        setTwilioCallStatus('in-progress');
+        if (!twilioTimerRef.current) {
+          twilioTimerRef.current = setInterval(() => {
+            setTwilioCallTimer((t) => t + 1);
+          }, 1000);
+        }
+      }
+
+      if (status === 'completed' || status === 'failed' || status === 'busy' || status === 'no-answer' || status === 'canceled') {
+        // Stop polling and timer
+        if (twilioPollRef.current) { clearInterval(twilioPollRef.current); twilioPollRef.current = null; }
+        if (twilioTimerRef.current) { clearInterval(twilioTimerRef.current); twilioTimerRef.current = null; }
+
+        if (status !== 'completed') {
+          setTwilioCallStatus('');
+          showToast(`Call ${status}`);
+          return;
+        }
+
+        setTwilioCallStatus('completed');
+        setTwilioProcessing('Checking for recording...');
+
+        // Poll for recording
+        let recording = poll.recording;
+        let attempts = 0;
+        while (!recording && attempts < 12) {
+          await new Promise((r) => setTimeout(r, 5000));
+          const rePoll = await pollCallStatus(result.callSid!);
+          recording = rePoll.recording;
+          attempts++;
+        }
+
+        if (!recording) {
+          addActivity('call', `Call with ${lead.name} — ${formatDuration(poll.status?.duration || 0)}. Recording not available.`, {
+            outcome: 'completed',
+            duration: String(poll.status?.duration || 0),
+            callSid: result.callSid || '',
+          });
+          setTwilioCallStatus('');
+          setTwilioProcessing('');
+          showToast('Call completed (no recording captured)');
+          return;
+        }
+
+        // Transcribe
+        setTwilioProcessing('Transcribing call...');
+        const txResult = await transcribeRecording(
+          (recording as { recordingUrl: string }).recordingUrl,
+          { name: lead.name, interest: lead.interest, budget: lead.budget, timeline: lead.timeline }
+        );
+
+        if (txResult.success && txResult.transcript) {
+          setTwilioProcessing('Analyzing conversation...');
+          await new Promise((r) => setTimeout(r, 500)); // Brief pause for UX
+
+          const analysis = txResult.analysis as CallAnalysis | null;
+          const desc = analysis?.summary || `Call with ${lead.name} — ${formatDuration(txResult.duration || 0)}`;
+
+          addActivity('call', desc, {
+            outcome: 'completed',
+            duration: String(txResult.duration || 0),
+            callSid: result.callSid || '',
+            recordingUrl: (recording as { recordingUrl: string }).recordingUrl,
+            transcript: txResult.transcript,
+            ...(analysis ? {
+              summary: analysis.summary,
+              sentiment: analysis.sentiment,
+              engagementLevel: analysis.engagementLevel,
+              actionItems: JSON.stringify(analysis.actionItems || []),
+              suggestedStatus: analysis.suggestedStatus || '',
+              followUpRecommendation: analysis.followUpRecommendation || '',
+              followUpTiming: analysis.followUpTiming || '',
+            } : {}),
+          });
+          showToast('Call transcribed and analyzed');
+        } else {
+          addActivity('call', `Call with ${lead.name} — ${formatDuration((recording as { duration: number }).duration || 0)}`, {
+            outcome: 'completed',
+            duration: String((recording as { duration: number }).duration || 0),
+            callSid: result.callSid || '',
+            recordingUrl: (recording as { recordingUrl: string }).recordingUrl,
+          });
+          showToast(txResult.error || 'Call completed (transcription unavailable)');
+        }
+
+        setTwilioCallStatus('');
+        setTwilioProcessing('');
+      }
+    }, 3000);
+  }, [lead, addActivity, showToast]);
+
+  // Cleanup Twilio intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (twilioTimerRef.current) clearInterval(twilioTimerRef.current);
+      if (twilioPollRef.current) clearInterval(twilioPollRef.current);
+    };
+  }, []);
 
   // ── Save detail edits ─────────────────────────────────────────
   const handleSaveDetails = useCallback(() => {
@@ -1234,56 +1365,93 @@ export default function LeadDetailPage() {
 
             {/* ── CALL TAB ───────────────────────────────────────── */}
             {activeTab === 'call' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div>
-                    <label style={{ fontSize: 12, color: MUTED, fontWeight: 500, display: 'block', marginBottom: 6 }}>Outcome</label>
-                    <select
-                      value={callOutcome}
-                      onChange={(e) => setCallOutcome(e.target.value)}
-                      style={composerInputStyle()}
-                    >
-                      {['Connected', 'Left voicemail', 'No answer', 'Wrong number', 'Disconnected'].map(o => (
-                        <option key={o} value={o} style={{ background: INK3, color: PAPER }}>{o}</option>
-                      ))}
-                    </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Twilio Call Section */}
+                {isTwilioConnected() && lead?.phone && (
+                  <div style={{ background: INK3, borderRadius: 12, border: `1px solid ${LINE}`, padding: 18 }}>
+                    <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                      TWILIO VOICE CALL
+                    </div>
+                    {twilioCallStatus === '' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 14, color: PAPER, marginBottom: 4 }}>Call <strong>{lead.name}</strong> at {lead.phone}</div>
+                          <div style={{ fontSize: 11, color: MUTED }}>Your phone will ring first, then we connect to the lead. Call is recorded and transcribed.</div>
+                        </div>
+                        <button onClick={handleStartTwilioCall} style={{ padding: '10px 22px', borderRadius: 8, background: '#10B981', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                          Start Call
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                        {twilioCallStatus === 'initiating' && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                            <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#10B981', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            <span style={{ fontSize: 14, color: PAPER }}>Starting call...</span>
+                          </div>
+                        )}
+                        {twilioCallStatus === 'ringing' && (
+                          <div>
+                            <div style={{ fontSize: 14, color: '#F59E0B', marginBottom: 4 }}>Calling your phone... Answer to connect</div>
+                            <div style={{ fontSize: 11, color: MUTED }}>Your phone should ring shortly</div>
+                          </div>
+                        )}
+                        {twilioCallStatus === 'in-progress' && (
+                          <div>
+                            <div style={{ fontSize: 20, fontFamily: FONT_MONO, color: '#10B981', marginBottom: 4 }}>
+                              {Math.floor(twilioCallTimer / 60).toString().padStart(2, '0')}:{(twilioCallTimer % 60).toString().padStart(2, '0')}
+                            </div>
+                            <div style={{ fontSize: 13, color: PAPER }}>Call in progress with {lead.name}</div>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', margin: '8px auto 0', animation: 'pulse 2s infinite ease-in-out' }} />
+                          </div>
+                        )}
+                        {twilioCallStatus === 'completed' && twilioProcessing && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                            <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: ACCENT, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            <span style={{ fontSize: 14, color: PAPER }}>{twilioProcessing}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: MUTED, fontWeight: 500, display: 'block', marginBottom: 6 }}>Duration (minutes)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={callDuration}
-                      onChange={(e) => setCallDuration(e.target.value)}
-                      placeholder="0"
-                      style={composerInputStyle()}
-                    />
+                )}
+
+                {!isTwilioConnected() && (
+                  <div style={{ background: INK3, borderRadius: 12, border: `1px solid ${LINE}`, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 12, color: MUTED }}>Connect Twilio in Settings to make calls with recording + AI transcription</div>
+                    <a href="/admin/scale/settings" style={{ fontSize: 11, color: ACCENT, fontWeight: 600, fontFamily: FONT_MONO, textDecoration: 'none' }}>SETTINGS →</a>
                   </div>
-                </div>
+                )}
+
+                {/* Manual call log (always available) */}
                 <div>
-                  <label style={{ fontSize: 12, color: MUTED, fontWeight: 500, display: 'block', marginBottom: 6 }}>Notes</label>
-                  <textarea
-                    value={callNotes}
-                    onChange={(e) => setCallNotes(e.target.value)}
-                    placeholder="Call notes..."
-                    style={{
-                      ...composerInputStyle(),
-                      minHeight: 100, resize: 'vertical',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={handleLogCall}
-                    style={{
-                      padding: '10px 24px', borderRadius: 8,
-                      background: ACCENT, color: '#fff',
-                      border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                      fontFamily: FONT_BODY,
-                    }}
-                  >
-                    Log Call
-                  </button>
+                  <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                    LOG A CALL MANUALLY
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={{ fontSize: 12, color: MUTED, fontWeight: 500, display: 'block', marginBottom: 6 }}>Outcome</label>
+                      <select value={callOutcome} onChange={(e) => setCallOutcome(e.target.value)} style={composerInputStyle()}>
+                        {['Connected', 'Left voicemail', 'No answer', 'Wrong number', 'Disconnected'].map(o => (
+                          <option key={o} value={o} style={{ background: INK3, color: PAPER }}>{o}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, color: MUTED, fontWeight: 500, display: 'block', marginBottom: 6 }}>Duration (minutes)</label>
+                      <input type="number" min="0" value={callDuration} onChange={(e) => setCallDuration(e.target.value)} placeholder="0" style={composerInputStyle()} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 14 }}>
+                    <label style={{ fontSize: 12, color: MUTED, fontWeight: 500, display: 'block', marginBottom: 6 }}>Notes</label>
+                    <textarea value={callNotes} onChange={(e) => setCallNotes(e.target.value)} placeholder="Call notes..." style={{ ...composerInputStyle(), minHeight: 80, resize: 'vertical' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                    <button onClick={handleLogCall} style={{ padding: '10px 24px', borderRadius: 8, background: ACCENT, color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: FONT_BODY }}>
+                      Log Call
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
