@@ -3,7 +3,7 @@
  * All credentials are stored in localStorage under "scale-integrations".
  */
 
-export type IntegrationName = 'meta' | 'dataforseo' | 'firecrawl' | 'stripe' | 'apollo';
+export type IntegrationName = 'meta' | 'dataforseo' | 'firecrawl' | 'stripe' | 'apollo' | 'resend';
 
 export interface MetaCredentials {
   appId: string;
@@ -36,12 +36,21 @@ export interface ApolloCredentials {
   connectedAt: string;
 }
 
+export interface ResendCredentials {
+  apiKey: string;
+  senderName: string;
+  senderEmail: string;
+  replyTo: string;
+  connectedAt: string;
+}
+
 export interface IntegrationsStore {
   meta?: MetaCredentials;
   dataforseo?: DataForSEOCredentials;
   firecrawl?: FirecrawlCredentials;
   stripe?: StripeCredentials;
   apollo?: ApolloCredentials;
+  resend?: ResendCredentials;
 }
 
 type CredentialsFor<T extends IntegrationName> =
@@ -50,6 +59,7 @@ type CredentialsFor<T extends IntegrationName> =
   T extends 'firecrawl' ? FirecrawlCredentials :
   T extends 'stripe' ? StripeCredentials :
   T extends 'apollo' ? ApolloCredentials :
+  T extends 'resend' ? ResendCredentials :
   never;
 
 const STORAGE_KEY = 'scale-integrations';

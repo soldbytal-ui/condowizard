@@ -89,6 +89,18 @@ const INTEGRATION_CONFIGS: Record<string, IntegrationConfig> = {
     ],
     helpText: 'Get your key at app.apollo.io → Settings → Integrations → API. Free tier available.',
   },
+  Resend: {
+    name: 'resend',
+    displayName: 'Resend',
+    color: '#FF4A1C',
+    fields: [
+      { key: 'apiKey', label: 'API Key', placeholder: 're_...', password: true, required: true },
+      { key: 'senderName', label: 'Sender Name', placeholder: 'Tal Shelef', password: false, required: true },
+      { key: 'senderEmail', label: 'Sender Email (verified domain)', placeholder: 'contact@condowizard.ca', password: false, required: true },
+      { key: 'replyTo', label: 'Reply-To Email (optional)', placeholder: 'contact@condowizard.ca', password: false, required: false },
+    ],
+    helpText: 'Sign up at resend.com. Free tier: 3,000 emails/month, 100/day. You\'ll need to verify your domain before sending. Get your API key at resend.com/api-keys.',
+  },
 };
 
 // ─── Eye icons ───

@@ -126,6 +126,7 @@ const INTEGRATION_ROWS: IntegrationRowDef[] = [
   { displayName: 'DataForSEO', integrationKey: 'dataforseo', description: 'Keyword research, SERP analysis, and rank tracking for the Intelligence tab.', color: '#10B981' },
   { displayName: 'Firecrawl', integrationKey: 'firecrawl', description: 'Web scraping for competitor analysis and content enrichment.', color: '#F59E0B' },
   { displayName: 'Stripe', integrationKey: 'stripe', description: 'Credit top-ups and subscription billing for Scale plans.', color: '#635BFF' },
+  { displayName: 'Resend', integrationKey: 'resend', description: 'Send emails from your domain. Transactional emails, nurture sequences, and CRM outreach.', color: '#FF4A1C' },
   { displayName: 'Apollo.io', integrationKey: 'apollo', description: 'Lead enrichment — company data, job titles, and contact info.', color: '#FF6B35', optional: true },
 ];
 
@@ -176,6 +177,7 @@ export default function ModelRouter() {
       case 'firecrawl': return 'fc-••••';
       case 'stripe': return ((creds as { publishableKey?: string }).publishableKey || '').startsWith('pk_test') ? 'Test mode' : 'Live mode';
       case 'apollo': return 'API key configured';
+      case 'resend': return (creds as { senderEmail?: string }).senderEmail || 'Connected';
       default: return null;
     }
   };

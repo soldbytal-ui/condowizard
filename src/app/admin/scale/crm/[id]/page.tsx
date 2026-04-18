@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { sendEmail, isResendConnected, wrapInEmailTemplate } from '@/lib/scale-email';
 
 // ═══════════════════════════════════════════════════════════════
 // Types (mirrors CRM page types with extended activity types)
@@ -490,17 +491,49 @@ export default function LeadDetailPage() {
   }, [lead]);
 
   // ── Send email ────────────────────────────────────────────────
-  const handleSendEmail = useCallback(() => {
-    if (!lead || !emailBody.trim()) return;
-    // TODO: Connect to Resend/SendGrid/Gmail API for actual email delivery
-    addActivity('email', `Email sent to ${emailTo}\nSubject: ${emailSubject}\n\n${emailBody}`, {
-      to: emailTo,
-      subject: emailSubject,
-      body: emailBody,
-    });
-    setEmailSubject('');
-    setEmailBody('');
-    showToast('Email sent');
+  const [emailSending, setEmailSending] = useState(false);
+
+  const handleSendEmail = useCallback(async () => {
+    if (!lead || !emailBody.trim() || !emailSubject.trim()) return;
+    setEmailSending(true);
+
+    // Try Resend first, fall back to local-only
+    if (isResendConnected()) {
+      const result = await sendEmail({
+        to: emailTo,
+        subject: emailSubject,
+        body: emailBody,
+      });
+
+      if (result.success) {
+        addActivity('email', `Email sent to ${emailTo}\nSubject: ${emailSubject}\n\n${emailBody}`, {
+          to: emailTo,
+          subject: emailSubject,
+          body: emailBody,
+          messageId: result.messageId || '',
+          direction: 'outbound',
+        });
+        setEmailSubject('');
+        setEmailBody('');
+        showToast(`Email sent to ${lead.name}`);
+      } else {
+        // Show specific error messages
+        showToast(result.error || 'Email failed to send');
+      }
+    } else {
+      // Resend not connected — save as activity locally only
+      addActivity('email', `Email sent to ${emailTo}\nSubject: ${emailSubject}\n\n${emailBody}`, {
+        to: emailTo,
+        subject: emailSubject,
+        body: emailBody,
+        direction: 'outbound',
+      });
+      setEmailSubject('');
+      setEmailBody('');
+      showToast('Email logged (connect Resend in Settings to send live)');
+    }
+
+    setEmailSending(false);
   }, [lead, emailTo, emailSubject, emailBody, addActivity, showToast]);
 
   // ── Save note ─────────────────────────────────────────────────
@@ -686,6 +719,7 @@ export default function LeadDetailPage() {
       <style>{`
         @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
         @keyframes toastIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .lead-detail-scroll::-webkit-scrollbar { width: 6px; }
         .lead-detail-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
         .lead-detail-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -1103,16 +1137,21 @@ export default function LeadDetailPage() {
                   </div>
                   <button
                     onClick={handleSendEmail}
-                    disabled={!emailBody.trim()}
+                    disabled={!emailBody.trim() || !emailSubject.trim() || emailSending}
                     style={{
                       padding: '10px 24px', borderRadius: 8,
-                      background: emailBody.trim() ? ACCENT : 'rgba(255,255,255,0.05)',
-                      color: emailBody.trim() ? '#fff' : MUTED,
-                      border: 'none', fontSize: 14, fontWeight: 600, cursor: emailBody.trim() ? 'pointer' : 'not-allowed',
-                      fontFamily: FONT_BODY,
+                      background: (emailBody.trim() && emailSubject.trim() && !emailSending) ? ACCENT : 'rgba(255,255,255,0.05)',
+                      color: (emailBody.trim() && emailSubject.trim() && !emailSending) ? '#fff' : MUTED,
+                      border: 'none', fontSize: 14, fontWeight: 600,
+                      cursor: (emailBody.trim() && emailSubject.trim() && !emailSending) ? 'pointer' : 'not-allowed',
+                      fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: 8,
                     }}
                   >
-                    Send Email
+                    {emailSending ? (
+                      <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Sending...</>
+                    ) : (
+                      <>Send Email →</>
+                    )}
                   </button>
                 </div>
               </div>
