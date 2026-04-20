@@ -38,10 +38,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Tenant with email ${ownerEmail} already exists.` }, { status: 409 });
     }
 
-    const tenant = await createTenant({
+    const rawTenant = await createTenant({
       businessName, ownerEmail, ownerName, industry, plan,
       creditsBalance, brandColor, logo,
     });
+    // Re-fetch with _count so the frontend gets the same shape as the list query
+    const tenant = await prisma.scaleTenant.findUnique({
+      where: { id: rawTenant.id },
+      include: { _count: { select: { leads: true, activities: true, users: true } } },
+    }) || rawTenant;
 
     const token = await createInviteToken(tenant.id, ownerEmail);
     const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://condowizard.vercel.app'}/signup/complete?token=${token}`;
@@ -76,5 +81,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, tenant, inviteLink, emailSent });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Create failed' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await requireSuperAdmin();
+    const { tenantId } = await req.json();
+    if (!tenantId) return NextResponse.json({ error: 'Missing tenantId' }, { status: 400 });
+
+    await prisma.scaleTenant.delete({ where: { id: tenantId } });
+    await logAudit(session.email, 'tenant_deleted', tenantId, `Deleted tenant ${tenantId}`);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Delete failed' }, { status: 500 });
   }
 }

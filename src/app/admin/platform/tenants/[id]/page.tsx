@@ -18,7 +18,7 @@ interface Tenant {
   creditsBalance: number; creditsMonthly: number;
   brandColor: string | null; logo: string | null;
   createdAt: string; acceptedAt: string | null; lastActiveAt: string | null;
-  _count: { leads: number; activities: number; users: number };
+  _count?: { leads?: number; activities?: number; users?: number };
 }
 
 export default function TenantDetailPage() {
@@ -62,6 +62,9 @@ export default function TenantDetailPage() {
           <button onClick={handleImpersonate} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(139,63,191,0.12)', border: '1px solid rgba(139,63,191,0.3)', color: '#B670E8', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: FB }}>
             View as tenant
           </button>
+          <button onClick={async () => { if (!confirm(`Delete ${tenant.businessName}? This cannot be undone.`)) return; await fetch('/api/admin/platform/tenants', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId: id }) }); router.push('/admin/platform'); }} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: FB }}>
+            Delete tenant
+          </button>
         </div>
       </div>
 
@@ -86,8 +89,8 @@ export default function TenantDetailPage() {
         </div>
         <div style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, padding: 18 }}>
           <div style={{ fontFamily: FM, fontSize: 10, color: MUTED, textTransform: 'uppercase', marginBottom: 8 }}>Leads</div>
-          <div style={{ fontFamily: FH, fontSize: 22, color: PAPER }}>{tenant._count.leads}</div>
-          <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{tenant._count.activities} activities</div>
+          <div style={{ fontFamily: FH, fontSize: 22, color: PAPER }}>{tenant._count?.leads ?? 0}</div>
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{tenant._count?.activities ?? 0} activities</div>
         </div>
       </div>
 
@@ -100,7 +103,7 @@ export default function TenantDetailPage() {
             ['Created', new Date(tenant.createdAt).toLocaleDateString()],
             ['Accepted', tenant.acceptedAt ? new Date(tenant.acceptedAt).toLocaleDateString() : 'Not yet'],
             ['Last Active', tenant.lastActiveAt ? new Date(tenant.lastActiveAt).toLocaleDateString() : '—'],
-            ['Team Members', String(tenant._count.users)],
+            ['Team Members', String(tenant._count?.users ?? 0)],
             ['Brand Color', tenant.brandColor || '#FF4A1C'],
           ].map(([label, value]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${LINE}` }}>

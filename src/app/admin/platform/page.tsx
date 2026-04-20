@@ -13,7 +13,7 @@ interface Tenant {
   id: string; businessName: string; ownerEmail: string; ownerName: string;
   industry: string; plan: string; status: string; creditsBalance: number; creditsMonthly: number;
   lastActiveAt: string | null; createdAt: string;
-  _count: { leads: number; activities: number; users: number };
+  _count?: { leads?: number; activities?: number; users?: number };
 }
 
 const PLAN_MRR: Record<string, number> = { starter: 79, pro: 249, team: 749, enterprise: 0 };
@@ -48,7 +48,7 @@ export default function PlatformDashboard() {
   const activeTenants = tenants.filter(t => t.status === 'active' || t.status === 'trial');
   const mrr = tenants.filter(t => t.status === 'active').reduce((s, t) => s + (PLAN_MRR[t.plan] || 0), 0);
   const totalCreditsUsed = tenants.reduce((s, t) => s + (t.creditsMonthly - t.creditsBalance), 0);
-  const totalLeads = tenants.reduce((s, t) => s + t._count.leads, 0);
+  const totalLeads = tenants.reduce((s, t) => s + (t._count?.leads ?? 0), 0);
 
   const filtered = tenants.filter(t => {
     if (statusFilter !== 'all' && t.status !== statusFilter) return false;
@@ -134,7 +134,7 @@ export default function PlatformDashboard() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', fontFamily: FM, fontSize: 11, color: PAPER }}>{t.creditsBalance.toLocaleString()} / {t.creditsMonthly.toLocaleString()}</td>
-                      <td style={{ padding: '12px 14px', fontFamily: FM, fontSize: 11, color: MUTED }}>{t._count.leads}</td>
+                      <td style={{ padding: '12px 14px', fontFamily: FM, fontSize: 11, color: MUTED }}>{t._count?.leads ?? 0}</td>
                       <td style={{ padding: '12px 14px', fontFamily: FM, fontSize: 10, color: MUTED }}>{t.lastActiveAt ? new Date(t.lastActiveAt).toLocaleDateString() : '—'}</td>
                       <td style={{ padding: '12px 14px' }} onClick={e => e.stopPropagation()}>
                         <button onClick={() => handleImpersonate(t.id)} style={{ padding: '5px 10px', borderRadius: 6, background: ACCENT_DIM, border: `1px solid rgba(255,74,28,0.2)`, color: ACCENT, fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: FM }}>
