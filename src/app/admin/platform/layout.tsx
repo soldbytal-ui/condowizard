@@ -10,6 +10,7 @@ const FH = "'Fraunces', Georgia, serif", FB = "'Inter Tight', sans-serif", FM = 
 const NAV = [
   { href: '/admin/platform', label: 'Overview', match: (p: string) => p === '/admin/platform' },
   { href: '/admin/platform/tenants', label: 'Tenants', match: (p: string) => p.startsWith('/admin/platform/tenants') },
+  { href: '/admin/platform/services', label: 'Services', match: (p: string) => p.startsWith('/admin/platform/services') },
   { href: '/admin/platform/activity', label: 'Activity', match: (p: string) => p.startsWith('/admin/platform/activity') },
   { href: '/admin/platform/audit-log', label: 'Audit Log', match: (p: string) => p.startsWith('/admin/platform/audit-log') },
 ];
