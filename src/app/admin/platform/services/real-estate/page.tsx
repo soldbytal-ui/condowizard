@@ -1,6 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import type { MapPin } from '../_components/ScheduleMap';
+
+const ScheduleMap = dynamic(() => import('../_components/ScheduleMap'), { ssr: false, loading: () => <div style={{ height: 400, background: '#1a1a2e', borderRadius: 12 }} /> });
 
 const INK2 = '#141414', INK3 = '#1A1D25';
 const PAPER = '#F3F0E8', ACCENT = '#FF4A1C', ACCENT_DIM = 'rgba(255,74,28,0.10)';
@@ -138,6 +142,71 @@ export default function RealEstatePreview() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ★ Today's Showings Map */}
+      <div style={{ background: INK2, borderRadius: 16, border: `1px solid ${LINE}`, padding: 22, marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontFamily: FH, fontSize: 20, fontWeight: 400, margin: '0 0 4px', color: PAPER }}>Today&apos;s Showings Map</h2>
+            <div style={{ fontSize: 12, color: MUTED }}>Plan your day with AI route optimization and client insights</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: 14 }}>
+          <ScheduleMap
+            pins={[
+              { id: 's1', lat: 43.6780, lng: -79.4050, label: '429 Walmer', time: '10:00 AM', status: 'scheduled', color: '#3B82F6', details: 'Forest Hill · 3-bed · $2.4M' },
+              { id: 's2', lat: 43.6445, lng: -79.3960, label: 'KING Toronto', time: '11:30 AM', status: 'scheduled', color: '#3B82F6', details: 'King West · Pre-con 4501 · $1.8M' },
+              { id: 's3', lat: 43.6400, lng: -79.3770, label: '88 Harbour', time: '1:00 PM', status: 'scheduled', color: '#3B82F6', details: 'Waterfront · 2-bed · $1.3M' },
+              { id: 's4', lat: 43.6710, lng: -79.3930, label: 'Yorkville One', time: '2:30 PM', status: 'vip', color: '#D4A017', details: 'Yorkville · Penthouse · $6.2M' },
+              { id: 's5', lat: 43.6620, lng: -79.3470, label: '1A Lakeside', time: '4:00 PM', status: 'closing', color: '#16A34A', details: 'Leslieville · Investment · $890K' },
+              { id: 's6', lat: 43.6440, lng: -79.3990, label: '500 Wellington', time: '5:30 PM', status: 'hesitant', color: '#8B8FA3', details: 'King West · 1-bed · $720K' },
+            ] satisfies MapPin[]}
+            center={[-79.385, 43.655]}
+            zoom={12}
+            height={400}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
+            {[
+              { time: '10:00 AM', addr: '429 Walmer Rd', hood: 'Forest Hill', price: '$2.4M', client: 'J.H.', warmth: 'Hot' },
+              { time: '11:30 AM', addr: 'KING Toronto', hood: 'King West', price: '$1.8M', client: 'M.S.', warmth: 'Warm' },
+              { time: '1:00 PM', addr: '88 Harbour St', hood: 'Waterfront', price: '$1.3M', client: 'T.K.', warmth: 'Warm' },
+              { time: '2:30 PM', addr: 'Yorkville One', hood: 'Yorkville', price: '$6.2M', client: 'A.R.', warmth: 'Hot' },
+              { time: '4:00 PM', addr: '1A Lakeside Dr', hood: 'Leslieville', price: '$890K', client: 'D.W.', warmth: 'Hot' },
+              { time: '5:30 PM', addr: '500 Wellington', hood: 'King West', price: '$720K', client: 'R.L.', warmth: 'Cold' },
+            ].map(s => (
+              <div key={s.time} style={{ background: INK3, borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: PAPER }}>{s.time}</span>
+                  <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, fontWeight: 600, background: s.warmth === 'Hot' ? 'rgba(239,68,68,0.12)' : s.warmth === 'Warm' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', color: s.warmth === 'Hot' ? '#EF4444' : s.warmth === 'Warm' ? '#F59E0B' : MUTED }}>{s.warmth}</span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: PAPER, marginBottom: 2 }}>{s.addr}</div>
+                <div style={{ fontSize: 10, color: MUTED }}>{s.hood} · {s.price} · Client: {s.client}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ★ AI Showing Copilot */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
+        {[
+          { border: '#3B82F6', icon: '🧠', title: 'Before your 10 AM with Jennifer', body: "Jennifer viewed 429 Walmer 3 times on your site this week. She also saved 2 other Forest Hill listings. Her search pattern suggests she's also considering 100 Lonsdale Rd. Worth mentioning as a comparison." },
+          { border: ACCENT, icon: '🗺️', title: 'Route check', body: "Your 11:30 AM (KING Toronto) → 1 PM (88 Harbour) routing is tight. Traffic predicts 14 min drive, your previous showing typically runs 10 min over. Consider shifting to 1:15 PM.", btns: ['Notify client', 'Keep as is'] },
+          { border: '#16A34A', icon: '💡', title: 'Hot lead alert', body: "Your 4 PM at 1A Lakeside has viewed 8 comparable investment properties in 2 weeks. His last 3 questions on chat were about rental yield. Prepare cash flow projections — odds he asks: 89%.", btns: ['Generate cash flow PDF', 'Dismiss'] },
+        ].map(s => (
+          <div key={s.title} style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, borderLeft: `4px solid ${s.border}`, padding: 18 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: PAPER, marginBottom: 8 }}>{s.icon} {s.title}</div>
+            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, marginBottom: s.btns ? 14 : 0 }}>{s.body}</div>
+            {s.btns && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {s.btns.map(b => (
+                  <button key={b} style={{ padding: '5px 12px', borderRadius: 6, background: b === s.btns![0] ? s.border : 'transparent', border: b === s.btns![0] ? 'none' : `1px solid ${LINE}`, color: b === s.btns![0] ? '#fff' : MUTED, fontSize: 10, fontWeight: 600, cursor: 'default' }}>{b}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Market Intel */}

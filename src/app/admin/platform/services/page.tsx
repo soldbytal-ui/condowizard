@@ -8,7 +8,7 @@ const FH = "'Fraunces', Georgia, serif", FB = "'Inter Tight', sans-serif", FM = 
 
 const INDUSTRIES = [
   { slug: 'real-estate', icon: '🏢', title: 'Real Estate', desc: 'Pre-construction, resale, MLS-aware, Toronto/GTA-focused', status: 'active', tenants: 1 },
-  { slug: 'home-services', icon: '🔧', title: 'Home Services', desc: 'HVAC, plumbing, electrical, cleaning — field service operations', status: 'active', tenants: 1 },
+  { slug: 'home-services', icon: '🔧', title: 'Home Services', desc: 'HVAC, plumbing, electrical, cleaning — field service operations', status: 'active', tenants: 1, designed: true },
   { slug: 'legal', icon: '⚖️', title: 'Legal', desc: 'Practice areas, intake qualification, consult booking', status: 'coming' },
   { slug: 'fitness', icon: '💪', title: 'Fitness & Wellness', desc: 'Gym memberships, class schedules, trial conversions', status: 'coming' },
   { slug: 'ecommerce', icon: '🛒', title: 'E-commerce', desc: 'Product ads, catalog management, shopping campaigns', status: 'coming' },
@@ -43,6 +43,7 @@ export default function ServicesPage() {
                 </span>
               </div>
               <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>{ind.desc}</div>
+              {(ind as Record<string, unknown>).designed && <div style={{ fontFamily: FM, fontSize: 9, color: GREEN, marginTop: 6 }}>✓ Custom Designed</div>}
             </div>
           </Link>
         ))}

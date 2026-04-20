@@ -1,61 +1,53 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import type { MapPin, MapRoute } from '../_components/ScheduleMap';
 
-const INK = '#0B0D11', INK2 = '#141414', INK3 = '#1A1D25';
-const PAPER = '#F3F0E8', ACCENT = '#FF4A1C', ACCENT_DIM = 'rgba(255,74,28,0.10)';
-const LINE = 'rgba(255,255,255,0.07)', MUTED = '#8B8FA3', GREEN = '#10B981';
-const FH = "'Fraunces', Georgia, serif", FB = "'Inter Tight', sans-serif", FM = "'JetBrains Mono', monospace";
+const ScheduleMap = dynamic(() => import('../_components/ScheduleMap'), { ssr: false, loading: () => <div style={{ height: 440, background: '#1a1a2e', borderRadius: 12 }} /> });
 
-// ─── Mock data ───
-const KPIS = [
-  { label: 'Jobs Today', value: '8', delta: '+3 vs yesterday' },
-  { label: 'Revenue Today', value: '$4,240', delta: 'CAD' },
-  { label: 'Avg Ticket', value: '$530', delta: '+$45 vs avg' },
-  { label: 'Techs on Route', value: '3', delta: 'of 5 active' },
+// ─── Light theme tokens ───
+const NAVY = '#0F1B2D', WHITE = '#FFFFFF', LIGHT = '#F7F8FA';
+const ORANGE = '#E8450C', GREEN = '#16A34A', BLUE = '#0284C7', YELLOW = '#EAB308';
+const MUTED = '#6B7280', BORDER = '#E5E7EB';
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const MONO = "'JetBrains Mono', monospace";
+
+// ─── Mock schedule data ───
+const PINS: MapPin[] = [
+  { id: '1', lat: 43.6480, lng: -79.5300, label: 'AC Repair', time: '8:00 AM', status: 'completed', color: GREEN, details: '2891 Bloor St W, Etobicoke' },
+  { id: '2', lat: 43.6570, lng: -79.3990, label: 'Drain Cleaning', time: '9:30 AM', status: 'completed', color: GREEN, details: '456 Spadina Ave, Toronto' },
+  { id: '3', lat: 43.8600, lng: -79.3370, label: 'Panel Upgrade', time: '11:00 AM', status: 'completed', color: GREEN, details: '789 Markham Rd, Markham' },
+  { id: '4', lat: 43.5890, lng: -79.6440, label: 'Furnace Check', time: '11:30 AM', status: 'completed', color: GREEN, details: '123 Hurontario St, Mississauga' },
+  { id: '5', lat: 43.6540, lng: -79.3800, label: 'Leak Repair', time: '1:00 PM', status: 'in_progress', color: ORANGE, details: '234 Yonge St, Toronto' },
+  { id: '6', lat: 43.6370, lng: -79.4240, label: 'AC Install', time: '2:00 PM', status: 'next', color: YELLOW, details: '567 Lakeshore Blvd, Toronto' },
+  { id: '7', lat: 43.8580, lng: -79.5300, label: 'EV Charger', time: '3:30 PM', status: 'scheduled', color: '#8B8FA3', details: '890 Major Mackenzie, Vaughan' },
+  { id: '8', lat: 43.6470, lng: -79.3830, label: 'Emergency Call', time: '5:00 PM', status: 'emergency', color: '#EF4444', details: '111 King St W, Toronto' },
 ];
 
-const SCHEDULE = [
-  { tech: 'Mike', specialty: 'HVAC', status: 'on_route', color: '#3B82F6', jobs: [
-    { time: '9:00 AM', type: 'AC Repair', location: 'Mississauga', done: false },
-    { time: '11:00 AM', type: 'Furnace Check', location: 'Brampton', done: false },
-    { time: '2:00 PM', type: 'Install', location: 'Toronto', done: false },
-  ]},
-  { tech: 'Sarah', specialty: 'Plumbing', status: 'at_job', color: '#10B981', jobs: [
-    { time: '10:00 AM', type: 'Drain Cleaning', location: 'North York', done: false },
-    { time: '1:00 PM', type: 'Leak Repair', location: 'Etobicoke', done: false },
-  ]},
-  { tech: 'Carlos', specialty: 'Electrical', status: 'at_job', color: '#F59E0B', jobs: [
-    { time: '8:00 AM', type: 'Panel Upgrade', location: 'Markham', done: true },
-    { time: '11:30 AM', type: 'EV Charger', location: 'Vaughan', done: false },
-    { time: '3:00 PM', type: 'Rewiring', location: 'Richmond Hill', done: false },
-  ]},
+const ROUTES: MapRoute[] = [
+  { techId: 'mike', path: [[-79.5300,43.6480],[-79.6440,43.5890],[-79.4240,43.6370]], color: '#3B82F6' },
+  { techId: 'sarah', path: [[-79.3990,43.6570],[-79.3800,43.6540]], color: '#10B981' },
+  { techId: 'carlos', path: [[-79.3370,43.8600],[-79.5300,43.8580]], color: '#F59E0B' },
 ];
 
-const AI_AGENTS = [
-  { name: 'Job Booker', status: 'On call with customer — booking emergency AC repair', color: GREEN },
-  { name: 'Quote Follow-Up', status: 'Sent 4 follow-ups today, 2 closed', color: '#3B82F6' },
-  { name: 'Review Collector', status: 'Called 3 customers post-service, 2 reviews pending', color: '#F59E0B' },
+const TECHS = [
+  { name: 'Mike', specialty: 'HVAC', jobs: 3, remaining: 1, color: '#3B82F6' },
+  { name: 'Sarah', specialty: 'Plumbing', jobs: 2, remaining: 0, color: '#10B981' },
+  { name: 'Carlos', specialty: 'Electrical', jobs: 2, remaining: 1, color: '#F59E0B' },
 ];
 
-const CAMPAIGNS = [
-  { name: 'Emergency AC Repair Toronto', spent: 127, result: '8 calls' },
-  { name: 'Summer Tune-Up Special', spent: 89, result: '5 bookings' },
-  { name: 'Service Plan Upsell', spent: 42, result: '2 conversions' },
+const LEADS = [
+  { name: 'Jennifer R.', phone: '(647) 555-0112', city: 'Mississauga', service: 'AC Repair', status: 'New', ago: '2h ago' },
+  { name: 'Robert K.', phone: '(416) 555-0287', city: 'Toronto', service: 'Furnace Install', status: 'Contacted', ago: '4h ago' },
+  { name: 'Sarah L.', phone: '(905) 555-0398', city: 'Vaughan', service: 'Emergency Plumbing', status: 'Qualified', ago: '5h ago' },
+  { name: 'Michael T.', phone: '(647) 555-0445', city: 'Markham', service: 'Panel Upgrade', status: 'Scheduled', ago: '7h ago' },
+  { name: 'Ashley W.', phone: '(416) 555-0521', city: 'North York', service: 'Drain Cleaning', status: 'New', ago: '11h ago' },
 ];
 
-const MODULES = [
-  { name: 'Dispatch Board', desc: 'Drag-drop tech assignment, live route mapping', status: 'planned' },
-  { name: 'Schedule', desc: 'Calendar view with tech rows and job blocks', status: 'planned' },
-  { name: 'Jobs', desc: 'Full job lifecycle from quote to payment', status: 'planned' },
-  { name: 'Invoicing', desc: 'Stripe-integrated invoices with financing options', status: 'planned' },
-  { name: 'Tech Mobile App', desc: 'Responsive web app techs use in the field', status: 'planned' },
-  { name: 'Voice Agent: Job Booker', desc: 'AI picks up after-hours calls and books service', status: 'live' },
-  { name: 'Voice Agent: Emergency Dispatcher', desc: '24/7 on-call handling', status: 'live' },
-  { name: 'Service Plans', desc: 'Annual maintenance contracts with auto-renewal', status: 'planned' },
-  { name: 'QuickBooks Sync', desc: 'Daily financial sync', status: 'planned' },
-  { name: 'Review Generator', desc: 'Auto-requests Google reviews 48h after job completion', status: 'live' },
-];
+const STATUS_BG: Record<string, string> = { completed: '#DCFCE7', in_progress: '#FEF3C7', next: '#FEF9C3', scheduled: '#F3F4F6', emergency: '#FEE2E2' };
+const STATUS_COLOR: Record<string, string> = { completed: GREEN, in_progress: ORANGE, next: '#A16207', scheduled: MUTED, emergency: '#DC2626' };
+const STATUS_LABEL: Record<string, string> = { completed: 'Completed', in_progress: 'In Progress', next: 'Next', scheduled: 'Scheduled', emergency: 'Emergency' };
 
 const COMPARISON = [
   ['Dispatch & Scheduling', true, true],
@@ -65,219 +57,216 @@ const COMPARISON = [
   ['AI Ad Automation', true, false],
   ['AI Agent Orchestration', true, false],
   ['SEO Intelligence', true, false],
-  ['AI CRM with auto-qualification', true, 'Basic'],
+  ['AI CRM + auto-qualification', true, 'Basic'],
   ['Monthly Price', '$249', '$325'],
 ] as const;
 
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div style={{ background: WHITE, borderRadius: 16, border: `1px solid ${BORDER}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', ...style }}>{children}</div>;
+}
+
 export default function HomeServicesPreview() {
   return (
-    <div style={{ padding: '28px 32px', fontFamily: FB, color: PAPER, maxWidth: 1200 }}>
-      <style>{`.hs-card { transition: all 0.15s; } .hs-card:hover { border-color: rgba(255,255,255,0.12) !important; }`}</style>
-
-      {/* Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Link href="/admin/platform/services" style={{ fontSize: 12, color: MUTED, textDecoration: 'none' }}>← Back to Services</Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontFamily: FM, fontSize: 9, padding: '4px 10px', borderRadius: 6, background: 'rgba(139,92,246,0.1)', color: '#B670E8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>PREVIEW MODE · HOME SERVICES</span>
-        </div>
-      </div>
-
-      <h1 style={{ fontFamily: FH, fontSize: 32, fontWeight: 400, letterSpacing: '-0.03em', margin: '0 0 6px' }}>Home Services Dashboard</h1>
-      <p style={{ fontSize: 13, color: MUTED, margin: '0 0 24px', lineHeight: 1.6 }}>
-        This is what a Home Services tenant sees when they log into Scale. Powered by industry-specific AI agents, dispatch tools, and field service automation.
-      </p>
-
-      {/* Mock tenant bar */}
-      <div style={{ background: INK2, borderRadius: 10, border: `1px solid ${LINE}`, padding: '10px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 18 }}>🔧</span>
-          <span style={{ fontFamily: FH, fontSize: 16, color: PAPER }}>ACME HVAC</span>
-          <span style={{ fontFamily: FM, fontSize: 9, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.06em' }}>PRO · HOME SERVICES</span>
-        </div>
-        <span style={{ fontFamily: FM, fontSize: 10, color: MUTED }}>Credits: 8,420 / 10,000</span>
-      </div>
-
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-        {KPIS.map(k => (
-          <div key={k.label} style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, padding: 20 }}>
-            <div style={{ fontFamily: FM, fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{k.label}</div>
-            <div style={{ fontFamily: FH, fontSize: 30, fontWeight: 400, letterSpacing: '-0.03em', color: PAPER }}>{k.value}</div>
-            <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{k.delta}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
-        {['Schedule Job', 'Send Estimate', 'Dispatch Tech', 'New Campaign'].map(a => (
-          <button key={a} style={{ padding: '12px 18px', borderRadius: 10, background: ACCENT_DIM, border: `1px solid rgba(255,74,28,0.2)`, color: ACCENT, fontSize: 13, fontWeight: 600, cursor: 'default', fontFamily: FB }}>
-            {a}
-          </button>
-        ))}
-      </div>
-
-      {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16, marginBottom: 32 }}>
-        {/* Left — Today's Schedule */}
-        <div style={{ background: INK2, borderRadius: 16, border: `1px solid ${LINE}`, overflow: 'hidden' }}>
-          <div style={{ padding: '18px 22px', borderBottom: `1px solid ${LINE}` }}>
-            <div style={{ fontFamily: FH, fontSize: 18, fontWeight: 400, color: PAPER }}>Today&apos;s Schedule</div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SCHEDULE.length}, 1fr)`, minHeight: 300 }}>
-            {SCHEDULE.map(tech => (
-              <div key={tech.tech} style={{ borderRight: `1px solid ${LINE}`, padding: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: `${tech.color}20`, color: tech.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FH, fontSize: 13, fontWeight: 700 }}>
-                    {tech.tech[0]}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: PAPER }}>{tech.tech}</div>
-                    <div style={{ fontSize: 10, color: MUTED }}>{tech.specialty}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {tech.jobs.map((job, i) => (
-                    <div key={i} style={{ background: INK3, borderRadius: 8, padding: '10px 12px', borderLeft: `3px solid ${tech.color}`, opacity: job.done ? 0.5 : 1 }}>
-                      <div style={{ fontFamily: FM, fontSize: 10, color: MUTED, marginBottom: 3 }}>{job.time}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: PAPER, textDecoration: job.done ? 'line-through' : 'none' }}>{job.type}</div>
-                      <div style={{ fontSize: 10, color: MUTED }}>{job.location}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+    <div style={{ background: WHITE, minHeight: '100vh', fontFamily: FONT, color: NAVY }}>
+      {/* Top header bar */}
+      <div style={{ background: NAVY, color: '#fff', padding: '12px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <span style={{ fontWeight: 700, fontSize: 16 }}>[Tenant] Scale</span>
+          <nav style={{ display: 'flex', gap: 16, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+            {['Dashboard', 'CRM', 'Campaigns', 'Agents', 'Agent Brain', 'Settings'].map(n => (
+              <span key={n} style={{ cursor: 'default' }}>{n}</span>
             ))}
-          </div>
+          </nav>
         </div>
-
-        {/* Right — Stacked cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* AI Agents */}
-          <div style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, padding: 18 }}>
-            <div style={{ fontFamily: FH, fontSize: 16, fontWeight: 400, color: PAPER, marginBottom: 14 }}>AI Agents Working</div>
-            {AI_AGENTS.map(a => (
-              <div key={a.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.color, marginTop: 6, flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: PAPER }}>{a.name}</div>
-                  <div style={{ fontSize: 11, color: MUTED }}>{a.status}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Active Campaigns */}
-          <div style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, padding: 18 }}>
-            <div style={{ fontFamily: FH, fontSize: 16, fontWeight: 400, color: PAPER, marginBottom: 14 }}>Active Campaigns</div>
-            {CAMPAIGNS.map(c => (
-              <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 12 }}>
-                <span style={{ color: PAPER }}>{c.name}</span>
-                <span style={{ fontFamily: FM, fontSize: 10, color: MUTED }}>${c.spent} · {c.result}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Insights */}
-          <div style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, padding: 18 }}>
-            <div style={{ fontFamily: FH, fontSize: 16, fontWeight: 400, color: PAPER, marginBottom: 14 }}>Today&apos;s Insights</div>
-            {[
-              'HVAC search volume spiked 34% in Mississauga — increase bid?',
-              '3 techs available in Scarborough this afternoon',
-              'Customer satisfaction 4.8★ this week',
-            ].map((t, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, fontSize: 12, color: MUTED }}>
-                <span style={{ color: ACCENT, flexShrink: 0 }}>•</span> {t}
-              </div>
-            ))}
-          </div>
-        </div>
+        <Link href="/admin/platform/services" style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>← Back to Services</Link>
+      </div>
+      <div style={{ background: ORANGE, color: '#fff', padding: '6px 32px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textAlign: 'center' }}>
+        PREVIEW MODE — Home Services Industry
       </div>
 
-      {/* Modules */}
-      <div style={{ marginBottom: 32 }}>
-        <h2 style={{ fontFamily: FH, fontSize: 22, fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 16px' }}>Modules available in Home Services</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-          {MODULES.map(m => (
-            <div key={m.name} className="hs-card" style={{ background: INK2, borderRadius: 12, border: `1px solid ${LINE}`, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: PAPER }}>{m.name}</span>
-                <span style={{ fontFamily: FM, fontSize: 9, padding: '2px 8px', borderRadius: 4, background: m.status === 'live' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)', color: m.status === 'live' ? GREEN : MUTED, textTransform: 'uppercase' }}>
-                  {m.status}
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>{m.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 32px 80px' }}>
+        {/* Heading */}
+        <h1 style={{ fontSize: 32, fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.02em' }}>Scale Control Room</h1>
+        <p style={{ fontSize: 14, color: MUTED, margin: '0 0 4px' }}>AI ad ops, CRM, dispatch, and agent orchestration for [Tenant Name]</p>
+        <div style={{ fontSize: 11, color: MUTED, fontFamily: MONO, marginBottom: 24 }}>Home Services · HVAC / Plumbing / Electrical</div>
 
-      {/* AI Knowledge */}
-      <div style={{ background: INK2, borderRadius: 16, border: `1px solid ${LINE}`, padding: 24, marginBottom: 32 }}>
-        <h2 style={{ fontFamily: FH, fontSize: 20, fontWeight: 400, margin: '0 0 14px' }}>AI Industry Knowledge</h2>
-        <p style={{ fontSize: 13, color: MUTED, marginBottom: 12 }}>Scale&apos;s Home Services AI agents are trained on:</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {/* KPIs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
           {[
-            '2,000+ keywords specific to HVAC, plumbing, electrical, cleaning',
-            'Seasonal patterns (AC in summer, furnace in fall, emergency pricing)',
-            'Service area optimization (radius-based targeting)',
-            'Tech dispatch efficiency rules',
-            'Call tracking → booking conversion playbooks',
-            'RECO/licensing compliance where applicable',
-          ].map((t, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: MUTED }}>
-              <span style={{ color: GREEN, flexShrink: 0 }}>✓</span> {t}
+            { label: 'TOTAL LEADS', value: '47', color: ORANGE },
+            { label: 'LEADS THIS WEEK', value: '12', sub: 'last 7 days', color: YELLOW },
+            { label: 'JOBS TODAY', value: '8', sub: '4 completed, 4 remaining', color: BLUE },
+            { label: 'CONVERSION RATE', value: '32%', sub: 'won ÷ total', color: GREEN },
+          ].map(k => (
+            <div key={k.label} style={{ background: NAVY, borderRadius: 14, padding: 20, color: '#fff' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', marginBottom: 10, textTransform: 'uppercase' }}>{k.label}</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: k.color, lineHeight: 1, letterSpacing: '-0.03em' }}>{k.value}</div>
+              {k.sub && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>{k.sub}</div>}
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Comparison table */}
-      <div style={{ marginBottom: 32 }}>
-        <h2 style={{ fontFamily: FH, fontSize: 22, fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 16px' }}>Scale vs Workiz comparison</h2>
-        <div style={{ background: INK2, borderRadius: 14, border: `1px solid ${LINE}`, overflow: 'hidden' }}>
+        {/* ★ Today's Schedule Map */}
+        <Card style={{ padding: 24, marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 2px' }}>Today&apos;s Schedule</h2>
+              <div style={{ fontSize: 12, color: MUTED }}>Tuesday, April 23 · AI-optimized route for your field team</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {TECHS.map(t => (
+                <span key={t.name} style={{ fontSize: 10, padding: '4px 10px', borderRadius: 20, background: `${t.color}12`, color: t.color, fontWeight: 600 }}>
+                  {t.name} · {t.remaining} left
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: 16 }}>
+            <ScheduleMap pins={PINS} routes={ROUTES} center={[-79.42, 43.70]} zoom={10} height={440} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 440, overflowY: 'auto' }}>
+              {PINS.map((pin, i) => (
+                <div key={pin.id} style={{ background: LIGHT, borderRadius: 10, padding: '10px 12px', borderLeft: `3px solid ${pin.color}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>{pin.time}</span>
+                    <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: STATUS_BG[pin.status] || '#F3F4F6', color: STATUS_COLOR[pin.status] || MUTED, fontWeight: 600 }}>
+                      {STATUS_LABEL[pin.status] || pin.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{pin.label}</div>
+                  <div style={{ fontSize: 10, color: MUTED }}>{pin.details}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* ★ AI Scheduling Copilot */}
+        <Card style={{ padding: 24, marginBottom: 28 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Scale AI — Your Scheduling Copilot</h2>
+          <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Live suggestions based on today&apos;s schedule</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+            {[
+              { border: BLUE, icon: '💡', title: "Mike's afternoon route", body: "Switching job #6 (AC Install) with job #4 (Furnace Check) would save 22 minutes of driving time. Want me to reschedule?", btn: 'Accept' },
+              { border: ORANGE, icon: '📱', title: 'Carlos running behind', body: "Carlos is 18 min behind schedule. Should I text the 3:30 PM customer a delay notice + 15% off coupon?", btn: 'Accept' },
+              { border: GREEN, icon: '💰', title: 'Upsell detected', body: "3 of today's completed jobs are older furnaces (10+ years). Recommend sending Service Plan upsell SMS — 18% historical close rate.", btn: 'Send to all 3' },
+            ].map(s => (
+              <div key={s.title} style={{ borderLeft: `4px solid ${s.border}`, borderRadius: 10, background: LIGHT, padding: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{s.icon} {s.title}</div>
+                <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 12 }}>{s.body}</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button style={{ padding: '6px 14px', borderRadius: 6, background: s.border, border: 'none', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'default' }}>{s.btn}</button>
+                  <button style={{ padding: '6px 14px', borderRadius: 6, background: 'transparent', border: `1px solid ${BORDER}`, color: MUTED, fontSize: 11, cursor: 'default' }}>Dismiss</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Quick Actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 28 }}>
+          {[
+            { color: '#3B82F6', label: 'Google Search', sub: 'Service x area campaigns' },
+            { color: GREEN, label: 'Local Services Ads', sub: 'Pay per verified lead' },
+            { color: '#06B6D4', label: 'Meta Lead Gen', sub: 'Facebook + Instagram' },
+            { color: '#14B8A6', label: 'Nextdoor', sub: 'Neighborhood targeting' },
+            { color: '#8B5CF6', label: 'Seasonal Promo', sub: 'Retargeting display' },
+            { color: ORANGE, label: 'Custom Campaign', sub: 'Free-form brief' },
+          ].map(a => (
+            <Card key={a.label} style={{ padding: 14, cursor: 'default' }}>
+              <div style={{ width: 8, height: 8, borderRadius: 3, background: a.color, marginBottom: 10 }} />
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{a.label}</div>
+              <div style={{ fontSize: 11, color: MUTED }}>{a.sub}</div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Recent Leads */}
+        <Card style={{ marginBottom: 28, overflow: 'hidden' }}>
+          <div style={{ padding: '18px 20px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Recent Leads</div>
+              <div style={{ fontSize: 11, color: MUTED }}>Last 10 submissions</div>
+            </div>
+            <span style={{ fontSize: 12, color: BLUE, fontWeight: 600, cursor: 'default' }}>View full CRM →</span>
+          </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `1px solid ${LINE}` }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontFamily: FM, fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Feature</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontFamily: FM, fontSize: 10, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Scale</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontFamily: FM, fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Workiz Pro</th>
+              <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
+                {['Name', 'Phone', 'City', 'Service', 'Status', 'Created'].map(h => (
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {COMPARISON.map(([feature, scale, workiz], i) => (
-                <tr key={i} style={{ borderBottom: `1px solid ${LINE}` }}>
-                  <td style={{ padding: '10px 16px', color: PAPER }}>{feature}</td>
-                  <td style={{ padding: '10px 16px', textAlign: 'center', color: scale === true ? GREEN : scale === false ? '#EF4444' : PAPER, fontWeight: 600 }}>
-                    {scale === true ? '✓' : scale === false ? '✗' : String(scale)}
+              {LEADS.map(l => (
+                <tr key={l.name} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                  <td style={{ padding: '10px 16px', fontWeight: 600 }}>{l.name}</td>
+                  <td style={{ padding: '10px 16px', fontFamily: MONO, fontSize: 12, color: MUTED }}>{l.phone}</td>
+                  <td style={{ padding: '10px 16px', color: MUTED }}>{l.city}</td>
+                  <td style={{ padding: '10px 16px' }}>{l.service}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, fontWeight: 600, background: l.status === 'New' ? '#DBEAFE' : l.status === 'Contacted' ? '#FEF3C7' : l.status === 'Qualified' ? '#DCFCE7' : '#F3E8FF', color: l.status === 'New' ? BLUE : l.status === 'Contacted' ? '#92400E' : l.status === 'Qualified' ? GREEN : '#7C3AED' }}>{l.status}</span>
                   </td>
-                  <td style={{ padding: '10px 16px', textAlign: 'center', color: workiz === true ? GREEN : workiz === false ? '#EF4444' : MUTED }}>
-                    {workiz === true ? '✓' : workiz === false ? '✗' : String(workiz)}
-                  </td>
+                  <td style={{ padding: '10px 16px', fontFamily: MONO, fontSize: 11, color: MUTED }}>{l.ago}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </Card>
 
-      {/* Pre-seeded config */}
-      <div style={{ background: INK2, borderRadius: 16, border: `1px solid ${LINE}`, padding: 24 }}>
-        <h2 style={{ fontFamily: FH, fontSize: 20, fontWeight: 400, margin: '0 0 14px' }}>Pre-seeded for Home Services tenants</h2>
-        <p style={{ fontSize: 13, color: MUTED, marginBottom: 14 }}>When a tenant signs up with industry=home_services, they automatically get:</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[
-            '12 campaign templates (Emergency Service, Seasonal Tune-up, etc.)',
-            '6 voice agent templates configured (Job Booker, Dispatcher, etc.)',
-            'Service areas input form',
-            'Industry-specific CRM stages (New Inquiry → Quoted → Scheduled → In Progress → Completed → Invoiced)',
-            'HVAC / Plumbing / Electrical / Cleaning sub-industry selector',
-            'Tech profile setup wizard',
-          ].map((t, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: MUTED }}>
-              <span style={{ color: ACCENT, flexShrink: 0 }}>→</span> {t}
+        {/* Agent Brain + Connections */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+          <Card style={{ padding: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>AGENT BRAIN</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: ORANGE, marginBottom: 4 }}>12 <span style={{ fontSize: 14, fontWeight: 500, color: MUTED }}>active rules</span></div>
+            <div style={{ fontSize: 12, color: MUTED, marginBottom: 14 }}>Active agents: 4. Agents use the Brain as their operating rulebook on every task.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['Always quote a range before confirming', 'Confirm service area before booking', 'Emergency pricing applies after 6pm', 'Tech skill-match required for jobs', 'Collect access info during booking'].map(r => (
+                <div key={r} style={{ fontSize: 11, color: MUTED, display: 'flex', gap: 6 }}><span style={{ color: ORANGE }}>•</span> {r}</div>
+              ))}
             </div>
-          ))}
+          </Card>
+          <Card style={{ padding: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: BLUE, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>CONNECTIONS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                ['Google Ads', true], ['Meta Ads', true], ['Google Local Services', false],
+                ['QuickBooks', true], ['Twilio Voice', true], ['ElevenLabs Voice AI', true], ['Stripe Payments', true],
+              ].map(([name, connected]) => (
+                <div key={name as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                  <span style={{ color: NAVY }}>{name as string}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: connected ? GREEN : MUTED }}>{connected ? '✓ Connected' : 'Not configured'}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
+
+        {/* Scale vs Workiz */}
+        <Card style={{ marginBottom: 28, overflow: 'hidden' }}>
+          <div style={{ padding: '18px 20px', borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Scale vs Workiz Pro</div>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: MUTED, textTransform: 'uppercase' }}>Feature</th>
+                <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: 10, fontWeight: 700, color: ORANGE, textTransform: 'uppercase' }}>Scale</th>
+                <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: 10, fontWeight: 600, color: MUTED, textTransform: 'uppercase' }}>Workiz Pro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map(([f, s, w], i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                  <td style={{ padding: '10px 16px' }}>{f}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: s === true ? GREEN : s === false ? '#EF4444' : NAVY }}>{s === true ? '✓' : s === false ? '✗' : String(s)}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'center', color: w === true ? GREEN : w === false ? '#EF4444' : MUTED }}>{w === true ? '✓' : w === false ? '✗' : String(w)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       </div>
     </div>
   );
