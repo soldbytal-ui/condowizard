@@ -34,35 +34,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, admin: { id: admin.id, email: admin.email, name: admin.name } });
     }
 
-    // ── LOGIN ──
+    // ── LOGIN (unified: tries super admin first, then tenant user) ──
     if (action === 'login') {
       if (!email || !password) {
         return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
       }
 
+      // Try super admin first
       const admin = await prisma.scaleSuperAdmin.findUnique({ where: { email } });
-      if (!admin) {
-        return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
+      if (admin) {
+        const valid = await verifyPassword(password, admin.passwordHash);
+        if (valid) {
+          await prisma.scaleSuperAdmin.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } });
+          await createSession({ userId: admin.id, email: admin.email, name: admin.name, isSuperAdmin: true });
+          return NextResponse.json({ success: true, redirect: '/admin/platform' });
+        }
       }
 
-      const valid = await verifyPassword(password, admin.passwordHash);
-      if (!valid) {
-        return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
+      // Try tenant user
+      const tenantUser = await prisma.scaleTenantUser.findFirst({
+        where: { email },
+        include: { tenant: true },
+      });
+      if (tenantUser?.passwordHash) {
+        const valid = await verifyPassword(password, tenantUser.passwordHash);
+        if (valid) {
+          await prisma.scaleTenantUser.update({ where: { id: tenantUser.id }, data: { lastLoginAt: new Date() } });
+          await prisma.scaleTenant.update({ where: { id: tenantUser.tenantId }, data: { lastActiveAt: new Date() } });
+          await createSession({ userId: tenantUser.id, email: tenantUser.email, name: tenantUser.name, tenantId: tenantUser.tenantId, isSuperAdmin: false });
+          return NextResponse.json({ success: true, redirect: '/admin/scale' });
+        }
       }
 
-      await prisma.scaleSuperAdmin.update({
-        where: { id: admin.id },
-        data: { lastLoginAt: new Date() },
-      });
-
-      await createSession({
-        userId: admin.id,
-        email: admin.email,
-        name: admin.name,
-        isSuperAdmin: true,
-      });
-
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
     // ── LOGOUT ──

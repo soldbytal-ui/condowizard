@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/scale-auth';
-import { createTenant, createInviteToken, logAudit, PLAN_PRICING } from '@/lib/scale-tenant';
+import { createTenant, createInviteToken, logAudit } from '@/lib/scale-tenant';
+import { isPlatformResendConfigured } from '@/lib/scale-platform-integrations';
 
 /**
  * GET /api/admin/platform/tenants — list all tenants
@@ -53,32 +54,12 @@ export async function POST(req: NextRequest) {
 
     await logAudit(session.email, 'tenant_created', tenant.id, `Created ${businessName} (${plan}) for ${ownerEmail}`);
 
-    // Try to send invitation email via Resend (best-effort)
-    let emailSent = false;
-    try {
-      const pricing = PLAN_PRICING[plan];
-      const resendKey = process.env.RESEND_API_KEY;
-      if (resendKey) {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'Scale by CondoWizard <noreply@condowizard.ca>',
-            to: [ownerEmail],
-            subject: "You've been invited to Scale",
-            html: `<h2>Welcome to Scale, ${ownerName}!</h2>
-<p>Tal Shelef has invited you to use Scale — AI-powered automation for your ${industry.replace('_', ' ')} business.</p>
-<p>Your plan: <strong>${pricing?.label || plan}</strong> (${pricing?.credits.toLocaleString() || '2,000'} AI credits/month)</p>
-<p><a href="${inviteLink}" style="display:inline-block;padding:12px 24px;background:#FF4A1C;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">Accept invitation &amp; set up your account →</a></p>
-<p style="color:#888;font-size:13px;">This link expires in 7 days.</p>
-<p>— Tal @ Scale</p>`,
-          }),
-        });
-        emailSent = true;
-      }
-    } catch { /* email is best-effort */ }
-
-    return NextResponse.json({ success: true, tenant, inviteLink, emailSent });
+    return NextResponse.json({
+      success: true,
+      tenant,
+      inviteLink,
+      canSendEmail: isPlatformResendConfigured(),
+    });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Create failed' }, { status: 500 });
   }

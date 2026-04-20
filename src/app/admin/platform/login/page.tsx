@@ -7,7 +7,7 @@ const INK = '#0B0D11', INK2 = '#141414', PAPER = '#F3F0E8', ACCENT = '#FF4A1C';
 const LINE = 'rgba(255,255,255,0.07)', MUTED = '#8B8FA3';
 const FH = "'Fraunces', Georgia, serif", FB = "'Inter Tight', sans-serif", FM = "'JetBrains Mono', monospace";
 
-export default function PlatformLogin() {
+export default function ScaleLogin() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +24,8 @@ export default function PlatformLogin() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Login failed'); setLoading(false); return; }
-      router.push('/admin/platform');
+      // Redirect based on user type (super admin → platform, tenant → scale)
+      router.push(data.redirect || '/admin/platform');
     } catch { setError('Network error'); setLoading(false); }
   };
 
@@ -33,8 +34,8 @@ export default function PlatformLogin() {
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
       <div style={{ width: 400, maxWidth: '90vw', background: INK2, borderRadius: 20, border: `1px solid ${LINE}`, padding: 36 }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontFamily: FH, fontSize: 28, fontWeight: 400, letterSpacing: '-0.03em', marginBottom: 6 }}>Scale</div>
-          <div style={{ fontFamily: FM, fontSize: 10, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.1em' }}>PLATFORM ADMIN</div>
+          <div style={{ fontFamily: FH, fontSize: 28, fontWeight: 400, letterSpacing: '-0.03em', marginBottom: 6 }}>Sign in to Scale</div>
+          <div style={{ fontSize: 12, color: MUTED }}>Platform admin or tenant account</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" style={{ width: '100%', padding: '12px 14px', borderRadius: 9, background: '#1A1D25', border: `1px solid ${LINE}`, color: PAPER, fontSize: 13, fontFamily: FB, outline: 'none' }} />
