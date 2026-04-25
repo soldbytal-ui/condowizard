@@ -8,7 +8,6 @@ import SearchFilters from '@/components/search/SearchFilters';
 import ListingCard from '@/components/search/ListingCard';
 import { UnifiedListing, ListingFilters, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
-import VOWLocked from '@/components/auth/VOWLocked';
 
 const SearchMap = dynamic(() => import('@/components/search/SearchMap'), {
   ssr: false,
@@ -42,7 +41,7 @@ const NEIGHBOURHOOD_NAME_MAP: Record<string, string> = {
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { savedListingIds, toggleSaveListing } = useAuth();
+  const { savedListingIds, toggleSaveListing, isAuthenticated, setShowAuthModal } = useAuth();
   const [listings, setListings] = useState<UnifiedListing[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -314,14 +313,40 @@ function SearchContent() {
                 <h3 className="text-lg font-semibold text-text-primary">No listings found</h3>
                 <p className="text-sm text-text-muted mt-1">Try adjusting your filters or search area</p>
               </div>
-            ) : filters.tab === 'sold' ? (
-              <VOWLocked message="Sign up free to view sold prices and history">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
-                  {listings.map((listing) => (
+            ) : filters.tab === 'sold' && !isAuthenticated ? (
+              <div className="relative">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4 filter blur-sm pointer-events-none select-none">
+                  {listings.slice(0, 3).map((listing) => (
                     <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView isRentView={false} />
                   ))}
                 </div>
-              </VOWLocked>
+                <div className="flex items-start justify-center pt-8 pb-16 -mt-24 relative z-10 bg-gradient-to-b from-white/80 via-white to-white">
+                  <div className="text-center p-6 bg-white rounded-2xl shadow-lg border border-border max-w-md mx-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <p className="font-semibold text-text-primary">Sign up free to view sold prices and history</p>
+                    <p className="text-xs text-text-muted mt-1.5">Sold data requires a free account per TREB regulations</p>
+                    <button
+                      onClick={() => setShowAuthModal(true)}
+                      className="mt-4 w-full px-6 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-semibold hover:bg-accent-blue/90 transition-colors"
+                    >
+                      Sign Up Free
+                    </button>
+                    <p className="text-[10px] text-text-muted mt-3">
+                      By signing up you agree to the <a href="/terms/vow" className="underline">VOW Terms of Use</a> and establish a broker-consumer relationship with Rare Real Estate Inc.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : filters.tab === 'sold' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+                {listings.map((listing) => (
+                  <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView isRentView={false} />
+                ))}
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
                 {listings.map((listing) => (
@@ -329,7 +354,7 @@ function SearchContent() {
                 ))}
               </div>
             )}
-            {listings.length > 0 && listings.length < totalCount && (
+            {listings.length > 0 && listings.length < totalCount && !(filters.tab === 'sold' && !isAuthenticated) && (
               <div className="p-4 text-center">
                 <button onClick={() => handleFilterChange({ page: (filters.page || 1) + 1 })} className="px-6 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90">
                   Load more ({totalCount - listings.length} remaining)
