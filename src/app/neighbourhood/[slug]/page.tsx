@@ -6,10 +6,18 @@ import { supabase } from '@/lib/supabase';
 import { formatPrice } from '@/lib/utils';
 import { repliersRequest, RepliersListingsResponse } from '@/lib/repliers';
 import { mapMLSToUnified } from '@/lib/data-merge';
-import { getAreaSearchParams } from '@/lib/area-mappings';
+import { getAreaSearchParams, AREA_TO_NEIGHBOURHOODS } from '@/lib/area-mappings';
 import ListingCard from '@/components/search/ListingCard';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 import NeighbourhoodTabsClient from './NeighbourhoodTabs';
+import { queryOne } from '@/lib/db';
+import { aggregateMarket, type AggregatedMarket } from '@/lib/market-stats';
+import MarketPulseSection, { type Snapshot } from '@/components/market/MarketPulseSection';
+import MarketBalanceGauge from '@/components/market/MarketBalanceGauge';
+import SuiteTypeTable from '@/components/market/SuiteTypeTable';
+import RentalSnapshotCard from '@/components/market/RentalSnapshotCard';
+import TrendChart from '@/components/market/TrendChart';
+import LightningSolds from '@/components/market/LightningSolds';
 
 const ToggleMap = dynamic(() => import('@/components/neighbourhood/ToggleMap'), { ssr: false });
 
@@ -62,6 +70,62 @@ async function resolveNeighbourhood(slug: string) {
   return { name: fallbackName, boundary: null, city: 'Toronto', lat: 0, lng: 0 };
 }
 
+// Load the latest daily snapshot for the neighbourhood; fall back to a live
+// Repliers aggregation if none exists yet.
+async function loadMarketData(slug: string, repliersName: string): Promise<{ snapshot: Snapshot | null; live: AggregatedMarket | null; source: 'snapshot' | 'live' }> {
+  try {
+    const data = await queryOne<Snapshot>(
+      `SELECT * FROM neighbourhood_stats
+        WHERE neighborhood_slug = $1 AND class = 'condo' AND bedrooms = 'all' AND window_days = 90
+        ORDER BY snapshot_date DESC
+        LIMIT 1`,
+      [slug]
+    );
+    if (data) {
+      return { snapshot: data, live: null, source: 'snapshot' };
+    }
+  } catch (err) {
+    console.error('[neighbourhood] snapshot load error:', err);
+  }
+  try {
+    const live = await aggregateMarket({ city: 'Toronto', cls: 'condo', bedrooms: 'all', days: 90, neighborhood: repliersName });
+    return { snapshot: null, live, source: 'live' };
+  } catch (err) {
+    console.error('[neighbourhood] live aggregate error:', err);
+    return { snapshot: null, live: null, source: 'live' };
+  }
+}
+
+// Adapts a live aggregation into the same shape as a stored snapshot so we can
+// render one set of section components regardless of source.
+function liveToSnapshot(live: AggregatedMarket, slug: string, name: string): Snapshot {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    snapshot_date: today,
+    window_days: live.filters.days,
+    active: live.headline.active,
+    new_listings: live.headline.newListings,
+    sold_count: live.headline.soldCount,
+    median_sold: live.headline.medianSold,
+    average_sold: live.headline.averageSold,
+    median_dom: live.headline.medianDom,
+    average_dom: live.headline.averageDom,
+    sale_to_list_pct: live.headline.saleToList,
+    months_of_inventory: live.headline.monthsOfInventory,
+    yoy_median_sold_delta: live.yoy.medianSoldDelta,
+    yoy_average_sold_delta: live.yoy.averageSoldDelta,
+    yoy_sold_count_delta: live.yoy.soldCountDelta,
+    yoy_average_dom_delta: live.yoy.averageDomDelta,
+    yoy_sale_to_list_delta: live.yoy.saleToListDelta,
+    price_drops: live.priceDrops,
+    terminations: live.terminations,
+    by_suite_type: live.bySuiteType,
+    rental_snapshot: live.rentalSnapshot,
+    trend: null,
+    generated_at: live.generatedAt,
+  } as unknown as Snapshot;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const hood = await resolveNeighbourhood(params.slug);
   return {
@@ -89,6 +153,15 @@ export default async function NeighbourhoodPage({ params }: Props) {
     mlsLocationFilter.city = city;
     mlsLocationFilter.neighborhood = name;
   }
+
+  // Market snapshot (prefer stored, fall back to live)
+  const repliersNeighborhood =
+    (areaParams.neighborhoods && areaParams.neighborhoods[0]) ||
+    (AREA_TO_NEIGHBOURHOODS[params.slug]?.[0]) ||
+    name;
+  const market = await loadMarketData(params.slug, repliersNeighborhood);
+  const marketSnapshot: Snapshot | null = market.snapshot ?? (market.live ? liveToSnapshot(market.live, params.slug, name) : null);
+  const marketSourceLabel = market.source === 'snapshot' ? 'Daily snapshot' : 'Live data';
 
   // Fetch MLS — For Sale
   let forSale: any[] = [];
@@ -221,6 +294,88 @@ export default async function NeighbourhoodPage({ params }: Props) {
           <section className="mt-10">
             <ToggleMap listings={forSale} preconProjects={preconProjects} boundary={boundary} neighbourhoodName={name} />
           </section>
+
+          {/* Market Pulse */}
+          {marketSnapshot ? (
+            <section className="mt-12">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary">Market Pulse</h2>
+                  <p className="text-xs text-text-muted mt-1">
+                    Condo resale in {name} · 90-day window · {marketSourceLabel}
+                  </p>
+                </div>
+              </div>
+              <MarketPulseSection snapshot={marketSnapshot} neighborhoodName={name} />
+            </section>
+          ) : null}
+
+          {/* Lightning Solds */}
+          <section className="mt-12">
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary">Lightning Solds</h2>
+                <p className="text-xs text-text-muted mt-1">Homes in {name} that sold in 7 days or less. Sold prices unlock free after signup.</p>
+              </div>
+            </div>
+            <LightningSolds slug={params.slug} neighborhoodName={name} limit={6} />
+          </section>
+
+          {/* Buyer / Seller balance */}
+          {marketSnapshot ? (
+            <section className="mt-12">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary">Buyer&apos;s or Seller&apos;s Market?</h2>
+                  <p className="text-xs text-text-muted mt-1">Derived from months of inventory, with price-drop and termination signals.</p>
+                </div>
+              </div>
+              <MarketBalanceGauge
+                monthsOfInventory={marketSnapshot.months_of_inventory != null ? Number(marketSnapshot.months_of_inventory) : null}
+                priceDrops={marketSnapshot.price_drops}
+                terminations={marketSnapshot.terminations}
+              />
+            </section>
+          ) : null}
+
+          {/* Trend from snapshots */}
+          {marketSnapshot && marketSnapshot.trend && marketSnapshot.trend.length > 0 ? (
+            <section className="mt-12">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary">Trend</h2>
+                  <p className="text-xs text-text-muted mt-1">Daily snapshots since we started tracking {name}.</p>
+                </div>
+              </div>
+              <TrendChart points={marketSnapshot.trend} metric="medianSold" label="Median sold price" />
+            </section>
+          ) : null}
+
+          {/* By suite type */}
+          {marketSnapshot && marketSnapshot.by_suite_type && marketSnapshot.by_suite_type.length > 0 ? (
+            <section className="mt-12">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary">By Suite Type</h2>
+                  <p className="text-xs text-text-muted mt-1">90-day sold performance by bedroom count.</p>
+                </div>
+              </div>
+              <SuiteTypeTable rows={marketSnapshot.by_suite_type} />
+            </section>
+          ) : null}
+
+          {/* Rental snapshot */}
+          {marketSnapshot && marketSnapshot.rental_snapshot ? (
+            <section className="mt-12">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary">Rental Snapshot</h2>
+                  <p className="text-xs text-text-muted mt-1">Active supply, asking rents, and 90-day leased performance.</p>
+                </div>
+              </div>
+              <RentalSnapshotCard data={marketSnapshot.rental_snapshot} />
+            </section>
+          ) : null}
 
           {/* Resale tabs */}
           <section className="mt-10">
