@@ -325,9 +325,12 @@ export function buildFaqs(p) {
 // ─── Section 1: SEO title + meta ─────────────────────────────────────────────
 export function buildMetaTitle(p) {
   // Preferred: "[Name] Condos in [Neighbourhood] | CondoWizard"
-  const short = `${p.name} Condos | Prices, Floor Plans & Occupancy`;
-  const withHood = `${p.name} Condos in ${p.neighbourhoodName} | CondoWizard`;
-  return short.length <= 60 ? short : (withHood.length <= 60 ? withHood : `${p.name} Condos | CondoWizard`);
+  // Strip a trailing "Condos"/"Residences"/"Towns"/"Tower(s)" from the project name
+  // to avoid duplication when we append "Condos".
+  const bareName = p.name.replace(/\s+(Condos?|Residences?|Towns?|Towers?)$/i, '');
+  const short = `${bareName} Condos | Prices, Floor Plans & Occupancy`;
+  const withHood = `${bareName} Condos in ${p.neighbourhoodName} | CondoWizard`;
+  return short.length <= 60 ? short : (withHood.length <= 60 ? withHood : `${bareName} Condos | CondoWizard`);
 }
 
 export function buildMetaDescription(p) {

@@ -128,21 +128,46 @@ function mapNeighborhood(csvNeighborhood, csvArea) {
   if (n.includes('keelesdale') || n.includes('eglinton west')) return { slug: 'eglinton-west', name: 'Eglinton West', region: 'Midtown & Central' };
   if (n.includes('designers walk')) return { slug: 'the-annex', name: 'The Annex', region: 'Midtown & Central' };
 
-  // North York
-  if (n.includes('newtonbrook') || n.includes('yonge-finch') || n.includes('yonge finch')) return { slug: 'north-york', name: 'North York', region: 'North York' };
-  if (n.includes('don mills') || n.includes('sheppard')) return { slug: 'don-mills', name: 'Don Mills', region: 'North York' };
-  if (n.includes('north york')) return { slug: 'north-york', name: 'North York', region: 'North York' };
+  // North York — subhoods collapse to north-york except Don Mills
+  if (n.includes('don mills') && n.includes('sheppard')) return { slug: 'don-mills', name: 'Don Mills', region: 'North York' };
+  if (n.includes('don mills') || n.includes('lansing') || n.includes('don valley village') || n.includes('fairview')) return { slug: 'don-mills', name: 'Don Mills', region: 'North York' };
+  if (n.includes('newtonbrook') || n.includes('yonge-finch') || n.includes('yonge finch')
+      || n.includes('yonge-sheppard') || n.includes('yonge sheppard')
+      || n.includes('north york centre') || n.includes('bayview & finch') || n.includes('bayview and finch')
+      || n.includes('bayview village') || n.includes('concord park')
+      || n.includes('yonge & steeles') || n.includes('yonge and steeles')
+      || n.includes('henry farm') || n.includes('sheppard & victoria park') || n.includes('sheppard and victoria park')
+      || n.includes('downsview') || n.includes('yzd')
+      || n.includes('yonge & york mills') || n.includes('york mills')
+      || n.includes('bridle path')
+      || n.includes('glencairn') || n.includes('lawrence heights') || n.includes('glen park') || n.includes('lawrence allen')
+      || n.includes('north york')) return { slug: 'north-york', name: 'North York Centre', region: 'North York' };
 
-  // Etobicoke / Scarborough / East / West
-  if (n.includes('etobicoke')) return { slug: 'etobicoke', name: 'Etobicoke', region: 'Etobicoke & West' };
-  if (n.includes('scarborough')) return { slug: 'scarborough', name: 'Scarborough', region: 'Scarborough & East' };
-  if (n.includes('leaside') || n.includes('leaside')) return { slug: 'leaside', name: 'Leaside', region: 'East End' };
+  // Etobicoke — everything west of Humber collapses to etobicoke
+  if (n.includes('etobicoke') || n.includes('islington') || n.includes('kipling')
+      || n.includes('the queensway') || n.includes('queensway')
+      || n.includes('mimico') || n.includes('humber bay') || n.includes('long branch')
+      || n.includes('new toronto') || n.includes('kingsway')) return { slug: 'etobicoke', name: 'Etobicoke', region: 'Etobicoke' };
+
+  // Scarborough — everything east of Victoria Park collapses to scarborough
+  if (n.includes('scarborough') || n.includes('cliffside') || n.includes('birch cliff')
+      || n.includes('dorset park') || n.includes('tam o\'shanter') || n.includes('sullivan')
+      || n.includes('woburn') || n.includes('cedarbrae') || n.includes('clairlea') || n.includes('birchmount')
+      || n.includes('agincourt') || n.includes('kennedy & 401') || n.includes('kennedy and 401')
+      || n.includes('west hill') || n.includes('golden mile') || n.includes('eglinton east')) return { slug: 'scarborough', name: 'Scarborough', region: 'Scarborough' };
+
+  // East end
+  if (n.includes('leaside')) return { slug: 'leaside', name: 'Leaside', region: 'East End' };
   if (n.includes('leslieville')) return { slug: 'leslieville', name: 'Leslieville', region: 'East End' };
-  if (n.includes('riverside')) return { slug: 'riverside', name: 'Riverside', region: 'East End' };
-  if (n.includes('danforth')) return { slug: 'danforth', name: 'The Danforth', region: 'East End' };
-  if (n.includes('high park')) return { slug: 'high-park', name: 'High Park', region: 'West End' };
-  if (n.includes('junction')) return { slug: 'junction', name: 'The Junction', region: 'West End' };
-  if (n.includes('roncesvalles')) return { slug: 'roncesvalles', name: 'Roncesvalles', region: 'West End' };
+  if (n.includes('riverside') || n.includes('east harbour')) return { slug: 'riverside', name: 'Riverside', region: 'East End' };
+  if (n.includes('danforth') || n.includes('east york')) return { slug: 'danforth', name: 'The Danforth', region: 'East End' };
+
+  // West end
+  if (n.includes('high park') || n.includes('swansea') || n.includes('sunnyside')) return { slug: 'high-park', name: 'High Park', region: 'West End' };
+  if (n.includes('junction') || n.includes('stockyards') || n.includes('wallace emerson')) return { slug: 'junction', name: 'The Junction', region: 'West End' };
+  if (n.includes('roncesvalles') || n.includes('parkdale')) return { slug: 'roncesvalles', name: 'Roncesvalles / Parkdale', region: 'West End' };
+  if (n.includes('mount dennis')) return { slug: 'mount-dennis', name: 'Mount Dennis', region: 'West End' };
+  if (n.includes('trinity bellwoods') && n.includes('king')) return { slug: 'king-west', name: 'King West', region: 'Downtown & Waterfront' };
 
   // GTA
   if (n.includes('markham')) return { slug: 'markham', name: 'Markham', region: 'GTA' };
