@@ -98,8 +98,15 @@ export default async function PropertyDetailPage({ params }: Props) {
     try { parsedFaqs = JSON.parse(project.faqJson); } catch {}
   }
   const projectImages = (project.images as any) || {};
-  const galleryImages = Array.isArray(projectImages.gallery) ? projectImages.gallery as { url: string; alt?: string; type?: string }[] : [];
-  const floorPlanImages = Array.isArray(projectImages.floorPlans) ? projectImages.floorPlans as { url: string; label?: string }[] : [];
+  // gallery may be stored as string[] (from scraper) or {url,alt}[] (legacy) — normalize
+  const rawGallery = Array.isArray(projectImages.gallery) ? projectImages.gallery : [];
+  const galleryImages: { url: string; alt?: string; type?: string }[] = rawGallery
+    .map((g: any, i: number) => typeof g === 'string' ? { url: g, alt: `${project.name} — Image ${i + 1}` } : g)
+    .filter((g: any) => g && typeof g.url === 'string' && g.url.length > 0);
+  const rawFloor = Array.isArray(projectImages.floorPlans) ? projectImages.floorPlans : [];
+  const floorPlanImages: { url: string; label?: string }[] = rawFloor
+    .map((f: any, i: number) => typeof f === 'string' ? { url: f, label: `Floor Plan ${i + 1}` } : f)
+    .filter((f: any) => f && typeof f.url === 'string');
 
   return (
     <>

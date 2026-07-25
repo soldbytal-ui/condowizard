@@ -80,7 +80,7 @@ async function main() {
     if (result) {
       await prisma.project.update({
         where: { id: p.id },
-        data: { mainImageUrl: result.mainImageUrl, images: { gallery: result.allImages } },
+        data: { mainImageUrl: result.mainImageUrl, images: { gallery: result.gallery } },
       });
       hits.push({ name: p.name, url: result.mainImageUrl, source: result.sourceUrl });
       console.log(`✓ ${new URL(result.sourceUrl).hostname}`);

@@ -162,9 +162,12 @@ export async function findBestImage(name, csvSource, csvWebsite) {
   const ranked = allFound.sort((a, b) => b.score - a.score);
   const best = ranked[0];
   if (best.score < 3) return null;
+  const dedupedUrls = [...new Set(ranked.slice(0, 12).map(r => r.url))];
   return {
     mainImageUrl: best.url,
-    allImages: [...new Set(ranked.slice(0, 12).map(r => r.url))],
+    // Return both string list (legacy) and object list (what the site consumes)
+    allImages: dedupedUrls,
+    gallery: dedupedUrls.map((url, i) => ({ url, alt: `Gallery image ${i + 1}` })),
     sourceUrl: best.sourceUrl,
   };
 }

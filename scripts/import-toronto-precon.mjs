@@ -361,7 +361,7 @@ async function upsertProject(row, idx) {
     latitude: lat,
     longitude: lng,
     mainImageUrl: img?.mainImageUrl || null,
-    images: img ? { gallery: img.allImages } : null,
+    images: img ? { gallery: img.gallery } : null,
   };
 
   if (existing) {
