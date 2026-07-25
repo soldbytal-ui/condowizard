@@ -193,7 +193,7 @@ export default async function PropertyDetailPage({ params }: Props) {
             {/* Description — structured sections with blue left-border */}
             {(project.longDescription || project.description) && (() => {
               // Try to parse structured JSON content
-              let structured = null;
+              let structured: any = null;
               try {
                 const parsed = JSON.parse(project.longDescription || '');
                 if (parsed.about || parsed.location || parsed.investment || parsed.developer) {
@@ -203,21 +203,51 @@ export default async function PropertyDetailPage({ params }: Props) {
 
               if (structured) {
                 const devName = project.developer?.name || 'the Developer';
+                const hoodName = project.neighborhood?.name || 'the Neighbourhood';
                 const sections = [
                   { key: 'about', title: `About ${project.name}`, content: structured.about },
-                  { key: 'location', title: 'Location & Transit', content: structured.location },
-                  { key: 'investment', title: 'Investment Potential', content: structured.investment },
+                  { key: 'location', title: `Living in ${hoodName}`, content: structured.location },
+                  { key: 'investment', title: 'Buyer and Investment Considerations', content: structured.investment },
                   { key: 'developer', title: `About ${devName}`, content: structured.developer },
                 ].filter(s => s.content);
+
+                const renderParagraphs = (text: string) =>
+                  text.split(/\n\n+/).map((p: string, i: number) => (
+                    <p key={i} className="text-sm text-text-muted leading-relaxed mb-3 last:mb-0 whitespace-pre-line">
+                      {p}
+                    </p>
+                  ));
 
                 return (
                   <div className="space-y-6">
                     {sections.map(s => (
                       <div key={s.key} className="border-l-[3px] border-accent-blue pl-5">
                         <h2 className="text-lg font-semibold text-text-primary mb-2">{s.title}</h2>
-                        <p className="text-sm text-text-muted leading-relaxed">{s.content}</p>
+                        {renderParagraphs(s.content)}
                       </div>
                     ))}
+
+                    {structured.considerations && (
+                      <div className="border-l-[3px] border-amber-500 pl-5 bg-amber-50/40 py-3 rounded-r-md">
+                        <h2 className="text-lg font-semibold text-text-primary mb-2">Important Considerations Before Purchasing</h2>
+                        <ul className="list-disc list-outside ml-4 space-y-1 text-sm text-text-muted leading-relaxed">
+                          {structured.considerations.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {structured.pricing && (
+                      <div className="border-l-[3px] border-accent-blue pl-5">
+                        <h2 className="text-lg font-semibold text-text-primary mb-2">{project.name} Pricing and Floor Plans</h2>
+                        <p className="text-sm text-text-muted leading-relaxed">{structured.pricing}</p>
+                      </div>
+                    )}
+
+                    {structured.lastVerified && (
+                      <p className="text-xs text-text-muted/60 italic">Information last verified: {structured.lastVerified}</p>
+                    )}
                   </div>
                 );
               }
@@ -238,19 +268,29 @@ export default async function PropertyDetailPage({ params }: Props) {
             })()}
 
             {/* Amenities */}
-            {amenities.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-semibold text-text-primary mb-4">Amenities</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {amenities.map((amenity: string) => (
-                    <div key={amenity} className="flex items-center gap-2 text-sm text-text-muted">
-                      <div className="w-1.5 h-1.5 rounded-full bg-accent-blue flex-shrink-0" />
-                      {amenity}
-                    </div>
-                  ))}
+            {amenities.length > 0 && (() => {
+              let amenitiesIntro: string | null = null;
+              try {
+                const parsed = JSON.parse(project.longDescription || '');
+                if (parsed?.amenitiesIntro) amenitiesIntro = parsed.amenitiesIntro;
+              } catch {}
+              return (
+                <div>
+                  <h2 className="text-2xl font-semibold text-text-primary mb-3">Amenities</h2>
+                  {amenitiesIntro && (
+                    <p className="text-sm text-text-muted leading-relaxed mb-4">{amenitiesIntro}</p>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {amenities.map((amenity: string) => (
+                      <div key={amenity} className="flex items-center gap-2 text-sm text-text-muted">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent-blue flex-shrink-0" />
+                        {amenity}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Gallery */}
             <ImageGallery images={galleryImages} projectName={project.name} />

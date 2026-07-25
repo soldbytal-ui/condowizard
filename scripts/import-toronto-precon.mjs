@@ -16,6 +16,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { findBestImage } from './scrape-precon-images-lib.mjs';
+import {
+  buildStructuredContent,
+  buildPlainDescription,
+  buildMetaTitle,
+  buildMetaDescription,
+  buildFaqs,
+  buildAmenities,
+  lintContent,
+} from './precon-content/generate.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -167,62 +176,8 @@ async function geocode(address) {
   return { lat: null, lng: null };
 }
 
-// ─── SEO / content generators (factual, CSV-grounded) ─────────────────────────
-function amenitiesFor(category) {
-  const base = ['24-hour concierge', 'Fitness centre', 'Party room', 'Outdoor terrace', 'Visitor parking', 'Bicycle storage', 'Pet wash station', 'Package room'];
-  if (category === 'ULTRA_LUXURY' || category === 'LUXURY_BRANDED') {
-    return ['24-hour concierge and valet', 'Full-service spa', 'Indoor pool', 'State-of-the-art fitness centre', 'Yoga and Pilates studio', 'Private dining room', 'Wine tasting lounge', 'Business centre and co-working space', 'Rooftop terrace with BBQ stations', 'Guest suites', 'Pet spa', 'EV charging stations'];
-  }
-  if (category === 'LUXURY') {
-    return ['24-hour concierge', 'Fitness centre with yoga studio', 'Indoor pool', 'Party room and private dining', 'Co-working lounge', 'Rooftop terrace with BBQ', 'Guest suites', 'Pet spa', 'Bicycle storage', 'EV charging stations'];
-  }
-  return base;
-}
-
-function buildDescription(p) {
-  const { name, address, developer, floors, totalUnits, estCompletion, csvStatus, stage, notable, neighborhoodName, priceMin } = p;
-
-  const addrClean = address ? address.replace(/,\s*Toronto\s*$/i, '') : '';
-  const s1 = `${name} is a new pre-construction condominium ${addrClean ? `at ${addrClean} in ${neighborhoodName}, Toronto` : `in ${neighborhoodName}, Toronto`}, developed by ${developer}. ${notable}${notable && !/[.!?]$/.test(notable) ? '.' : ''}`;
-
-  const specs = [];
-  if (floors) specs.push(`${floors} storeys`);
-  if (totalUnits) specs.push(`${totalUnits.toLocaleString()} residential suites`);
-  if (estCompletion) specs.push(`estimated occupancy in ${estCompletion}`);
-  const s2 = specs.length
-    ? `The tower rises ${specs.join(', ')}, positioned within ${neighborhoodName} — one of Toronto's most established residential communities.`
-    : `Positioned within ${neighborhoodName}, one of Toronto's most established residential communities, the development will bring new residential density to a transit-connected corridor.`;
-
-  const stageText = stage ? ` The project is currently at the ${stage.toLowerCase()} phase.` : '';
-  const s3 = `${csvStatus === 'Coming Soon' ? `Registration is currently open ahead of the public launch. Priority pricing, first-round floor plan selection, and VIP incentives are available exclusively to registered buyers.` : `The project is now selling.${stageText} Pricing${priceMin ? ` starts from approximately $${(priceMin/1000).toFixed(0)},000` : ' is subject to change'} and remaining inventory is limited — connect with a CondoWizard advisor for current availability, unit plans, and deposit structure.`}`;
-
-  const s4 = `Toronto's pre-construction market continues to be driven by strong immigration-led population growth, sub-2% rental vacancy, and constrained new supply — particularly along the transit lines and intensification corridors where ${neighborhoodName} sits. Investors and end-users purchasing at ${name} will benefit from the extended runway between deposit and occupancy, giving buyers the opportunity to secure a suite at today's prices with completion targeted for ${estCompletion || 'a future date to be confirmed'}.`;
-
-  return [s1, s2, s3, s4].join('\n\n');
-}
-
-function buildMetaTitle(p) {
-  const base = `${p.name} | ${p.neighborhoodName} Pre-Construction Condos`;
-  if (base.length <= 60) return base;
-  return `${p.name} | Pre-Construction Condos Toronto`;
-}
-
-function buildMetaDescription(p) {
-  const priceBit = p.priceMin ? `From $${(p.priceMin/1000).toFixed(0)}K. ` : '';
-  const floorsBit = p.floors ? `${p.floors}-storey ` : '';
-  const desc = `${p.name} — new ${floorsBit}pre-construction condos by ${p.developer} in ${p.neighborhoodName}, Toronto. ${priceBit}Register for VIP pricing & floor plans.`;
-  return desc.length <= 160 ? desc : desc.slice(0, 157) + '...';
-}
-
-function buildFaqs(p) {
-  return [
-    { question: `Where is ${p.name} located?`, answer: p.address ? `${p.name} is located at ${p.address}, in the ${p.neighborhoodName} neighbourhood of Toronto.` : `${p.name} is located in ${p.neighborhoodName}, Toronto.` },
-    { question: `Who is the developer of ${p.name}?`, answer: `${p.name} is being developed by ${p.developer}, an active builder in the Greater Toronto Area pre-construction market.` },
-    { question: `When is the estimated occupancy for ${p.name}?`, answer: p.estCompletion ? `Estimated occupancy for ${p.name} is ${p.estCompletion}. Occupancy dates are set by the developer and are subject to change.` : `The estimated occupancy date for ${p.name} has not yet been announced. Register with CondoWizard to be notified as soon as the developer confirms the timeline.` },
-    { question: `How many storeys and units will ${p.name} have?`, answer: `${p.name} is planned for ${p.floors ? `${p.floors} storeys` : 'a height to be confirmed'}${p.totalUnits ? ` with ${p.totalUnits.toLocaleString()} suites` : ''}.` },
-    { question: `How do I register for VIP pricing at ${p.name}?`, answer: `Registration for ${p.name} is complimentary through CondoWizard. Fill out the inquiry form on this page and a licensed CondoWizard advisor will contact you with pricing, floor plans, deposit structure, and any current incentives as they are released.` },
-  ];
-}
+// Content generation is delegated to ./precon-content/generate.mjs
+// Anything below this line is CSV → project-shape mapping only.
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
 function parseCsv(text) {
@@ -311,25 +266,34 @@ async function upsertProject(row, idx) {
   const baseSlug = slugify(cleanName);
   const slug = /-condos?$/.test(baseSlug) ? `${baseSlug}-toronto` : `${baseSlug}-condos-toronto`;
 
+  const sanitize = (s) => (s || '').replace(/[–—]/g, ',').replace(/\s*,\s*,/g, ',');
   const projectShape = {
     name: cleanName,
     address: csvAddress,
-    developer: developer.name,
+    developerName: developer.name,
+    developerSlug: developer.slug,
     floors,
     totalUnits,
     estCompletion: csvOccupancy && csvOccupancy !== 'TBD' ? csvOccupancy : null,
     csvStatus,
-    stage: csvStage,
-    notable: csvNotable,
-    neighborhoodName: hood.name,
+    stage: sanitize(csvStage),
+    notable: sanitize(csvNotable),
+    neighbourhoodName: hood.name,
+    neighbourhoodSlug: hood.slug,
     priceMin,
   };
 
-  const description = buildDescription(projectShape);
+  const structured = buildStructuredContent(projectShape);
+  const plainDesc = buildPlainDescription(projectShape);
   const metaTitle = buildMetaTitle(projectShape);
   const metaDescription = buildMetaDescription(projectShape);
   const faqs = buildFaqs(projectShape);
-  const amenities = amenitiesFor(category);
+  const amenities = buildAmenities(projectShape);
+
+  // Lint pass for banned phrases / em dashes
+  const allText = [plainDesc, ...Object.values(structured).filter(v => typeof v === 'string'), metaTitle, metaDescription, ...faqs.flatMap(f => [f.question, f.answer]), ...amenities].join('\n');
+  const lintIssues = lintContent(allText);
+  if (lintIssues.length) console.warn(`  ! [lint ${cleanName}] ${lintIssues.join('; ')}`);
 
   console.log(`[${idx}] Geocoding + scraping images for ${cleanName}...`);
   const [geo, img] = await Promise.all([
@@ -351,8 +315,8 @@ async function upsertProject(row, idx) {
     totalUnits,
     floors,
     priceMin,
-    description,
-    longDescription: description,
+    description: plainDesc,
+    longDescription: JSON.stringify(structured),
     amenities,
     metaTitle,
     metaDescription,
