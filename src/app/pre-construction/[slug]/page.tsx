@@ -1,4 +1,6 @@
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -342,12 +344,25 @@ export default async function ProjectDetailPage({ params }: Props) {
               {project.mainImageUrl ? (
                 <img
                   src={project.mainImageUrl}
-                  alt={`${project.name} exterior`}
+                  alt={`${project.name} exterior rendering — pre-construction condo at ${project.address || 'Toronto'}`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #E5E7EB, #D1D5DB)' }}>
-                  <span style={{ color: '#9CA3AF', fontWeight: 700, fontSize: '4rem' }}>{project.name[0]}</span>
+                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0F1E3D 0%, #1E3A6E 55%, #2952A3 100%)', padding: '32px', textAlign: 'center' }}>
+                  <div style={{ color: '#BFDBFE', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 600, marginBottom: '14px' }}>
+                    Pre-Construction · Toronto
+                  </div>
+                  <div style={{ color: '#FFFFFF', fontSize: '1.75rem', fontWeight: 700, marginBottom: '10px', maxWidth: '600px', lineHeight: 1.15 }}>
+                    {project.name}
+                  </div>
+                  {project.address && (
+                    <div style={{ color: '#E5E7EB', fontSize: '0.9375rem', marginBottom: '18px', maxWidth: '520px' }}>
+                      {project.address}
+                    </div>
+                  )}
+                  <div style={{ color: '#93C5FD', fontSize: '0.8125rem', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid #93C5FD40', padding: '6px 14px', borderRadius: '999px' }}>
+                    Renderings coming soon
+                  </div>
                 </div>
               )}
             </div>
