@@ -15,7 +15,7 @@ export function slugify(s) {
     .replace(/^-+|-+$/g, '');
 }
 
-async function fetchHtml(url, timeout = 10000) {
+async function fetchHtml(url, timeout = 4500) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {

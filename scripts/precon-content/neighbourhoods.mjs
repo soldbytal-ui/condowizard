@@ -579,6 +579,228 @@ NEIGHBOURHOODS['church-wellesley'] = {
   supplyContext: 'A number of high-rise projects are proposed along Church Street and adjacent blocks, which may add competing supply through the late 2020s.',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GTA cities beyond Toronto
+// ═══════════════════════════════════════════════════════════════════════════
+
+NEIGHBOURHOODS['mississauga'] = {
+  canonicalName: 'Mississauga',
+  subDistrict: 'the City Centre, Port Credit, Cooksville, Erin Mills and Lakeview areas',
+  positioning: 'the sixth-largest city in Canada and the largest municipality in Peel Region, with a dense downtown around Square One and a network of waterfront and transit-oriented growth areas',
+  subwayStations: [
+    { name: 'Kipling Station', line: 'Line 2 (Bloor-Danforth)', context: 'the western TTC terminus, accessible from northeast Mississauga via MiWay' },
+  ],
+  surfaceTransit: [
+    'MiWay Mississauga Transit routes across the city',
+    'the Hurontario LRT (Line 10, currently under construction) running north-south from Port Credit to Steeles',
+    'GO Transit Lakeshore West trains at Port Credit, Clarkson and Long Branch stations',
+    'GO Milton line service at Cooksville, Erindale and Streetsville',
+  ],
+  futureTransit: 'The Hurontario LRT is expected to open in phases and will link Port Credit GO to the Brampton Gateway Terminal via Square One and Cooksville GO.',
+  landmarks: [
+    { name: 'Square One Shopping Centre', context: 'the largest shopping mall in Ontario, anchoring downtown Mississauga' },
+    { name: 'the Living Arts Centre and Celebration Square', context: 'the civic and cultural heart of the City Centre' },
+    { name: 'Port Credit and the Lake Ontario waterfront', context: 'a walkable waterfront neighbourhood served by GO Transit' },
+    { name: 'Trillium Health Partners Mississauga Hospital', context: 'along Hurontario near the QEW' },
+  ],
+  employmentNodes: 'Mississauga is home to over 60 Fortune 500 head offices and Canadian HQs, plus Pearson International Airport at its northern edge.',
+  employmentSummary: 'the Airport Corporate Centre and Pearson employment cluster, downtown Mississauga office towers around Square One, and downtown Toronto access via GO Transit',
+  residentProfile: 'Mississauga serves a diverse mix of new-immigrant families, dual-income professionals, downsizers from surrounding houses and international students.',
+  rentalDemandContext: 'Rental demand is supported by Pearson Airport employment, downtown Mississauga office jobs and GO Train access to downtown Toronto.',
+  supplyContext: 'A significant volume of high-rise supply is proposed or under construction around Square One, along the Hurontario corridor and at Lakeview Village, which may compress lease-up pace at delivery.',
+};
+
+NEIGHBOURHOODS['vaughan'] = {
+  canonicalName: 'Vaughan',
+  subDistrict: 'the Vaughan Metropolitan Centre, Thornhill, Woodbridge, Maple and Kleinburg areas',
+  positioning: 'a rapidly urbanising city north of Toronto, anchored by the Vaughan Metropolitan Centre (VMC) at the western terminus of Line 1',
+  subwayStations: [
+    { name: 'Vaughan Metropolitan Centre Station', line: 'Line 1 (Yonge-University)', context: 'the northern terminus of the extended subway' },
+    { name: 'Highway 407 Station', line: 'Line 1', context: 'a park-and-ride station serving regional commuters' },
+  ],
+  surfaceTransit: [
+    'York Region Transit and Viva BRT service across the city',
+    'GO Transit Barrie line service at Rutherford and Maple stations',
+  ],
+  futureTransit: 'The Yonge North Subway Extension will extend Line 1 further north to Richmond Hill through Thornhill, adding a Steeles station in Vaughan.',
+  landmarks: [
+    { name: 'Vaughan Metropolitan Centre', context: 'the emerging downtown with office towers, retail and the KPMG Canadian headquarters' },
+    { name: 'Vaughan Mills shopping centre', context: 'one of Ontario\'s largest outlet malls' },
+    { name: 'Canada\'s Wonderland', context: 'a major theme park on Jane Street' },
+    { name: 'Kortright Centre and the McMichael Canadian Art Collection', context: 'in Kleinburg to the northwest' },
+  ],
+  employmentNodes: 'Vaughan hosts KPMG Canada, PwC and other corporate tenants at VMC, plus a large industrial and logistics employment base across the city.',
+  employmentSummary: 'the Vaughan Metropolitan Centre office cluster, Highway 407/400 industrial and logistics jobs, and downtown Toronto access via Line 1',
+  residentProfile: 'Vaughan serves families, transit-oriented professionals working at VMC or downtown, and downsizers from surrounding low-rise neighbourhoods.',
+  rentalDemandContext: 'Rental demand is supported by subway access to downtown Toronto, VMC office employment and York University\'s Keele campus a short bus ride south.',
+  supplyContext: 'A significant volume of high-rise supply is under construction and proposed around VMC, which may create competing lease-up conditions.',
+};
+
+NEIGHBOURHOODS['markham'] = {
+  canonicalName: 'Markham',
+  subDistrict: 'the Downtown Markham, Unionville, Milliken and Cornell areas',
+  positioning: 'one of Canada\'s fastest-growing municipalities, known for its technology employment corridor along Highway 404 and its heritage main street in Unionville',
+  subwayStations: [
+    { name: 'Finch Station', line: 'Line 1 (Yonge-University)', context: 'the closest TTC subway, reachable via YRT bus routes' },
+  ],
+  surfaceTransit: [
+    'York Region Transit and Viva BRT service along Highway 7 and Highway 404',
+    'GO Transit Stouffville line service at Unionville, Centennial, Markham and Mount Joy stations',
+  ],
+  futureTransit: 'The Yonge North Subway Extension will improve regional transit access from Markham via Richmond Hill.',
+  landmarks: [
+    { name: 'Downtown Markham', context: 'a new master-planned urban centre with offices, retail and residential' },
+    { name: 'Unionville Historic Main Street', context: 'a 19th-century high street on Main Street Unionville' },
+    { name: 'Markham Pan Am Centre', context: 'a public recreation facility with an aquatic centre' },
+    { name: 'the Aaniin Community Centre and Cornell Community Park', context: 'anchoring east Markham' },
+  ],
+  employmentNodes: 'Markham hosts one of Canada\'s largest technology employment clusters, with IBM Canada, Motorola, Huawei and other tenants along the Highway 404 corridor.',
+  employmentSummary: 'the Highway 404 technology corridor, Downtown Markham office towers, and downtown Toronto access via the Stouffville GO line',
+  residentProfile: 'Markham serves a diverse mix of technology professionals, new-immigrant families and long-established residents from Unionville and Thornhill.',
+  rentalDemandContext: 'Rental demand is supported by technology sector employment, GO train access and York University access to the west.',
+  supplyContext: 'A large pipeline of high-rise supply is advancing at Downtown Markham and along Highway 7, which may create competing lease-up conditions.',
+};
+
+NEIGHBOURHOODS['oakville'] = {
+  canonicalName: 'Oakville',
+  subDistrict: 'the Uptown Core, Bronte, Kerr Village, downtown Oakville and Palermo Village areas',
+  positioning: 'a well-established Halton Region community along Lake Ontario, characterised by a preserved downtown, waterfront parks and top-ranked school catchments',
+  subwayStations: [],
+  surfaceTransit: [
+    'Oakville Transit bus routes across the city',
+    'GO Transit Lakeshore West trains at Oakville and Bronte GO stations',
+    'the future Dundas Bus Rapid Transit (BRT) corridor along Dundas Street',
+  ],
+  futureTransit: 'The Dundas BRT (Halton Region\'s share of the Metrolinx Dundas corridor project) will provide high-frequency east-west service across Oakville.',
+  landmarks: [
+    { name: 'downtown Oakville and Lakeside Park', context: 'a preserved 19th-century main street and waterfront' },
+    { name: 'Bronte Harbour and Bronte Village', context: 'a smaller lakefront main street to the west' },
+    { name: 'the Oakville Trafalgar Memorial Hospital', context: 'along Third Line' },
+    { name: 'Sheridan College Trafalgar Road campus', context: 'in the Uptown Core' },
+  ],
+  employmentNodes: 'Oakville hosts Ford Canada\'s national headquarters, several major energy and consumer-goods head offices and an active professional-services employment base.',
+  employmentSummary: 'Oakville\'s corporate head office cluster, downtown Toronto and Mississauga access via Lakeshore West GO, and healthcare employment at Oakville Trafalgar Hospital',
+  residentProfile: 'Oakville serves an affluent family market, professionals commuting west along the QEW or east into Toronto by GO Train, and downsizers.',
+  rentalDemandContext: 'Rental demand is moderate given the strong ownership market, but well-located transit-oriented buildings often retain long-term tenants.',
+  supplyContext: 'New pre-construction supply is concentrated in the Uptown Core, along Dundas and in Bronte, with a growing but manageable pipeline.',
+};
+
+NEIGHBOURHOODS['hamilton'] = {
+  canonicalName: 'Hamilton',
+  subDistrict: 'the downtown, Corktown, Kirkendall, Westdale, Stoney Creek and Ancaster areas',
+  positioning: 'Ontario\'s tenth-largest city, being reshaped by the LRT project along King Street, McMaster University\'s expansion and significant investment along the Hamilton waterfront',
+  subwayStations: [],
+  surfaceTransit: [
+    'Hamilton Street Railway (HSR) bus routes across the city',
+    'GO Transit Lakeshore West trains at Hamilton, West Harbour and Aldershot stations',
+    'the future Hamilton LRT (Line 6 in the Metrolinx system) along King and Main streets',
+  ],
+  futureTransit: 'The Hamilton LRT is under construction and will run from McMaster University to Eastgate Square along King and Main.',
+  landmarks: [
+    { name: 'McMaster University', context: 'anchoring the Westdale neighbourhood' },
+    { name: 'the Bayfront and Pier 8 waterfront development', context: 'redeveloping the harbour edge' },
+    { name: 'Locke Street South and James Street North', context: 'walkable independent retail strips' },
+    { name: 'the Royal Botanical Gardens', context: 'in Burlington immediately west' },
+  ],
+  employmentNodes: 'Hamilton hosts McMaster University and Hospital, ArcelorMittal Dofasco steelmaking, Stelco, and a growing professional-services and healthcare employment base.',
+  employmentSummary: 'McMaster University and Hospital, healthcare employment across Hamilton\'s hospital network, and downtown Toronto access via Lakeshore West GO',
+  residentProfile: 'Hamilton serves a mix of students, healthcare professionals, downtown-oriented young households and buyers priced out of Burlington and Oakville.',
+  rentalDemandContext: 'Rental demand is anchored by McMaster University, Mohawk College, hospital employment and increasing Toronto-priced-out renters.',
+  supplyContext: 'A meaningful pipeline of downtown and King Street condominium supply is advancing in tandem with the LRT programme.',
+};
+
+NEIGHBOURHOODS['pickering'] = {
+  canonicalName: 'Pickering',
+  subDistrict: 'the Pickering City Centre, Bay Ridges, Rosebank and Seaton communities',
+  positioning: 'a Durham Region community on Lake Ontario, being densified around the Pickering GO station and the Pickering City Centre redevelopment',
+  subwayStations: [],
+  surfaceTransit: [
+    'Durham Region Transit bus routes across the city',
+    'GO Transit Lakeshore East trains at Pickering GO station',
+  ],
+  futureTransit: 'GO Expansion is increasing Lakeshore East train frequency, and the Durham-Scarborough BRT will provide high-frequency service west into Scarborough.',
+  landmarks: [
+    { name: 'Pickering Town Centre', context: 'a major regional shopping mall being redeveloped as a mixed-use centre' },
+    { name: 'the Pickering waterfront trail and Frenchman\'s Bay', context: 'along Lake Ontario' },
+    { name: 'the Pickering Casino Resort', context: 'a large entertainment and hotel complex' },
+    { name: 'Seaton, the new master-planned community', context: 'expanding north Pickering' },
+  ],
+  employmentNodes: 'Pickering hosts OPG (Ontario Power Generation), the Pickering Nuclear Generating Station and a growing office and retail base at the City Centre.',
+  employmentSummary: 'OPG and energy sector employment, downtown Toronto access via Lakeshore East GO, and the future Durham-Scarborough BRT',
+  residentProfile: 'Pickering serves families, downsizers from surrounding houses, and Toronto-priced-out professionals with GO commutes.',
+  rentalDemandContext: 'Rental demand is anchored by OPG employment, GO access to downtown Toronto and healthcare and retail jobs across Durham.',
+  supplyContext: 'New supply is concentrated around Pickering City Centre and the GO station, with a growing but manageable pipeline.',
+};
+
+NEIGHBOURHOODS['burlington'] = {
+  canonicalName: 'Burlington',
+  subDistrict: 'the downtown, Aldershot, Alton and Mountainside areas',
+  positioning: 'a Halton Region community on Lake Ontario, consistently ranked among Canada\'s best mid-sized cities, characterised by a preserved downtown and lakefront',
+  subwayStations: [],
+  surfaceTransit: [
+    'Burlington Transit bus routes',
+    'GO Transit Lakeshore West trains at Burlington, Aldershot and Appleby stations',
+  ],
+  futureTransit: 'The Dundas BRT will provide high-frequency east-west service linking Burlington to Oakville and Mississauga.',
+  landmarks: [
+    { name: 'downtown Burlington and Spencer Smith Park', context: 'a preserved main street on the waterfront' },
+    { name: 'the Royal Botanical Gardens', context: 'straddling the Burlington-Hamilton border' },
+    { name: 'the Burlington waterfront trail', context: 'along Lake Ontario' },
+    { name: 'Joseph Brant Hospital', context: 'along the waterfront' },
+  ],
+  employmentNodes: 'Burlington hosts a diverse professional-services, manufacturing and healthcare employment base, plus corporate tenants along the QEW.',
+  employmentSummary: 'downtown Burlington professional services, healthcare employment at Joseph Brant Hospital, and downtown Toronto and Hamilton access via GO Transit',
+  residentProfile: 'Burlington serves an affluent family market, downsizers from surrounding houses and Toronto-priced-out households commuting by GO.',
+  rentalDemandContext: 'Rental demand is moderate given the strong ownership market, though well-located transit-oriented buildings tend to lease well.',
+  supplyContext: 'New pre-construction supply is concentrated in downtown Burlington and along GO station corridors.',
+};
+
+NEIGHBOURHOODS['brampton'] = {
+  canonicalName: 'Brampton',
+  subDistrict: 'the downtown, Mount Pleasant, Bramalea and Heart Lake communities',
+  positioning: 'one of Canada\'s fastest-growing cities and the third-largest municipality in the GTA, characterised by a large young family population and expanding transit',
+  subwayStations: [],
+  surfaceTransit: [
+    'Brampton Transit and Züm BRT routes across the city',
+    'GO Transit Kitchener line service at Brampton, Mount Pleasant and Bramalea stations',
+  ],
+  futureTransit: 'The Hurontario LRT will terminate at Brampton Gateway Terminal, providing rapid transit south to Mississauga and Port Credit GO.',
+  landmarks: [
+    { name: 'downtown Brampton and Gage Park', context: 'a historic main street with a farmers\' market' },
+    { name: 'Bramalea City Centre', context: 'a regional shopping mall' },
+    { name: 'the Peel Memorial Centre and Brampton Civic Hospital', context: 'healthcare employment' },
+    { name: 'Mount Pleasant Village and the Mount Pleasant GO station', context: 'a master-planned transit-oriented community' },
+  ],
+  employmentNodes: 'Brampton hosts Rogers Communications, Loblaw, Sun Life and Amazon distribution operations, plus a large logistics employment base along Highway 407 and 401.',
+  employmentSummary: 'Brampton\'s logistics and distribution employment along the 400-series highways, downtown Toronto access via the Kitchener GO line, and Mississauga access via the future Hurontario LRT',
+  residentProfile: 'Brampton serves a large young family and new-immigrant market, plus GO-commuting professionals working in Toronto and Mississauga.',
+  rentalDemandContext: 'Rental demand is supported by rapid population growth, hospital and logistics employment, and GO Train access to Toronto.',
+  supplyContext: 'New high-rise supply is concentrated in downtown Brampton, along the Hurontario corridor and around Mount Pleasant GO.',
+};
+
+NEIGHBOURHOODS['whitby'] = {
+  canonicalName: 'Whitby',
+  subDistrict: 'the downtown, Whitby Shores, Rossland and Brooklin communities',
+  positioning: 'a Durham Region community on Lake Ontario, characterised by a preserved downtown, waterfront parks and strong school catchments',
+  subwayStations: [],
+  surfaceTransit: [
+    'Durham Region Transit bus routes',
+    'GO Transit Lakeshore East trains at Whitby GO station',
+  ],
+  futureTransit: 'GO Expansion is increasing Lakeshore East service frequency, and the Durham-Scarborough BRT will provide high-frequency east-west service.',
+  landmarks: [
+    { name: 'downtown Whitby and the Whitby Public Library', context: 'a preserved 19th-century main street' },
+    { name: 'the Whitby waterfront trail and Iroquois Park', context: 'along Lake Ontario' },
+    { name: 'Whitby Shores and the marina', context: 'along the waterfront' },
+    { name: 'Lakeridge Health Whitby', context: 'the local hospital campus' },
+  ],
+  employmentNodes: 'Whitby hosts a mix of manufacturing, logistics and professional-services employment, plus Toronto-oriented commuters using GO.',
+  employmentSummary: 'Whitby\'s manufacturing and logistics employment, downtown Toronto access via Lakeshore East GO, and Durham Region healthcare jobs',
+  residentProfile: 'Whitby serves families, GO-commuting professionals and downsizers from surrounding low-rise neighbourhoods.',
+  rentalDemandContext: 'Rental demand is supported by GO access, hospital employment and steady Durham Region growth.',
+  supplyContext: 'New pre-construction supply is concentrated in downtown Whitby and around the GO station corridor.',
+};
+
 export function getNeighbourhoodData(slug) {
   return NEIGHBOURHOODS[slug] || null;
 }
