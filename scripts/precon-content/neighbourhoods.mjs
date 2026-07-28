@@ -801,6 +801,282 @@ NEIGHBOURHOODS['whitby'] = {
   supplyContext: 'New pre-construction supply is concentrated in downtown Whitby and around the GO station corridor.',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Additional GTA and exurb communities (primarily low-rise markets)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const simpleHood = (name, region, opts = {}) => ({
+  canonicalName: name,
+  subDistrict: opts.subDistrict || `the ${name} area`,
+  positioning: opts.positioning || `a ${region} community with a growing residential market`,
+  subwayStations: [],
+  surfaceTransit: opts.surfaceTransit || ['local municipal transit service'],
+  futureTransit: opts.futureTransit || 'No major rapid transit projects are currently under construction in the immediate area.',
+  landmarks: opts.landmarks || [
+    { name: 'local schools and community centres', context: 'across the surrounding neighbourhood' },
+    { name: 'regional parks and recreation trails', context: 'within a short drive' },
+  ],
+  employmentNodes: opts.employmentNodes || `Employment is a mix of local commercial services and commuting to the broader ${region} market.`,
+  employmentSummary: opts.employmentSummary || `local commercial employment and commuting to the wider ${region} employment centres`,
+  residentProfile: opts.residentProfile || 'The area attracts families and buyers seeking freehold ownership at a lower price point than central Toronto.',
+  rentalDemandContext: opts.rentalDemandContext || `Rental demand is typically modest for freehold product in ${name}.`,
+  supplyContext: opts.supplyContext || `New low-rise supply is being added through master-planned communities in and around ${name}.`,
+});
+
+NEIGHBOURHOODS['caledon'] = simpleHood('Caledon', 'Peel Region', {
+  positioning: 'a large, primarily rural Peel Region municipality north of Brampton, known for its rolling countryside and small towns like Bolton and Caledon East',
+  landmarks: [
+    { name: 'the Caledon Trailway', context: 'a rail-trail linking Terra Cotta to Palgrave' },
+    { name: 'the Cheltenham Badlands', context: 'a distinctive geological site' },
+    { name: 'Downey\'s Farm and Albion Hills Conservation Area', context: 'family-oriented recreation' },
+  ],
+  employmentSummary: 'commuting to Brampton, Mississauga and Toronto, plus local commercial and agricultural employment',
+});
+
+NEIGHBOURHOODS['milton'] = simpleHood('Milton', 'Halton Region', {
+  positioning: 'a fast-growing Halton Region community at the base of the Niagara Escarpment, one of the fastest-growing municipalities in Canada',
+  surfaceTransit: ['Milton Transit local bus service', 'GO Transit Milton line trains at Milton GO station'],
+  futureTransit: 'Metrolinx GO Expansion is planned to increase Milton line service frequency over time.',
+  landmarks: [
+    { name: 'the Kelso Conservation Area', context: 'with beach and hiking access at the Niagara Escarpment' },
+    { name: 'the Milton Sports Centre and Mattamy National Cycling Centre', context: 'regional sport facilities' },
+    { name: 'downtown Milton\'s historic Main Street', context: 'anchored by 19th-century commercial buildings' },
+  ],
+  employmentSummary: 'Milton\'s industrial and logistics employment along the 401, plus GO commuting to Toronto and Mississauga',
+});
+
+NEIGHBOURHOODS['aurora'] = simpleHood('Aurora', 'York Region', {
+  positioning: 'an established York Region community north of Richmond Hill, with a heritage main street and access to the Barrie GO line',
+  surfaceTransit: ['York Region Transit and Viva bus routes', 'GO Transit Barrie line trains at Aurora GO station'],
+  landmarks: [
+    { name: 'downtown Aurora\'s Yonge Street historic core', context: 'anchored by the Aurora Cultural Centre' },
+    { name: 'Sheppard\'s Bush Conservation Area', context: 'for local trails' },
+  ],
+  employmentSummary: 'commuting to York Region employment centres and downtown Toronto via GO, plus local retail and professional services',
+});
+
+NEIGHBOURHOODS['whitchurch-stouffville'] = simpleHood('Whitchurch-Stouffville', 'York Region', {
+  positioning: 'a York Region town north of Markham, with a preserved historic downtown and access to the Stouffville GO line',
+  surfaceTransit: ['York Region Transit bus routes', 'GO Transit Stouffville line trains at Stouffville and Old Elm stations'],
+  landmarks: [
+    { name: 'downtown Stouffville\'s heritage main street', context: 'along Main Street' },
+    { name: 'Musselman\'s Lake and the Vandorf Sideroad recreation area', context: 'a short drive north' },
+  ],
+  employmentSummary: 'commuting to Markham and Toronto via the Stouffville GO line, plus local commercial employment',
+});
+
+NEIGHBOURHOODS['king-city'] = simpleHood('King City', 'York Region', {
+  positioning: 'a small York Region community within King Township, known for its estate lots, equestrian properties and access to the Barrie GO line',
+  surfaceTransit: ['York Region Transit bus routes', 'GO Transit Barrie line trains at King City GO station'],
+  landmarks: [
+    { name: 'the Oak Ridges Moraine and the ravine system', context: 'directly surrounding the community' },
+    { name: 'the King Township Museum', context: 'documenting local history' },
+  ],
+  employmentSummary: 'GO commuting to Toronto and Vaughan, plus estate-market local employment',
+});
+
+NEIGHBOURHOODS['east-gwillimbury'] = simpleHood('East Gwillimbury', 'York Region', {
+  positioning: 'a growing York Region community north of Newmarket, with new master-planned communities along the Yonge corridor',
+  surfaceTransit: ['York Region Transit bus routes', 'GO Transit Barrie line trains at East Gwillimbury GO station'],
+  employmentSummary: 'commuting to Newmarket and Toronto via GO, plus local commercial and industrial employment',
+});
+
+NEIGHBOURHOODS['ajax'] = simpleHood('Ajax', 'Durham Region', {
+  positioning: 'a Durham Region community on Lake Ontario between Pickering and Whitby, with a preserved lakefront and active downtown',
+  surfaceTransit: ['Durham Region Transit bus routes', 'GO Transit Lakeshore East trains at Ajax GO station'],
+  landmarks: [
+    { name: 'the Ajax waterfront trail and Rotary Park', context: 'along Lake Ontario' },
+    { name: 'Duffins Trail and Greenwood Conservation Area', context: 'for local recreation' },
+  ],
+  employmentSummary: 'commuting to Toronto via Lakeshore East GO, plus Ajax industrial and healthcare employment',
+});
+
+NEIGHBOURHOODS['oshawa'] = simpleHood('Oshawa', 'Durham Region', {
+  positioning: 'the largest Durham Region city, historically anchored by General Motors and now home to Ontario Tech University and Trent University Durham',
+  surfaceTransit: ['Durham Region Transit and Pulse BRT service', 'GO Transit Lakeshore East trains at Oshawa GO station'],
+  landmarks: [
+    { name: 'Ontario Tech University and Durham College campuses', context: 'anchoring north Oshawa' },
+    { name: 'the Oshawa waterfront and Lakeview Park', context: 'along Lake Ontario' },
+    { name: 'the Canadian Automotive Museum and Parkwood Estate', context: 'downtown Oshawa heritage sites' },
+  ],
+  employmentSummary: 'Ontario Tech and Durham College employment, healthcare at Lakeridge Health, and GO Transit access to Toronto',
+});
+
+NEIGHBOURHOODS['bowmanville'] = simpleHood('Bowmanville', 'Durham Region', {
+  positioning: 'the largest urban area within the Municipality of Clarington in eastern Durham Region, with a preserved historic downtown along King Street',
+  surfaceTransit: ['Durham Region Transit bus routes'],
+  futureTransit: 'The GO Transit Lakeshore East extension will add a Bowmanville GO station, providing rail service to Toronto.',
+  landmarks: [
+    { name: 'downtown Bowmanville\'s King Street heritage strip', context: 'anchored by 19th-century commercial buildings' },
+    { name: 'Canadian Tire Motorsport Park (Mosport)', context: 'a major motorsport venue nearby' },
+  ],
+  employmentSummary: 'commuting to Oshawa and the broader Durham market, plus local commercial and manufacturing employment',
+});
+
+NEIGHBOURHOODS['newcastle'] = simpleHood('Newcastle', 'Durham Region', {
+  positioning: 'a village within the Municipality of Clarington east of Bowmanville, with a preserved historic downtown and access to Lake Ontario',
+  employmentSummary: 'commuting west to Bowmanville, Oshawa and the broader Durham region for employment',
+});
+
+NEIGHBOURHOODS['kleinburg'] = simpleHood('Kleinburg', 'York Region', {
+  positioning: 'a small heritage village within the City of Vaughan, known for the McMichael Canadian Art Collection and estate-style residential communities',
+  landmarks: [
+    { name: 'the McMichael Canadian Art Collection', context: 'a major public gallery' },
+    { name: 'the Kortright Centre for Conservation', context: 'a nearby environmental education centre' },
+    { name: 'the Kleinburg village heritage main street', context: 'anchored by boutique shops and restaurants' },
+  ],
+  employmentSummary: 'commuting to Vaughan and Toronto for employment, plus local commercial and hospitality jobs',
+});
+
+NEIGHBOURHOODS['bolton'] = simpleHood('Bolton', 'Peel Region', {
+  positioning: 'a historic village within the Town of Caledon, north of Brampton along Highway 50 and the Humber River',
+  landmarks: [
+    { name: 'the Humber River trail system', context: 'running through the village' },
+    { name: 'Bolton Camp and Palgrave Forest', context: 'for outdoor recreation' },
+  ],
+  employmentSummary: 'commuting to Brampton, Vaughan and Toronto for employment, plus local commercial services',
+});
+
+NEIGHBOURHOODS['georgina'] = simpleHood('Georgina', 'York Region', {
+  positioning: 'a Lake Simcoe waterfront community at the northern edge of York Region, including the historic villages of Sutton and Keswick',
+  landmarks: [
+    { name: 'Lake Simcoe and the ROC (Recreational Outdoor Campus)', context: 'anchoring the waterfront' },
+    { name: 'Sibbald Point Provincial Park', context: 'for camping and beach access' },
+  ],
+  employmentSummary: 'commuting south to Newmarket, Aurora and the broader GTA for employment',
+});
+
+NEIGHBOURHOODS['keswick'] = simpleHood('Keswick', 'York Region', {
+  positioning: 'a community within the Town of Georgina on the west shore of Lake Simcoe, north of Newmarket via Highway 404',
+  landmarks: [
+    { name: 'Lake Simcoe waterfront parks', context: 'along Cook\'s Bay' },
+    { name: 'the ROC (Recreational Outdoor Campus)', context: 'for four-season recreation' },
+  ],
+  employmentSummary: 'commuting to Newmarket, Aurora and the broader GTA for employment via Highway 404',
+});
+
+NEIGHBOURHOODS['nobleton'] = simpleHood('Nobleton', 'York Region', {
+  positioning: 'a village within King Township north of Vaughan, characterised by estate lots and rural properties',
+  employmentSummary: 'commuting to Vaughan, Aurora and Toronto for employment',
+});
+
+NEIGHBOURHOODS['georgetown'] = simpleHood('Georgetown', 'Halton Region', {
+  positioning: 'a community within the Town of Halton Hills west of Brampton, with a preserved historic main street and access to GO Transit',
+  surfaceTransit: ['Halton Hills Transit bus service', 'GO Transit Kitchener line trains at Georgetown GO station'],
+  employmentSummary: 'commuting to Brampton, Mississauga and Toronto via the Kitchener GO line, plus local employment',
+});
+
+NEIGHBOURHOODS['ancaster'] = simpleHood('Ancaster', 'Hamilton area', {
+  positioning: 'a community within the City of Hamilton on the Niagara Escarpment, with a preserved village core and premium residential streets',
+  landmarks: [
+    { name: 'downtown Ancaster village', context: 'anchored by 19th-century commercial buildings' },
+    { name: 'the Dundas Valley Conservation Area', context: 'for hiking and nature' },
+  ],
+  employmentSummary: 'commuting to Hamilton, McMaster University and the broader Halton and Hamilton employment markets',
+});
+
+NEIGHBOURHOODS['stoney-creek'] = simpleHood('Stoney Creek', 'Hamilton area', {
+  positioning: 'a community within the City of Hamilton along the Lake Ontario shoreline east of downtown Hamilton',
+  landmarks: [
+    { name: 'the Stoney Creek waterfront and Fifty Point Conservation Area', context: 'along Lake Ontario' },
+    { name: 'Battlefield House Museum', context: 'a War of 1812 heritage site' },
+  ],
+  employmentSummary: 'commuting to Hamilton, Burlington and Oakville for employment',
+});
+
+NEIGHBOURHOODS['binbrook'] = simpleHood('Binbrook', 'Hamilton area', {
+  positioning: 'a growing community within the City of Hamilton south of Stoney Creek, with new master-planned residential development',
+  employmentSummary: 'commuting to Hamilton and the broader western GTA for employment',
+});
+
+NEIGHBOURHOODS['caledonia'] = simpleHood('Caledonia', 'Hamilton area', {
+  positioning: 'a small community within Haldimand County south of Hamilton on the Grand River',
+  employmentSummary: 'commuting to Hamilton and Brantford for employment',
+});
+
+NEIGHBOURHOODS['mount-hope'] = simpleHood('Mount Hope', 'Hamilton area', {
+  positioning: 'a community within the City of Hamilton adjacent to John C. Munro Hamilton International Airport',
+  employmentSummary: 'commuting to Hamilton and Hamilton Airport employment, plus local commercial jobs',
+});
+
+NEIGHBOURHOODS['bradford'] = simpleHood('Bradford', 'Outer GTA', {
+  positioning: 'a community within Bradford West Gwillimbury in Simcoe County, north of East Gwillimbury via Highway 400',
+  surfaceTransit: ['GO Transit Barrie line trains at Bradford GO station'],
+  employmentSummary: 'commuting via GO Transit to Toronto and the broader York Region market',
+});
+
+NEIGHBOURHOODS['shelburne'] = simpleHood('Shelburne', 'Outer GTA', {
+  positioning: 'a small town in Dufferin County northwest of Brampton',
+  employmentSummary: 'commuting to Orangeville, Brampton and the broader GTA for employment',
+});
+
+NEIGHBOURHOODS['innisfil'] = simpleHood('Innisfil', 'Outer GTA', {
+  positioning: 'a Lake Simcoe waterfront town in Simcoe County south of Barrie, with the Alcona and Cookstown communities',
+  landmarks: [
+    { name: 'Lake Simcoe waterfront and Innisfil Beach Park', context: 'along Cook\'s Bay' },
+  ],
+  employmentSummary: 'commuting to Barrie and the broader York and GTA markets for employment',
+});
+
+NEIGHBOURHOODS['blue-mountains'] = simpleHood('The Blue Mountains', 'Outer GTA', {
+  positioning: 'a Georgian Bay four-season resort community northwest of Toronto, known for skiing at Blue Mountain Resort',
+  landmarks: [
+    { name: 'Blue Mountain Resort', context: 'a major ski resort' },
+    { name: 'the Georgian Bay waterfront and Beaver Valley', context: 'for four-season recreation' },
+  ],
+  employmentSummary: 'primarily hospitality, tourism and construction employment, plus commuting to nearby Collingwood',
+});
+
+NEIGHBOURHOODS['wasaga-beach'] = simpleHood('Wasaga Beach', 'Outer GTA', {
+  positioning: 'a Georgian Bay waterfront town in Simcoe County, home to the longest freshwater beach in the world',
+  landmarks: [
+    { name: 'the Wasaga Beach shoreline and Wasaga Beach Provincial Park', context: 'along Georgian Bay' },
+  ],
+  employmentSummary: 'primarily hospitality and tourism employment, plus commuting to Collingwood and Barrie',
+});
+
+NEIGHBOURHOODS['welland'] = simpleHood('Welland', 'Outer GTA', {
+  positioning: 'a city in the Niagara Region along the Welland Canal, south of St. Catharines',
+  employmentSummary: 'local commercial and industrial employment plus commuting to St. Catharines and Niagara Falls',
+});
+
+NEIGHBOURHOODS['brantford'] = simpleHood('Brantford', 'Outer GTA', {
+  positioning: 'a city in southern Ontario west of Hamilton, along the Grand River',
+  landmarks: [
+    { name: 'the Grand River waterfront trail', context: 'through downtown' },
+    { name: 'Wilfrid Laurier University\'s Brantford campus', context: 'in the downtown core' },
+  ],
+  employmentSummary: 'local manufacturing and healthcare employment plus commuting to Hamilton',
+});
+
+NEIGHBOURHOODS['kitchener'] = simpleHood('Kitchener', 'Outer GTA', {
+  positioning: 'the largest city in the Waterloo Region, forming a tri-city area with Waterloo and Cambridge',
+  surfaceTransit: ['Grand River Transit and the ION LRT', 'GO Transit Kitchener line trains at Kitchener GO station'],
+  landmarks: [
+    { name: 'downtown Kitchener\'s tech corridor', context: 'anchored by Google Canada, Communitech and other tech tenants' },
+    { name: 'the University of Waterloo and Wilfrid Laurier University', context: 'in adjacent Waterloo' },
+  ],
+  employmentSummary: 'the Waterloo Region tech employment cluster, university employment and GO commuting to Toronto',
+});
+
+NEIGHBOURHOODS['niagara'] = simpleHood('Niagara Region', 'Outer GTA', {
+  positioning: 'the wine country and international border region south of Hamilton, including St. Catharines, Niagara Falls and Niagara-on-the-Lake',
+  landmarks: [
+    { name: 'Niagara Falls', context: 'a major international tourism destination' },
+    { name: 'Niagara-on-the-Lake\'s heritage main street and Shaw Festival', context: 'in the wine region' },
+    { name: 'Brock University', context: 'in St. Catharines' },
+  ],
+  employmentSummary: 'hospitality, tourism, wine industry and manufacturing employment across the Niagara Region',
+});
+
+NEIGHBOURHOODS['uxbridge'] = simpleHood('Uxbridge', 'Durham Region', {
+  positioning: 'a small town in northern Durham Region, characterised by preserved trails and equestrian properties',
+  landmarks: [
+    { name: 'the Uxbridge Trail Network', context: 'the town\'s designated Trail Capital of Canada network' },
+  ],
+  employmentSummary: 'commuting to Markham, Whitchurch-Stouffville and the broader GTA for employment',
+});
+
 export function getNeighbourhoodData(slug) {
   return NEIGHBOURHOODS[slug] || null;
 }

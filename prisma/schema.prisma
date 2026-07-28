@@ -58,6 +58,7 @@ model Project {
   metaTitle        String?
   metaDescription  String?
   faqJson          Json?
+  buildingType     String?         @default("CONDO")
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -70,6 +71,7 @@ model Project {
   @@index([status])
   @@index([category])
   @@index([featured])
+  @@index([buildingType])
   @@map("projects")
 }
 

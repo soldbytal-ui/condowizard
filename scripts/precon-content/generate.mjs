@@ -69,6 +69,121 @@ function extractDistinguishingFeatures(name, notable, floors, totalUnits, develo
 const lcFirst = (s) => s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
 const possessive = (name) => name.endsWith('s') ? `${name}'` : `${name}'s`;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LOW-RISE (freehold homes) mode
+// ═══════════════════════════════════════════════════════════════════════════
+
+function inferLowriseType(homeTypes) {
+  const t = (homeTypes || '').toLowerCase();
+  const parts = [];
+  if (t.includes('detached')) parts.push('detached homes');
+  if (t.includes('semi')) parts.push('semis');
+  if (t.includes('town')) parts.push(t.includes('luxury') ? 'luxury townhomes' : 'townhomes');
+  if (!parts.length) return 'residential homes';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts.join(' and ');
+  return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+
+export function buildLowriseSummary(p) {
+  const productMix = inferLowriseType(p.homeTypes);
+  const hood = getNeighbourhoodData(p.neighbourhoodSlug);
+  const nearbyLine = hood && hood.landmarks?.length
+    ? `Residents will be positioned near ${hood.landmarks[0].name}${hood.landmarks[1] ? ` and ${hood.landmarks[1].name}` : ''}.`
+    : `The community sits within the ${p.neighbourhoodName} area.`;
+  const notableClean = (p.notable || '').replace(/\.$/, '');
+  const notableLine = notableClean ? `The community is described as ${notableClean.toLowerCase()}.` : '';
+  const occLine = p.estCompletion ? ` Occupancy for later phases is expected in ${p.estCompletion} or later.` : ' Occupancy timelines vary by phase and are confirmed at signing.';
+  return `${p.name} is a new low-rise community of ${productMix} planned for ${p.address || `the ${p.neighbourhoodName} area`} in ${p.neighbourhoodName}. The community is being developed by ${p.developerName}.${occLine} ${notableLine} ${nearbyLine}`.replace(/\s+/g, ' ').trim();
+}
+
+export function buildLowriseNotable(p) {
+  const developer = getDeveloperData(p.developerSlug, p.developerName);
+  const productMix = inferLowriseType(p.homeTypes);
+  const developerContext = developer.knownFor
+    ? ` ${developer.displayName || p.developerName} is known for ${developer.knownFor}.`
+    : '';
+  const notableLine = p.notable ? ` The community is described as ${p.notable.toLowerCase().replace(/\.$/, '')}.` : '';
+  return `${p.name} offers ${productMix} within an established municipal context in ${p.neighbourhoodName}, providing a freehold-ownership alternative to condominium living.${notableLine}${developerContext} Buyers researching the community should review the developer\'s site plan, lot sizes, floor plans and standard specifications, as elevations, model availability and finishes can change between phases.`;
+}
+
+export function buildLowriseLocation(p) {
+  const hood = getNeighbourhoodData(p.neighbourhoodSlug);
+  if (!hood) {
+    return `${p.name} is located in ${p.neighbourhoodName}. Detailed municipal information for this community will be added to CondoWizard as the surrounding market is documented. Buyers can request a personalised location brief covering nearby schools, commuting options and services from a CondoWizard representative.`;
+  }
+  const opening = `${p.name} is located within ${hood.subDistrict}. ${hood.canonicalName} is ${hood.positioning}.`;
+  const transitParts = [];
+  if (hood.subwayStations?.length) transitParts.push(hood.subwayStations.map(s => `${s.name} on ${s.line}`).join(' and '));
+  if (hood.surfaceTransit?.length) transitParts.push(hood.surfaceTransit.slice(0, 2).join(' and '));
+  const transitLine = transitParts.length ? `Transit access includes ${transitParts.join(', plus ')}.` : 'Public transit options vary across the surrounding area and should be confirmed against your intended commute.';
+  const landmarkLine = hood.landmarks?.length
+    ? `Nearby destinations include ${hood.landmarks.slice(0, 4).map(l => `${l.name} (${l.context})`).join('; ')}.`
+    : '';
+  const employmentLine = hood.employmentNodes ? ` ${hood.employmentNodes}` : '';
+  return `${opening}\n\n${transitLine}\n\n${landmarkLine}${employmentLine}`.trim();
+}
+
+export function buildLowriseBuyer(p) {
+  const hood = getNeighbourhoodData(p.neighbourhoodSlug);
+  const productMix = inferLowriseType(p.homeTypes);
+  const buyerType = /detached/i.test(productMix) ? 'families and end-users seeking single-family ownership' : 'first-time buyers, families and downsizers seeking freehold townhome ownership';
+  const empSummary = hood?.employmentSummary || 'nearby regional employment centres';
+  return `${p.name} may appeal to ${buyerType} in ${p.neighbourhoodName}. The community draws on ${empSummary}.\n\nBuyers should review lot sizes, standard finishes, upgrade pricing, deposit structure and any Parcel of Tied Land (POTL) fees before committing. Freehold ownership does not include the same amenity or service model as a condominium, so shared road maintenance, snow removal or private common elements should be understood in advance. Property tax rates and school catchments differ across the GTA and should be confirmed as part of the diligence process.\n\nFrom an investment perspective, low-rise freehold product has historically shown different pricing behaviour to high-rise condominiums. Buyers should compare the community against nearby resale listings, upcoming resale supply and other pre-construction low-rise communities in ${hood?.canonicalName || p.neighbourhoodName}. Future value will depend on the final purchase price, lot type, standard specifications, upgrade decisions and the broader housing market at time of resale.`;
+}
+
+export function buildLowriseFaqs(p) {
+  const hood = getNeighbourhoodData(p.neighbourhoodSlug);
+  const dev = getDeveloperData(p.developerSlug, p.developerName);
+  const productMix = inferLowriseType(p.homeTypes);
+  const faqs = [];
+  faqs.push({ question: `Where is ${p.name} located?`, answer: p.address ? `${p.name} is located at ${p.address} in ${p.neighbourhoodName}${hood ? `, within ${hood.subDistrict}` : ''}.` : `${p.name} is located in ${p.neighbourhoodName}. The exact street address is confirmed at sales launch.` });
+  faqs.push({ question: `What types of homes are available at ${p.name}?`, answer: `${p.name} offers ${productMix}. The final model mix, lot sizes and elevations are set by the builder and confirmed in the sales package.` });
+  faqs.push({ question: `Who is building ${p.name}?`, answer: `${p.name} is being built by ${p.developerName}${dev.founded ? `, a ${dev.hq} builder founded in ${dev.founded}` : ''}.${dev.knownFor ? ` The company is known for ${dev.knownFor}.` : ''}` });
+  faqs.push({ question: `When is estimated occupancy for ${p.name}?`, answer: p.estCompletion ? `Occupancy is currently targeted for ${p.estCompletion} or later, depending on the phase and model. Dates are set by the builder and can change based on construction and permitting.` : `Occupancy dates for ${p.name} vary by phase and are confirmed at signing. Register with CondoWizard to receive updates as new releases are announced.` });
+  faqs.push({ question: `Is ${p.name} freehold or condominium?`, answer: `${p.name} is a freehold low-rise community. Some townhome portions may include Parcel of Tied Land (POTL) fees covering shared private roads or common elements. Full ownership details are confirmed in the purchase agreement.` });
+  faqs.push({ question: `What is the deposit structure at ${p.name}?`, answer: `The deposit structure is confirmed at sales launch and typically spans multiple instalments between signing and closing. CondoWizard can share the current schedule and any purchaser incentives available at time of enquiry.` });
+  faqs.push({ question: `Are there any current incentives for buyers at ${p.name}?`, answer: `Purchaser incentives vary by phase and are set by the builder. Common examples include capped development charges, extended deposit structures or upgrade credits. CondoWizard can confirm what is currently offered.` });
+  faqs.push({ question: `How do I receive floor plans and current pricing for ${p.name}?`, answer: `Register through the enquiry form on this page. A CondoWizard representative will confirm the latest available models, floor plans, standard specifications, deposit schedule and any current builder incentives.` });
+  return faqs;
+}
+
+export function buildLowriseStructuredContent(p) {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    about: buildLowriseSummary(p) + '\n\n' + buildLowriseNotable(p),
+    location: buildLowriseLocation(p),
+    investment: buildLowriseBuyer(p),
+    developer: buildDeveloperProfile(p),
+    pricing: `Pricing, lot availability and floor plans for ${p.name} are set by the builder and can change as models release or reprice between phases. Contact CondoWizard for the current price list, available lots, standard specifications and any purchaser incentives.`,
+    considerations: [
+      'Occupancy dates can change based on construction progress and municipal approvals.',
+      'Standard specifications, elevations and lot dimensions may differ between phases.',
+      'Development charges, education levies and other municipal fees may apply at closing.',
+      'Upgrade pricing can differ significantly from standard specifications.',
+      'Property tax assessments are set after occupancy and may differ from initial estimates.',
+      'Parcel of Tied Land (POTL) fees may apply to townhome components.',
+      'Renderings are artist concepts. Final home appearance may vary.',
+    ].join('\n'),
+    lastVerified: today,
+  };
+}
+
+export function buildLowriseMetaTitle(p) {
+  const bare = p.name.replace(/\s+(Homes?|Community|Communities|Towns?)$/i, '');
+  const short = `${bare} Homes | New Community in ${p.neighbourhoodName}`;
+  if (short.length <= 60) return short;
+  return `${bare} | New Homes in ${p.neighbourhoodName}`;
+}
+
+export function buildLowriseMetaDescription(p) {
+  const mix = inferLowriseType(p.homeTypes);
+  const desc = `${p.name} is a new pre-construction community of ${mix} by ${p.developerName} in ${p.neighbourhoodName}. Register for floor plans, lot availability and current pricing.`;
+  if (desc.length <= 160) return desc;
+  const shorter = `${p.name} - new ${mix} by ${p.developerName} in ${p.neighbourhoodName}. Register for floor plans and pricing on CondoWizard.`;
+  return shorter.length <= 160 ? shorter : shorter.slice(0, 160);
+}
+
 export function buildSummary(p) {
   const bt = inferBuildingType(p.name, p.notable);
   const features = extractDistinguishingFeatures(p.name, p.notable, p.floors, p.totalUnits, p.developerName);
