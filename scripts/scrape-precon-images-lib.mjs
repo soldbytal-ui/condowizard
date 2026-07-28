@@ -46,16 +46,24 @@ const GENERIC_OG_BLACKLIST = [
 
 const isGeneric = (url) => GENERIC_OG_BLACKLIST.some(rx => rx.test(url));
 
+// Unwrap Next.js image proxy URLs like /_next/image?url=https%3A%2F%2F...&w=X
+function unwrapNextImage(u) {
+  if (!u) return u;
+  const nextMatch = u.match(/\/_next\/image\?url=([^&]+)/);
+  if (nextMatch) { try { return decodeURIComponent(nextMatch[1]); } catch { return u; } }
+  return u;
+}
+
 function extractImages(html, baseUrl) {
   const results = [];
   const ogMatches = [...html.matchAll(/<meta[^>]*(?:property|name)=["'](?:og:image|og:image:secure_url|twitter:image)["'][^>]*content=["']([^"']+)["']/gi)];
-  ogMatches.forEach(m => results.push({ url: m[1], og: true }));
+  ogMatches.forEach(m => results.push({ url: unwrapNextImage(m[1]), og: true }));
   const ogRev = [...html.matchAll(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|og:image:secure_url|twitter:image)["']/gi)];
-  ogRev.forEach(m => results.push({ url: m[1], og: true }));
+  ogRev.forEach(m => results.push({ url: unwrapNextImage(m[1]), og: true }));
 
   const imgMatches = [...html.matchAll(/<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp))["'][^>]*>/gi)];
   imgMatches.forEach(m => {
-    const src = m[1];
+    const src = unwrapNextImage(m[1]);
     if (/logo|icon|avatar|placeholder|blank|1x1|pixel|thumb|thumbnail|100x100|150x150|feed-icon|favicon/i.test(src)) return;
     if (/hero|banner|main|feature|render|exterior|building|tower|architec|nav-slider|slider|gallery|carousel|1920|1440|1200|1024|800/i.test(src)) {
       results.push({ url: src, og: false });
@@ -64,6 +72,18 @@ function extractImages(html, baseUrl) {
 
   const wpMatches = [...html.matchAll(/(https?:\/\/[^"'\s]+wp-content\/uploads\/[^"'\s]+\.(?:jpg|jpeg|png|webp))/gi)];
   wpMatches.forEach(m => results.push({ url: m[1], og: false }));
+
+  // Homebaba and similar CDNs — image.homebaba.ca gallery images (webp)
+  const cdnMatches = [...html.matchAll(/(https?:\/\/image\.homebaba\.ca\/[^"'\s]+\.(?:jpg|jpeg|png|webp))/gi)];
+  cdnMatches.forEach(m => results.push({ url: m[1], og: false }));
+
+  // srcSet — unwrap first proxy'd URL
+  const srcSetMatches = [...html.matchAll(/srcSet=["']([^"']*_next\/image[^"']*)["']/gi)];
+  srcSetMatches.forEach(m => {
+    const first = m[1].split(',')[0].trim().split(' ')[0];
+    const unwrapped = unwrapNextImage(first);
+    if (unwrapped && unwrapped !== first) results.push({ url: unwrapped, og: false });
+  });
 
   return results
     .map(r => {
@@ -109,19 +129,26 @@ async function findProjectPageOnListing(listingHtml, listingUrl, projectSlug) {
 
 export async function findBestImage(name, csvSource, csvWebsite) {
   const slug = slugify(name.replace(/\s*condos?\s*$/i, ''));
+  const slugAlt = slugify(name); // keep any "condos" tail
   const listingPatterns = [
+    // Homebaba — best coverage for both condos and low-rise in Ontario
+    `https://homebaba.ca/community/${slug}`,
+    `https://homebaba.ca/community/${slugAlt}`,
+    `https://homebaba.ca/community/${slug}-condos`,
+    `https://homebaba.ca/community/${slug}-homes`,
+    // Traditional Toronto pre-con listing sites
     `https://precondo.ca/${slug}/`,
     `https://precondo.ca/${slug}-condos/`,
-    `https://condonow.com/${name.replace(/\s+/g, '-').replace(/[^\w-]/g,'')}-Condos`,
-    `https://condonow.com/${slug}-condos`,
+    `https://www.gta-homes.com/toronto-condos/${slug}/`,
+    `https://www.gta-homes.com/gta-new-homes/${slug}/`,
     `https://condos.ca/toronto/${slug}`,
     `https://condos.ca/toronto/${slug}-condos`,
-    `https://www.gta-homes.com/toronto-condos/${slug}/`,
     `https://www.talkcondo.com/toronto/${slug}/`,
     `https://www.talkcondo.com/toronto/${slug}-condos/`,
-    `https://www.buzzbuzzhome.com/us/${slug}`,
+    // Aggregators / GTA-wide
     `https://www.buzzbuzzhome.com/ca/${slug}`,
-    `https://homebaba.ca/${slug}/`,
+    `https://www.buzzbuzzhome.com/us/${slug}`,
+    `https://www.newinhomes.com/community/${slug}`,
   ];
   const candidates = [...listingPatterns];
   if (csvWebsite) candidates.push(csvWebsite);
