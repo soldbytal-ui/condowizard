@@ -9,46 +9,54 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     (async () => {
-      // PKCE flow: Google/Supabase redirects here with `?code=xxx`. Explicitly
-      // exchange it for a session (idempotent — safe alongside detectSessionInUrl).
+      // PKCE flow: Google/Supabase redirects here with `?code=…`. Explicitly
+      // exchange it for a session; idempotent alongside detectSessionInUrl.
       const url = new URL(window.location.href);
       const code = url.searchParams.get('code');
       if (code) {
-        try {
-          await supabase.auth.exchangeCodeForSession(code);
-        } catch {
-          // detectSessionInUrl:true may have already exchanged; ignore
-        }
+        try { await supabase.auth.exchangeCodeForSession(code); } catch {}
       }
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Check if profile exists
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('id')
-          .eq('id', session.user.id)
-          .single();
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) { router.replace('/'); return; }
+
+      // Check whether we already have a completed profile.
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('phone, first_name, last_name')
+        .eq('id', session.user.id)
+        .single();
+
+      const complete = !!(profile?.phone && profile?.first_name);
+      if (!complete) {
+        // Seed a profile row from Google metadata if none exists yet.
         if (!profile) {
-          // Create profile from Google data
-          const meta = session.user.user_metadata;
-          await supabase.from('user_profiles').insert({
+          const meta = session.user.user_metadata || {};
+          const fullName = String(meta.full_name || meta.name || '');
+          const [firstName, ...rest] = fullName.split(' ');
+          await supabase.from('user_profiles').upsert({
             id: session.user.id,
-            first_name: meta?.full_name?.split(' ')[0] || meta?.name || 'User',
-            last_name: meta?.full_name?.split(' ').slice(1).join(' ') || '',
+            first_name: firstName || 'User',
+            last_name: rest.join(' ') || '',
             email: session.user.email || '',
-            phone: '', // Will need to complete
-            avatar_url: meta?.avatar_url || meta?.picture || null,
+            phone: '',
+            avatar_url: (meta.avatar_url as string) || (meta.picture as string) || null,
+            vow_agreed: false,
           });
         }
+        router.replace('/onboarding');
+      } else {
+        router.replace('/');
       }
-      router.replace('/');
     })();
   }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-text-muted">Completing sign in...</p>
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 mx-auto mb-3 border-2 border-accent-blue border-t-transparent rounded-full" />
+        <p className="text-text-muted text-sm">Completing sign in…</p>
+      </div>
     </div>
   );
 }

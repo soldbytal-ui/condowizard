@@ -441,8 +441,9 @@ export default function Navbar() {
 }
 
 function SavedHomesButton({ mobile }: { mobile?: boolean }) {
-  const { isAuthenticated, setShowAuthModal } = useAuth();
-  const label = 'Saved';
+  const { isAuthenticated, setShowAuthModal, savedListingIds } = useAuth();
+  const n = savedListingIds.size;
+  const label = n > 0 ? `Saved (${n})` : 'Saved';
   const cls = mobile
     ? 'block w-full text-left py-2.5 text-text-primary font-medium border border-border rounded-lg px-3'
     : 'text-[12.5px] font-medium text-text-primary/85 hover:text-text-primary px-2 py-2 rounded-md transition-colors flex items-center gap-1';

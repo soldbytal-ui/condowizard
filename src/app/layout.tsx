@@ -3,7 +3,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ChatWidget from '@/components/chat/ChatWidget';
 import { AuthProvider } from '@/contexts/AuthContext';
-import AuthModal from '@/components/auth/AuthModal';
+import LoginModal from '@/components/auth/LoginModal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -69,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-screen">{children}</main>
           <Footer />
           <ChatWidget />
-          <AuthModal />
+          <LoginModal />
         </AuthProvider>
       </body>
     </html>

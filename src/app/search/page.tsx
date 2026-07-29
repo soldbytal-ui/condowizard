@@ -9,6 +9,7 @@ import ListingCard from '@/components/search/ListingCard';
 import { UnifiedListing, ListingFilters, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
 import SignupBanner from '@/components/auth/SignupBanner';
+import { useSavedSearches } from '@/hooks/useSavedSearches';
 
 const SearchMap = dynamic(() => import('@/components/search/SearchMap'), {
   ssr: false,
@@ -42,7 +43,9 @@ const NEIGHBOURHOOD_NAME_MAP: Record<string, string> = {
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { savedListingIds, toggleSaveListing, isAuthenticated, setShowAuthModal } = useAuth();
+  const { savedListingIds, toggleSaveListing, isAuthenticated, setShowAuthModal, showLoginModal } = useAuth();
+  const { saveSearch } = useSavedSearches();
+  const [savedFlash, setSavedFlash] = useState(false);
   const [listings, setListings] = useState<UnifiedListing[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -291,6 +294,31 @@ function SearchContent() {
         filters={filters} onFilterChange={handleFilterChange} onMlsLookup={handleMlsLookup}
         totalCount={totalCount} avgPrice={statistics.averagePrice} avgDom={statistics.averageDom} medianSoldPrice={statistics.medianSoldPrice}
       />
+
+      {/* Get Alerts strip */}
+      <div className="border-b border-border bg-white px-4 py-2 flex items-center justify-between gap-3">
+        <p className="text-xs text-text-muted truncate">
+          {loading ? 'Loading…' : totalCount > 0 ? `${totalCount.toLocaleString()} matches` : 'No matches'}
+        </p>
+        <button
+          type="button"
+          onClick={async () => {
+            if (!isAuthenticated) { showLoginModal('signup'); return; }
+            const { error } = await saveSearch(filters as any);
+            if (!error) { setSavedFlash(true); setTimeout(() => setSavedFlash(false), 2500); }
+          }}
+          className="text-xs font-semibold bg-text-primary text-white px-3 py-1.5 rounded-md hover:brightness-110 flex items-center gap-1.5"
+        >
+          {savedFlash ? '✓ Alert saved' : (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14V11a6 6 0 10-12 0v3a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              Get alerts
+            </>
+          )}
+        </button>
+      </div>
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Collapsible left panel — inline style for smooth transition */}
