@@ -1,11 +1,34 @@
 // Utilities for converting between building addresses and URL slugs.
 // A building slug is the address without unit/apt info, e.g. "300-front-st-w".
 
-const STREET_SUFFIXES = [
-  'st', 'ave', 'blvd', 'rd', 'dr', 'cres', 'way', 'ter', 'crt', 'ct',
-  'ln', 'pl', 'sq', 'mews', 'pkwy', 'hwy', 'trail', 'gate', 'circle',
-  'cir', 'grove', 'grv', 'heights', 'hts', 'ridge',
-];
+// Both short and long forms of street suffixes are recognised on parse. All
+// forms normalise to the TREB abbreviated suffix that Repliers returns in
+// the `address.streetSuffix` field ("St" / "Ave" / "Blvd" / ...).
+const SUFFIX_MAP: Record<string, string> = {
+  street: 'St', st: 'St',
+  avenue: 'Ave', ave: 'Ave',
+  boulevard: 'Blvd', blvd: 'Blvd',
+  road: 'Rd', rd: 'Rd',
+  drive: 'Dr', dr: 'Dr',
+  crescent: 'Cres', cres: 'Cres',
+  court: 'Crt', crt: 'Crt', ct: 'Crt',
+  lane: 'Lane', ln: 'Lane',
+  place: 'Pl', pl: 'Pl',
+  terrace: 'Ter', ter: 'Ter',
+  way: 'Way',
+  trail: 'Trail', trl: 'Trail',
+  circle: 'Cir', cir: 'Cir',
+  square: 'Sq', sq: 'Sq',
+  gardens: 'Gdns', gdns: 'Gdns',
+  grove: 'Grve', grv: 'Grve',
+  heights: 'Hts', hts: 'Hts',
+  parkway: 'Pkwy', pkwy: 'Pkwy',
+  mews: 'Mews',
+  gate: 'Gate',
+  highway: 'Hwy', hwy: 'Hwy',
+  ridge: 'Ridge',
+};
+
 const STREET_DIRECTIONS = ['w', 'e', 'n', 's', 'nw', 'ne', 'sw', 'se'];
 
 export interface BuildingAddress {
@@ -39,15 +62,17 @@ export function slugifyFullAddress(addr: string): string {
 }
 
 // Parse a slug back to address components.
-// "300-front-st-w" → { streetNumber: "300", streetName: "Front", streetSuffix: "St", streetDirection: "W" }
-// "155-yorkville-ave" → { streetNumber: "155", streetName: "Yorkville", streetSuffix: "Ave" }
+// "300-front-st-w"     → { streetNumber: "300", streetName: "Front",     streetSuffix: "St",  streetDirection: "W" }
+// "284-king-street"    → { streetNumber: "284", streetName: "King",      streetSuffix: "St" }
+// "8-pemberton-avenue" → { streetNumber: "8",   streetName: "Pemberton", streetSuffix: "Ave" }
+// "155-yorkville-ave"  → { streetNumber: "155", streetName: "Yorkville", streetSuffix: "Ave" }
 // "151-dan-leckie-way" → { streetNumber: "151", streetName: "Dan Leckie", streetSuffix: "Way" }
 export function parseAddressFromSlug(slug: string): BuildingAddress | null {
   if (!slug) return null;
   const tokens = slug.toLowerCase().split('-').filter(Boolean);
   if (tokens.length < 2) return null;
 
-  // First token should be the street number
+  // First token should be the street number (optionally followed by a letter, e.g. "12a")
   const streetNumber = tokens[0];
   if (!/^\d+[a-z]?$/.test(streetNumber)) return null;
 
@@ -60,10 +85,14 @@ export function parseAddressFromSlug(slug: string): BuildingAddress | null {
     streetDirection = rest.pop()!.toUpperCase();
   }
 
-  // Last remaining token: suffix?
-  if (rest.length > 1 && STREET_SUFFIXES.includes(rest[rest.length - 1])) {
-    const s = rest.pop()!;
-    streetSuffix = s.charAt(0).toUpperCase() + s.slice(1);
+  // Last remaining token: suffix (recognise both "st" and "street", normalise to "St")
+  if (rest.length > 1) {
+    const last = rest[rest.length - 1];
+    const normalised = SUFFIX_MAP[last];
+    if (normalised) {
+      rest.pop();
+      streetSuffix = normalised;
+    }
   }
 
   if (rest.length === 0) return null;

@@ -19,30 +19,65 @@ interface ListingsResponse {
   count?: number;
 }
 
-async function fetchBuildingListings(
-  addr: ReturnType<typeof parseAddressFromSlug>,
-  extras: Record<string, unknown>,
-): Promise<RepliersListing[]> {
-  if (!addr) return [];
+async function queryRepliers(body: Record<string, unknown>): Promise<RepliersListing[]> {
   try {
     const res = await repliersRequest<ListingsResponse>({
       path: '/listings',
-      body: {
-        streetNumber: addr.streetNumber,
-        streetName: addr.streetName,
-        ...(addr.streetSuffix ? { streetSuffix: addr.streetSuffix } : {}),
-        ...(addr.streetDirection ? { streetDirection: addr.streetDirection } : {}),
-        class: 'condo',
-        boardId: 91,
-        resultsPerPage: 50,
-        ...extras,
-      },
+      body: { boardId: 91, resultsPerPage: 50, ...body },
       revalidate: 600,
     });
     return res.listings || [];
   } catch {
     return [];
   }
+}
+
+// Three-tier lookup so a slug parses to units even when TREB returns the
+// street with slightly different structure than what we sent.
+//   Tier 1  — full parsed address (streetNumber + streetName + streetSuffix + direction)
+//   Tier 2  — drop streetSuffix (TREB street records vary in whether the
+//             suffix is stored on the street row vs. on the listing row)
+//   Tier 3  — fall back to the general `search` param, then filter results
+//             on the exact street number so fuzzy matches on other streets
+//             don't leak in
+// The `class` filter is intentionally omitted so buildings with mixed types
+// (e.g. a tower with both Condo Apt and Condo Townhouse units) match.
+async function fetchBuildingListings(
+  addr: ReturnType<typeof parseAddressFromSlug>,
+  extras: Record<string, unknown>,
+): Promise<RepliersListing[]> {
+  if (!addr) return [];
+
+  // Tier 1: full parsed address
+  const tier1Body: Record<string, unknown> = {
+    streetNumber: addr.streetNumber,
+    streetName: addr.streetName,
+    ...(addr.streetSuffix ? { streetSuffix: addr.streetSuffix } : {}),
+    ...(addr.streetDirection ? { streetDirection: addr.streetDirection } : {}),
+    ...extras,
+  };
+  let results = await queryRepliers(tier1Body);
+  if (results.length > 0) return results;
+
+  // Tier 2: drop the suffix
+  if (addr.streetSuffix) {
+    const tier2Body: Record<string, unknown> = {
+      streetNumber: addr.streetNumber,
+      streetName: addr.streetName,
+      ...(addr.streetDirection ? { streetDirection: addr.streetDirection } : {}),
+      ...extras,
+    };
+    results = await queryRepliers(tier2Body);
+    if (results.length > 0) return results;
+  }
+
+  // Tier 3: general search + filter on the parsed street number to keep it tight
+  const searchStr = [addr.streetNumber, addr.streetName, addr.streetDirection]
+    .filter(Boolean)
+    .join(' ');
+  const tier3Body: Record<string, unknown> = { search: searchStr, ...extras };
+  results = await queryRepliers(tier3Body);
+  return results.filter((l) => l.address?.streetNumber === addr.streetNumber);
 }
 
 async function getBuildingData(slug: string) {
