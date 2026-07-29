@@ -9,6 +9,17 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     (async () => {
+      // PKCE flow: Google/Supabase redirects here with `?code=xxx`. Explicitly
+      // exchange it for a session (idempotent — safe alongside detectSessionInUrl).
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      if (code) {
+        try {
+          await supabase.auth.exchangeCodeForSession(code);
+        } catch {
+          // detectSessionInUrl:true may have already exchanged; ignore
+        }
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         // Check if profile exists

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { UnifiedListing, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
+import BlurredPrice from '@/components/auth/BlurredPrice';
 
 interface ListingCardProps {
   listing: UnifiedListing;
@@ -38,6 +39,7 @@ function overUnderAsking(soldPrice: number | null, listPrice: number | null): { 
 }
 
 export default function ListingCard({ listing, onHover, isHighlighted, isSoldView, isRentView }: ListingCardProps) {
+  const { isAuthenticated } = useAuth();
   const href = listing.source === 'mls'
     ? `/listing/${listing.mlsNumber}`
     : `/projects/${listing.slug}`;
@@ -45,6 +47,15 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
   const mainImage = listing.images?.[0] || '/placeholder-property.jpg';
   const isSold = isSoldView || !!listing.soldPrice;
   const overUnder = isSold ? overUnderAsking(listing.soldPrice, listing.originalPrice || listing.price) : null;
+
+  // Pre-construction is public (no MLS/VOW restriction). Everything else
+  // (active for-sale, for-rent, sold) requires auth to see price + exact
+  // address. Non-authenticated users see a decoy price via BlurredPrice
+  // and a neighbourhood-only address so nothing is leaked in the DOM.
+  const gatePricing = !isAuthenticated && listing.source !== 'precon';
+  const displayAddress = gatePricing
+    ? (listing.neighborhood || listing.city || 'Toronto')
+    : listing.address;
 
   return (
     <Link
@@ -102,7 +113,9 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
 
       {/* Info */}
       <div className="p-3">
-        {isSold && listing.soldPrice ? (
+        {gatePricing ? (
+          <BlurredPrice seed={listing.id} suffix={isRentView ? '/mo' : ''} />
+        ) : isSold && listing.soldPrice ? (
           <>
             <p className="font-serif text-lg font-bold text-text-primary leading-tight">
               ${listing.soldPrice.toLocaleString()}
@@ -135,7 +148,7 @@ export default function ListingCard({ listing, onHover, isHighlighted, isSoldVie
           </p>
         )}
 
-        <p className="text-sm text-text-muted mt-1 truncate">{listing.address}</p>
+        <p className="text-sm text-text-muted mt-1 truncate">{displayAddress}</p>
 
         <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
           {listing.beds > 0 && <span>{listing.beds} bed</span>}

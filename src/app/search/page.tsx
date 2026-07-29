@@ -8,6 +8,7 @@ import SearchFilters from '@/components/search/SearchFilters';
 import ListingCard from '@/components/search/ListingCard';
 import { UnifiedListing, ListingFilters, BUILDING_TYPE_COLORS, BUILDING_TYPE_LABELS } from '@/types/listing';
 import { useAuth } from '@/contexts/AuthContext';
+import SignupBanner from '@/components/auth/SignupBanner';
 
 const SearchMap = dynamic(() => import('@/components/search/SearchMap'), {
   ssr: false,
@@ -343,15 +344,27 @@ function SearchContent() {
               </div>
             ) : filters.tab === 'sold' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
-                {listings.map((listing) => (
-                  <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView isRentView={false} />
-                ))}
+                {listings.flatMap((listing, i) => {
+                  const card = (
+                    <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView isRentView={false} />
+                  );
+                  if (!isAuthenticated && i === 5) {
+                    return [card, <SignupBanner key="signup-banner-sold" totalCount={totalCount} />];
+                  }
+                  return card;
+                })}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
-                {listings.map((listing) => (
-                  <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView={false} isRentView={filters.tab === 'rent'} />
-                ))}
+                {listings.flatMap((listing, i) => {
+                  const card = (
+                    <ListingCard key={listing.mlsNumber || listing.id} listing={listing} onHover={setHighlightedId} isHighlighted={listing.id === highlightedId} isSoldView={false} isRentView={filters.tab === 'rent'} />
+                  );
+                  if (!isAuthenticated && i === 5) {
+                    return [card, <SignupBanner key="signup-banner-active" totalCount={totalCount} />];
+                  }
+                  return card;
+                })}
               </div>
             )}
             {listings.length > 0 && listings.length < totalCount && !(filters.tab === 'sold' && !isAuthenticated) && (

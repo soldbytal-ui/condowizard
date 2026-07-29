@@ -12,6 +12,17 @@ import LocationSection from './LocationSection';
 import SaveSearchBanner from './SaveSearchBanner';
 import SidebarSupport from './SidebarSupport';
 import RecoCard from './RecoCard';
+import BlurredPrice from '@/components/auth/BlurredPrice';
+import SignupBanner from '@/components/auth/SignupBanner';
+
+// Strip unit number + street number so the visible line reveals only the
+// street name for signed-out visitors.
+function streetOnly(address: string): string {
+  return (address || '')
+    .replace(/^#\S+\s*[·•,\-]?\s*/, '')  // drop leading unit
+    .replace(/^\d+\s*/, '')                 // drop leading street number
+    .trim();
+}
 
 const ListingMiniMap = dynamic(() => import('./ListingMiniMap'), { ssr: false });
 
@@ -130,7 +141,7 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
   const [comps, setComps] = useState<UnifiedListing[] | null>(null);
   const [nearby, setNearby] = useState<UnifiedListing[] | null>(null);
   const [rentalComps, setRentalComps] = useState<UnifiedListing[] | null>(null);
-  const { savedListingIds, toggleSaveListing, requireAuth } = useAuth();
+  const { savedListingIds, toggleSaveListing, requireAuth, isAuthenticated } = useAuth();
 
   const images = listing?.images || [];
   const buildingColor = BUILDING_TYPE_COLORS[listing.buildingType] || '#6B7280';
@@ -368,7 +379,11 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
             {/* Price + badge + MLS/DOM */}
             <div className="mt-6 flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="font-serif text-3xl font-bold text-text-primary">{listing.priceDisplay || 'Contact'}</h1>
+                {isAuthenticated ? (
+                  <h1 className="font-serif text-3xl font-bold text-text-primary">{listing.priceDisplay || 'Contact'}</h1>
+                ) : (
+                  <BlurredPrice seed={listing.id} size="lg" />
+                )}
                 <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: buildingColor + '20', color: buildingColor }}>
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: buildingColor }} />{buildingLabel}
                 </span>
@@ -378,16 +393,24 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                 <p>{listing.dom || 0} days on market</p>
               </div>
             </div>
-            {estimate?.estimatedValue && (
+            {isAuthenticated && estimate?.estimatedValue && (
               <p className="text-sm mt-1">
                 <span className="text-text-muted">AI Estimate:</span>{' '}
                 <span className="text-accent-green font-medium">${estimate.estimatedValue.toLocaleString()}</span>
               </p>
             )}
 
-            {/* Address */}
-            <p className="text-lg text-text-muted mt-2">{listing.address}</p>
+            {/* Address — street-only for signed-out visitors so the exact
+                street number and unit are never rendered to the DOM. */}
+            <p className="text-lg text-text-muted mt-2">
+              {isAuthenticated ? listing.address : streetOnly(listing.address)}
+            </p>
             <p className="text-sm text-text-muted">{listing.neighborhood}, {listing.city}</p>
+            {!isAuthenticated && (
+              <div className="mt-5">
+                <SignupBanner variant="detail" />
+              </div>
+            )}
             {listing.source === 'mls' && /condo|apart|co-op/i.test(listing.propertyType || '') && (() => {
               const buildingAddr = listing.address.replace(/[,#].*$/, '').replace(/\bunit\s+\S+/gi, '').trim();
               const buildingSlug = slugifyFullAddress(listing.address);
@@ -522,7 +545,25 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
           <div className="mt-6">
               {activeTab === 'overview' && (
                 <div className="space-y-6">
-                  {pd.description && <div><h3 className="font-semibold text-lg mb-2">Description</h3><p className="text-sm text-text-muted leading-relaxed whitespace-pre-line">{pd.description}</p></div>}
+                  {pd.description && (
+                    isAuthenticated ? (
+                      <div><h3 className="font-semibold text-lg mb-2">Description</h3><p className="text-sm text-text-muted leading-relaxed whitespace-pre-line">{pd.description}</p></div>
+                    ) : (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Description</h3>
+                        <div className="bg-white border border-border rounded-xl p-5">
+                          <p className="text-sm text-text-muted">The listing description is available to registered users. Signing up takes 30 seconds and unlocks the exact address, list price, description, sold history and comparable sales.</p>
+                          <button
+                            type="button"
+                            onClick={() => requireAuth('view listing description')}
+                            className="mt-3 text-sm font-semibold text-accent-blue hover:underline"
+                          >
+                            Sign up free →
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  )}
                   <div>
                     <h3 className="font-semibold text-lg mb-3">Property Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 bg-white rounded-xl border border-border p-4">
