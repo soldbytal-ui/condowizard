@@ -62,16 +62,27 @@ const NEIGHBOURHOODS = [
 ];
 
 export default function Navbar() {
-  const hoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname() || '/';
   const isHome = pathname === '/';
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [hoodOpen, setHoodOpen] = useState(false);
-  const [mlsOpen, setMlsOpen] = useState(false);
+  // Single source of truth for the currently open desktop dropdown.
+  // Only one dropdown can be open at a time; hovering/clicking another
+  // one immediately swaps this value, so MLS and Pre-Construction (both
+  // children-style dropdowns) never overlap.
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const openDropdownNamed = useCallback((name: string) => {
+    if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+    setOpenDropdown(name);
+  }, []);
+  const scheduleCloseDropdown = useCallback(() => {
+    if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+    dropdownTimeoutRef.current = setTimeout(() => setOpenDropdown(null), 150);
+  }, []);
   // Whether the hero's own search is currently in the viewport.
   // Initialised to the pessimistic case (true on homepage) so the header
   // search doesn't flash in before the IntersectionObserver has run.
@@ -87,14 +98,22 @@ export default function Navbar() {
 
   useEffect(() => {
     setMobileOpen(false);
-    setHoodOpen(false);
-    setMlsOpen(false);
+    setOpenDropdown(null);
     setMobileSearchOpen(false);
     // Assume homepage has a hero search present at top; interior pages don't.
     // The observer effect below will confirm and take over.
     setHasHeroSearch(isHome);
     setHeroSearchVisible(isHome);
   }, [pathname, isHome]);
+
+  // Click-outside closes any open dropdown. Buttons stop propagation so
+  // clicking one dropdown toggle doesn't dismiss it before it opens.
+  useEffect(() => {
+    if (!openDropdown) return;
+    const onDocClick = () => setOpenDropdown(null);
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [openDropdown]);
 
   // Observe the hero search element (if the current page renders one).
   // When it scrolls out of view, we reveal the header search.
@@ -168,29 +187,35 @@ export default function Navbar() {
 
         <div className="hidden lg:flex items-center gap-0.5 shrink-0 ml-auto">
           {PRIMARY_NAV.map((item) => {
-            // MLS-style dropdown (parent with children).
+            // Children-style dropdown (MLS, Pre-Construction). Each keys
+            // into the shared `openDropdown` slot by label, so only one is
+            // ever open.
             if (item.children) {
               const parentActive = item.match ? item.match(pathname) : false;
+              const isOpen = openDropdown === item.label;
               return (
                 <div
                   key={item.label}
                   className="relative"
-                  onMouseEnter={() => { if (mlsTimeoutRef.current) clearTimeout(mlsTimeoutRef.current); setMlsOpen(true); }}
-                  onMouseLeave={() => { mlsTimeoutRef.current = setTimeout(() => setMlsOpen(false), 150); }}
+                  onMouseEnter={() => openDropdownNamed(item.label)}
+                  onMouseLeave={scheduleCloseDropdown}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button
+                    type="button"
+                    onClick={() => setOpenDropdown((prev) => (prev === item.label ? null : item.label))}
                     className={`text-[12.5px] font-medium px-2 py-2 rounded-md transition-colors flex items-center gap-1 ${
                       parentActive ? 'text-accent-blue' : 'text-text-primary/85 hover:text-text-primary'
                     }`}
-                    aria-expanded={mlsOpen}
+                    aria-expanded={isOpen}
                     aria-haspopup="menu"
                   >
                     {item.label}
-                    <svg className={`w-3 h-3 transition-transform ${mlsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  {mlsOpen && (
+                  {isOpen && (
                     <div className="absolute top-full left-0 pt-2" role="menu">
                       <div className="bg-white rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-border p-2 min-w-[220px]">
                         {item.children.map((c) => {
@@ -200,6 +225,7 @@ export default function Navbar() {
                               key={c.label}
                               href={c.href}
                               role="menuitem"
+                              onClick={() => setOpenDropdown(null)}
                               className={`block px-3 py-2 rounded-md transition-colors ${
                                 active ? 'bg-surface2' : 'hover:bg-surface2'
                               }`}
@@ -216,33 +242,40 @@ export default function Navbar() {
               );
             }
 
-            // Neighbourhoods-style hash dropdown.
+            // Neighbourhoods-style hash dropdown — uses the same shared
+            // `openDropdown` slot as MLS / Pre-Construction so all three
+            // mutually exclude one another.
             const isNeighbourhoodsBtn = item.href?.startsWith('#');
             if (isNeighbourhoodsBtn) {
+              const isOpen = openDropdown === item.label;
               return (
                 <div
                   key={item.label}
                   className="relative"
-                  onMouseEnter={() => { if (hoodTimeoutRef.current) clearTimeout(hoodTimeoutRef.current); setHoodOpen(true); }}
-                  onMouseLeave={() => { hoodTimeoutRef.current = setTimeout(() => setHoodOpen(false), 150); }}
+                  onMouseEnter={() => openDropdownNamed(item.label)}
+                  onMouseLeave={scheduleCloseDropdown}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button
+                    type="button"
+                    onClick={() => setOpenDropdown((prev) => (prev === item.label ? null : item.label))}
                     className="text-[12.5px] font-medium text-text-primary/85 hover:text-text-primary px-2 py-2 rounded-md transition-colors flex items-center gap-1"
-                    aria-expanded={hoodOpen}
+                    aria-expanded={isOpen}
                     aria-haspopup="menu"
                   >
                     {item.label}
-                    <svg className={`w-3 h-3 transition-transform ${hoodOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  {hoodOpen && (
+                  {isOpen && (
                     <div className="absolute top-full right-0 pt-2" role="menu">
                       <div className="bg-white rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-border p-2 min-w-[520px] grid grid-cols-3 gap-0">
                         {NEIGHBOURHOODS.map((n) => (
                           <Link
                             key={n.slug}
                             href={`/neighborhood/${n.slug}`}
+                            onClick={() => setOpenDropdown(null)}
                             className="block px-3 py-1.5 text-[13px] text-text-primary/80 hover:text-accent-blue hover:bg-surface2 rounded-md transition-colors"
                           >
                             {n.name}
@@ -250,6 +283,7 @@ export default function Navbar() {
                         ))}
                         <Link
                           href="/search"
+                          onClick={() => setOpenDropdown(null)}
                           className="block col-span-3 mt-1 pt-2 border-t border-border px-3 py-1.5 text-[12px] font-medium text-accent-blue hover:underline"
                         >
                           View all neighbourhoods →
