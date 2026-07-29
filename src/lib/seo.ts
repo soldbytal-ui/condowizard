@@ -160,13 +160,12 @@ export function generateArticleSchema(post: {
     ...(post.featuredImage && { image: post.featuredImage }),
     author: {
       '@type': 'Person',
-      name: post.author || 'CondoWizard.ca',
+      name: post.author || 'Tal Shelef',
       url: 'https://condowizard.ca/about',
-      jobTitle: 'Real Estate Market Analyst',
+      jobTitle: 'Sales Representative',
       worksFor: {
         '@type': 'Organization',
-        name: 'CondoWizard.ca',
-        url: 'https://condowizard.ca',
+        name: 'Rare Real Estate Inc., Brokerage',
       },
     },
     publisher: {

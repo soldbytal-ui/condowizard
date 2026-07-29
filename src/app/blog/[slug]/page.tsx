@@ -3,61 +3,70 @@ export const dynamic = 'force-dynamic';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import Markdown from 'react-markdown';
 import { supabase } from '@/lib/supabase';
-import { generateArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
+import {
+  parseArticle,
+  extractHeadings,
+  extractFaqSchemaItems,
+  stripRedundantSections,
+  readingTime,
+} from '@/lib/blog-content';
+import {
+  generateArticleSchema,
+  generateBreadcrumbSchema,
+  generateFAQSchema,
+} from '@/lib/seo';
+import ArticleBody from '@/components/blog/ArticleBody';
+import { TocDesktop, TocMobile } from '@/components/blog/TableOfContents';
+import AuthorCard from '@/components/blog/AuthorCard';
+import ClientActions from '@/components/blog/ClientActions';
+import HeroCostGraphic from '@/components/blog/HeroCostGraphic';
+import SummaryPanel, { type SummaryLine } from '@/components/blog/SummaryPanel';
 
 type Props = { params: Promise<{ slug: string }> };
 
-function cleanKeyword(kw: string | null) {
-  if (!kw) return null;
-  return kw.replace(/^\*+\s*/, '').trim();
+const AUTHOR_IMAGE_SRC: string | null = null;
+
+const SUMMARY_PANELS: Record<
+  string,
+  { lines: SummaryLine[]; footnote: string; showHeroGraphic?: boolean }
+> = {
+  'pre-construction-condo-closing-costs-toronto': {
+    lines: [
+      { label: 'Purchase price', value: '$850,000' },
+      { label: 'Deposit already paid (20%)', value: '$170,000' },
+      { label: 'Est. combined LTT (net FTHB rebates)', value: '$18,475' },
+      { label: 'Development charges (buyer cap)', value: 'up to $15,000' },
+      { label: 'Legal + title + disbursements', value: 'market range' },
+      { label: 'HST out-of-pocket for FTHB owner-occupier', value: '$0 to variable' },
+      {
+        label: 'Illustrative cash requirement at final closing above deposits paid',
+        value: '≈ $35,000 to $40,000',
+        emphasis: true,
+      },
+    ],
+    footnote:
+      'Illustrative example only. Assumes Canadian-resident first-time buyer occupying as principal residence, APS signed after April 1 2026, purchaser cap on development charges, and mortgage funding the remaining balance. Actual amounts vary by APS, project, and rebate eligibility. Not a quote and not tax or legal advice.',
+    showHeroGraphic: true,
+  },
+};
+
+function isoOr(d: string | Date | null | undefined): string | undefined {
+  if (!d) return undefined;
+  const dt = typeof d === 'string' ? new Date(d.includes('Z') ? d : d + 'Z') : d;
+  return isNaN(dt.getTime()) ? undefined : dt.toISOString();
 }
 
-function getReadingTime(content: string | null) {
-  if (!content) return '5 min read';
-  const words = content.split(/\s+/).length;
-  return `${Math.max(1, Math.round(words / 250))} min read`;
+function displayDate(d: string | Date | null | undefined): string {
+  if (!d) return '';
+  const dt = typeof d === 'string' ? new Date(d.includes('Z') ? d : d + 'Z') : d;
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-/** Strip embedded frontmatter lines from markdown content */
-function cleanContent(content: string) {
-  return content
-    .split('\n')
-    .filter((line) => {
-      const t = line.trim();
-      return (
-        !t.startsWith('**Meta Title:') &&
-        !t.startsWith('**Meta Description:') &&
-        !t.startsWith('**Target Keyword:') &&
-        !t.startsWith('**Slug:')
-      );
-    })
-    .join('\n');
-}
-
-function getExcerpt(post: any) {
-  if (!post.excerpt || post.excerpt === '---' || post.excerpt.length < 10) {
-    if (!post.content) return '';
-    const lines = post.content.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (
-        trimmed &&
-        !trimmed.startsWith('#') &&
-        !trimmed.startsWith('**Meta') &&
-        !trimmed.startsWith('**Target') &&
-        !trimmed.startsWith('**Slug') &&
-        !trimmed.startsWith('>') &&
-        !trimmed.startsWith('---') &&
-        !trimmed.startsWith('|') &&
-        trimmed.length > 60
-      ) {
-        return trimmed.replace(/\*\*/g, '').slice(0, 200);
-      }
-    }
-  }
-  return post.excerpt;
+function categoryLabel(post: any): string {
+  if (post.category && typeof post.category === 'string') return post.category;
+  return 'BUYER GUIDE';
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -69,26 +78,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .single();
   if (!post) return { title: 'Post Not Found' };
   const title = post.metaTitle || post.title;
-  const description = post.metaDescription || getExcerpt(post) || post.title;
+  const description = post.metaDescription || post.excerpt || post.title;
+  const url = `https://condowizard.ca/blog/${slug}`;
   return {
     title,
     description,
-    alternates: {
-      canonical: `https://condowizard.ca/blog/${slug}`,
-    },
+    alternates: { canonical: url },
     openGraph: {
       title,
       description,
-      url: `https://condowizard.ca/blog/${slug}`,
+      url,
       type: 'article',
-      ...(post.publishedAt && { publishedTime: new Date(post.publishedAt).toISOString() }),
-      ...(post.featuredImage && { images: [{ url: post.featuredImage, alt: title }] }),
+      ...(post.publishedAt && { publishedTime: isoOr(post.publishedAt) }),
+      ...(post.updatedAt && { modifiedTime: isoOr(post.updatedAt) }),
+      authors: [post.author || 'Tal Shelef'],
+      section: categoryLabel(post),
+      ...(post.featuredImage ? { images: [{ url: post.featuredImage, alt: title }] } : { images: ['/og-image.png'] }),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      ...(post.featuredImage && { images: [post.featuredImage] }),
+      images: [post.featuredImage || '/og-image.png'],
     },
   };
 }
@@ -102,203 +113,317 @@ export default async function BlogPostPage({ params }: Props) {
     .single();
   if (!post) notFound();
 
-  const { data: relatedPosts } = await supabase
-    .from('blog_posts')
-    .select('*')
-    .neq('id', post.id)
-    .not('publishedAt', 'is', null)
-    .order('publishedAt', { ascending: false })
-    .limit(3);
-
-  const articleSchema = generateArticleSchema(post);
-  const breadcrumb = generateBreadcrumbSchema([
-    { name: 'Home', url: 'https://condowizard.ca' },
-    { name: 'Blog', url: 'https://condowizard.ca/blog' },
-    { name: post.title, url: `https://condowizard.ca/blog/${post.slug}` },
+  const [{ data: relatedPosts }, { data: featuredProjects }] = await Promise.all([
+    supabase
+      .from('blog_posts')
+      .select('slug,title,excerpt,category,publishedAt')
+      .neq('id', post.id)
+      .not('publishedAt', 'is', null)
+      .order('publishedAt', { ascending: false })
+      .limit(3),
+    supabase
+      .from('projects')
+      .select('name,slug,neighborhood:neighborhoods(name)')
+      .eq('featured', true)
+      .neq('status', 'ARCHIVED')
+      .order('createdAt', { ascending: false })
+      .limit(3),
   ]);
 
-  const keyword = cleanKeyword(post.targetKeyword);
-  const readTime = getReadingTime(post.content);
+  const category = categoryLabel(post);
+  const body = stripRedundantSections(post.content || '');
+  const blocks = parseArticle(body);
+  const headings = extractHeadings(body);
+  const { label: readLabel } = readingTime(post.content || '');
+  const canonical = `https://condowizard.ca/blog/${slug}`;
+  const accessDate = displayDate(post.updatedAt || post.publishedAt || new Date());
+  const publishedLabel = displayDate(post.publishedAt);
+  const updatedLabel = displayDate(post.updatedAt);
+
+  const summary = SUMMARY_PANELS[slug];
+  const faqItems = extractFaqSchemaItems(blocks);
+
+  const articleSchema = generateArticleSchema({
+    ...post,
+    updatedAt: post.updatedAt,
+  });
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: 'https://condowizard.ca' },
+    { name: 'Blog', url: 'https://condowizard.ca/blog' },
+    { name: post.title, url: canonical },
+  ]);
+  const faqSchema = faqItems.length > 0 ? generateFAQSchema(faqItems) : null;
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
 
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-b from-accent-blue/5 to-transparent border-b border-border">
-        <div className="container-main max-w-4xl pt-24 pb-12">
-          <nav className="text-sm text-text-muted mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-accent-blue transition-colors">Home</Link>
-            <span className="text-text-muted/30">/</span>
-            <Link href="/blog" className="hover:text-accent-blue transition-colors">Blog</Link>
-            <span className="text-text-muted/30">/</span>
-            <span className="text-text-muted truncate max-w-[200px]">{post.title}</span>
+      {/* Editorial Hero */}
+      <header className="border-b border-border bg-gradient-to-b from-surface2/60 via-surface2/20 to-transparent">
+        <div className="container-main max-w-6xl pt-24 pb-10 md:pt-28 md:pb-14">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-6 flex items-center gap-2 text-xs text-text-muted"
+          >
+            <Link href="/" className="hover:text-accent-blue transition-colors">
+              Home
+            </Link>
+            <span aria-hidden="true" className="text-text-muted/40">
+              ›
+            </span>
+            <Link href="/blog" className="hover:text-accent-blue transition-colors">
+              Blog
+            </Link>
+            <span aria-hidden="true" className="text-text-muted/40">
+              ›
+            </span>
+            <span className="truncate max-w-[180px] text-text-primary/70">{post.title}</span>
           </nav>
 
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            {keyword && (
-              <span className="text-xs text-accent-blue font-medium uppercase tracking-wider bg-accent-blue/10 px-3 py-1 rounded-full">
-                {keyword}
-              </span>
-            )}
-            <span className="text-xs text-text-muted/50 bg-surface2 px-3 py-1 rounded-full">
-              {readTime}
-            </span>
-          </div>
-
-          <h1 className="text-3xl md:text-5xl font-bold text-text-primary leading-[1.15] tracking-tight">
-            {post.title}
-          </h1>
-
-          <div className="flex items-center gap-4 mt-6">
-            {/* Author avatar */}
-            <div className="w-10 h-10 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-accent-blue font-semibold text-sm">
-                {post.author?.split(' ').map((w: string) => w[0]).join('').slice(0, 2) || 'CW'}
-              </span>
-            </div>
+          <div className="grid gap-8 md:gap-10 md:grid-cols-[minmax(0,1fr)_320px] lg:grid-cols-[minmax(0,1fr)_360px] items-center">
             <div>
-              <p className="text-sm text-text-primary font-medium">{post.author}</p>
-              <div className="flex items-center gap-2 text-xs text-text-muted/60">
-                {post.publishedAt && (
-                  <span>{new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              <span className="inline-flex items-center rounded-full border border-accent-blue/25 bg-accent-blue/10 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.15em] text-accent-blue">
+                {category}
+              </span>
+              <h1 className="mt-4 font-serif text-3xl sm:text-4xl md:text-5xl font-bold leading-[1.1] tracking-tight text-text-primary max-w-3xl">
+                {post.title}
+              </h1>
+              {post.excerpt && (
+                <p className="mt-5 text-lg md:text-xl leading-relaxed text-text-muted max-w-2xl">
+                  {post.excerpt.split(/\.\s+/)[0]}.
+                </p>
+              )}
 
-      {/* Article Body */}
-      <article className="container-main max-w-4xl py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-10">
-          {/* Content */}
-          <div className="min-w-0">
-            <div className="prose prose-invert prose-lg max-w-none
-              prose-headings:text-text-primary prose-headings:font-bold prose-headings:tracking-tight
-              prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-border
-              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
-              prose-p:text-text-muted prose-p:leading-relaxed prose-p:mb-4
-              prose-li:text-text-muted prose-li:leading-relaxed
-              prose-strong:text-text-primary prose-strong:font-semibold
-              prose-a:text-accent-blue prose-a:no-underline hover:prose-a:underline prose-a:font-medium
-              prose-blockquote:border-l-4 prose-blockquote:border-accent-blue/40 prose-blockquote:bg-accent-blue/5 prose-blockquote:rounded-r-xl prose-blockquote:py-3 prose-blockquote:px-5 prose-blockquote:not-italic prose-blockquote:text-text-muted
-              prose-code:text-accent-blue prose-code:bg-surface2 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-              prose-hr:border-border prose-hr:my-8
-              prose-table:border prose-table:border-border prose-th:bg-surface2 prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:font-medium prose-th:text-text-primary prose-td:px-4 prose-td:py-2 prose-td:border-t prose-td:border-border
-              prose-img:rounded-xl prose-img:border prose-img:border-border
-              prose-ul:space-y-1 prose-ol:space-y-1
-            ">
-              <Markdown
-                components={{
-                  a: ({ href, children }) => {
-                    if (href?.startsWith('/')) {
-                      return <Link href={href}>{children}</Link>;
-                    }
-                    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-                  },
-                  // Add visual treatment to blockquotes with > **Quick Answer:** pattern
-                  blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-accent-blue/40 bg-accent-blue/5 rounded-r-xl py-4 px-5 my-6 not-italic">
-                      {children}
-                    </blockquote>
-                  ),
-                  table: ({ children }) => (
-                    <div className="overflow-x-auto rounded-xl border border-border my-6">
-                      <table className="w-full">{children}</table>
+              <div className="mt-8 flex flex-wrap items-center gap-4 md:gap-6">
+                <AuthorCard name={post.author} imageSrc={AUTHOR_IMAGE_SRC} variant="inline" />
+                <div className="hidden md:block w-px h-8 bg-border" />
+                <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-text-muted">
+                  {publishedLabel && (
+                    <div>
+                      <dt className="uppercase tracking-widest text-[10px] font-semibold text-text-muted/70">
+                        Published
+                      </dt>
+                      <dd className="text-text-primary font-medium">{publishedLabel}</dd>
                     </div>
-                  ),
-                }}
-              >
-                {cleanContent(post.content)}
-              </Markdown>
-            </div>
-          </div>
-
-          {/* Sidebar — sticky table of contents / quick links */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-20 space-y-6">
-              <div className="card p-5">
-                <h4 className="text-sm font-semibold text-text-primary mb-3 uppercase tracking-wider">Quick Links</h4>
-                <div className="space-y-2">
-                  <Link href="/new-condos" className="block text-sm text-text-muted hover:text-accent-blue transition-colors">
-                    Browse All Condos
-                  </Link>
-                  <Link href="/new-condos-king-west" className="block text-sm text-text-muted hover:text-accent-blue transition-colors">
-                    King West Condos
-                  </Link>
-                  <Link href="/new-condos-yorkville" className="block text-sm text-text-muted hover:text-accent-blue transition-colors">
-                    Yorkville Condos
-                  </Link>
-                  <Link href="/new-condos-downtown-core" className="block text-sm text-text-muted hover:text-accent-blue transition-colors">
-                    Downtown Core
-                  </Link>
-                  <Link href="/contact-us" className="block text-sm text-text-muted hover:text-accent-blue transition-colors">
-                    Contact an Agent
-                  </Link>
+                  )}
+                  {updatedLabel && updatedLabel !== publishedLabel && (
+                    <div>
+                      <dt className="uppercase tracking-widest text-[10px] font-semibold text-text-muted/70">
+                        Last reviewed
+                      </dt>
+                      <dd className="text-text-primary font-medium">{updatedLabel}</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt className="uppercase tracking-widest text-[10px] font-semibold text-text-muted/70">
+                      Reading
+                    </dt>
+                    <dd className="text-text-primary font-medium">{readLabel}</dd>
+                  </div>
+                </dl>
+                <div className="ml-auto">
+                  <ClientActions title={post.title} url={canonical} />
                 </div>
               </div>
+            </div>
 
-              {/* Share / Bookmark CTA */}
-              <div className="card p-5 bg-accent-blue/5 border-accent-blue/20">
-                <h4 className="text-sm font-semibold text-text-primary mb-2">Need Expert Guidance?</h4>
-                <p className="text-xs text-text-muted mb-3">Our team specializes in Toronto pre-construction. Get personalized recommendations.</p>
-                <Link href="/contact-us" className="btn-primary text-xs !py-2 !px-4 w-full">
-                  Talk to an Expert
+            {summary?.showHeroGraphic && (
+              <div className="rounded-2xl border border-border bg-surface p-5 md:p-6">
+                <HeroCostGraphic />
+              </div>
+            )}
+          </div>
+
+          {summary && (
+            <SummaryPanel lines={summary.lines} footnote={summary.footnote} />
+          )}
+        </div>
+      </header>
+
+      {/* Article Body + Sidebar */}
+      <div className="container-main max-w-6xl py-10 md:py-14">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,760px)_minmax(280px,320px)] lg:gap-14">
+          <article className="min-w-0">
+            <TocMobile headings={headings} />
+            <ArticleBody blocks={blocks} accessDate={accessDate} />
+            <AuthorCard name={post.author} imageSrc={AUTHOR_IMAGE_SRC} />
+          </article>
+
+          <aside
+            aria-label="Article sidebar"
+            className="hidden lg:block print:hidden"
+          >
+            <div className="sticky top-24 space-y-6">
+              <div className="rounded-2xl border border-border bg-surface p-5">
+                <TocDesktop headings={headings} />
+              </div>
+
+              {updatedLabel && (
+                <div className="rounded-2xl border border-border bg-surface p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+                    Last reviewed
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-text-primary">{updatedLabel}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-text-muted">
+                    Rules, tax rates, and by-laws change. Buyers should verify with a
+                    qualified professional before signing.
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-accent-blue/25 bg-accent-blue/[0.06] p-5">
+                <p className="text-sm font-semibold text-text-primary">
+                  Plan your closing costs
+                </p>
+                <p className="mt-1.5 text-xs leading-relaxed text-text-muted">
+                  Walk your APS and price list through with the CondoWizard team
+                  before you commit.
+                </p>
+                <Link
+                  href="/contact-us"
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-accent-blue px-3 py-2 text-xs font-semibold text-white hover:brightness-110 transition"
+                >
+                  Speak With Tal
                 </Link>
               </div>
+
+              {relatedPosts && relatedPosts.length > 0 && (
+                <div className="rounded-2xl border border-border bg-surface p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+                    Related guides
+                  </p>
+                  <ul className="mt-3 space-y-3">
+                    {relatedPosts.map((rp: any) => (
+                      <li key={rp.slug}>
+                        <Link
+                          href={`/blog/${rp.slug}`}
+                          className="block text-sm font-medium text-text-primary hover:text-accent-blue transition-colors leading-snug"
+                        >
+                          {rp.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {featuredProjects && featuredProjects.length > 0 && (
+                <div className="rounded-2xl border border-border bg-surface p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+                    Featured Toronto pre-construction
+                  </p>
+                  <ul className="mt-3 space-y-3">
+                    {featuredProjects.map((p: any) => (
+                      <li key={p.slug}>
+                        <Link
+                          href={`/properties/${p.slug}`}
+                          className="block text-sm font-medium text-text-primary hover:text-accent-blue transition-colors leading-snug"
+                        >
+                          {p.name}
+                          {p.neighborhood?.name && (
+                            <span className="block text-xs font-normal text-text-muted">
+                              {p.neighborhood.name}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/new-condos"
+                    className="mt-4 inline-flex text-xs font-semibold text-accent-blue hover:underline"
+                  >
+                    Browse all projects →
+                  </Link>
+                </div>
+              )}
             </div>
           </aside>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="mt-16 bg-gradient-to-r from-accent-blue/10 to-transparent border border-accent-blue/20 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-6">
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-text-primary">Ready to Explore Pre-Construction?</h3>
-            <p className="text-text-muted mt-2">Browse 200+ new developments across the Greater Toronto Area.</p>
-          </div>
-          <div className="flex gap-3 flex-shrink-0">
-            <Link href="/new-condos" className="btn-primary">Browse Projects</Link>
-            <Link href="/contact-us" className="btn-secondary">Contact Us</Link>
+        {/* Quiet closing CTA */}
+        <div className="mt-14 print:hidden">
+          <div className="rounded-2xl border border-border bg-surface p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+                Next step
+              </p>
+              <h3 className="mt-1 text-lg md:text-xl font-semibold text-text-primary">
+                Compare projects side-by-side or ask Tal a question
+              </h3>
+              <p className="mt-2 text-sm text-text-muted max-w-2xl">
+                Browse current Toronto pre-construction inventory, or send a specific project
+                and price list for a walk-through before you commit.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/new-condos"
+                className="inline-flex items-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-primary hover:border-accent-blue/40 hover:bg-surface2 transition"
+              >
+                Browse projects
+              </Link>
+              <Link
+                href="/contact-us"
+                className="inline-flex items-center rounded-lg bg-accent-blue px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition"
+              >
+                Contact Tal
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Related Articles */}
-        {(relatedPosts || []).length > 0 && (
-          <div className="mt-16 pt-12 border-t border-border">
-            <h2 className="text-2xl font-bold text-text-primary mb-8">Continue Reading</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {(relatedPosts || []).map((rp: any) => (
-                <Link key={rp.id} href={`/blog/${rp.slug}`} className="card group p-6 hover:border-accent-blue/30 transition-all flex flex-col">
-                  {cleanKeyword(rp.targetKeyword) && (
-                    <span className="text-xs text-accent-blue font-medium uppercase tracking-wider mb-2 self-start">
-                      {cleanKeyword(rp.targetKeyword)}
-                    </span>
-                  )}
-                  <h3 className="font-semibold text-text-primary group-hover:text-accent-blue transition-colors leading-tight flex-1">
+        {/* Related articles grid */}
+        {relatedPosts && relatedPosts.length > 0 && (
+          <section aria-label="Continue reading" className="mt-14">
+            <div className="mb-6 flex items-baseline justify-between">
+              <h2 className="text-2xl font-bold text-text-primary">Continue reading</h2>
+              <Link href="/blog" className="text-sm font-medium text-accent-blue hover:underline">
+                All guides →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {relatedPosts.map((rp: any) => (
+                <Link
+                  key={rp.slug}
+                  href={`/blog/${rp.slug}`}
+                  className="group rounded-2xl border border-border bg-surface p-6 hover:border-accent-blue/30 transition-colors flex flex-col"
+                >
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.15em] text-accent-blue">
+                    {rp.category || 'BUYER GUIDE'}
+                  </span>
+                  <h3 className="mt-2 text-[17px] font-semibold text-text-primary leading-snug group-hover:text-accent-blue transition-colors">
                     {rp.title}
                   </h3>
-                  <div className="flex items-center gap-2 mt-4 text-xs text-text-muted/60">
-                    {rp.publishedAt && (
-                      <span>{new Date(rp.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    )}
-                    <span className="w-1 h-1 rounded-full bg-text-muted/30" />
-                    <span>{getReadingTime(rp.content)}</span>
-                  </div>
+                  {rp.excerpt && (
+                    <p className="mt-2 text-sm text-text-muted line-clamp-3 leading-relaxed">
+                      {rp.excerpt}
+                    </p>
+                  )}
+                  {rp.publishedAt && (
+                    <p className="mt-4 text-xs text-text-muted">
+                      {displayDate(rp.publishedAt)}
+                    </p>
+                  )}
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
-
-        {/* Back to blog */}
-        <div className="mt-10 text-center">
-          <Link href="/blog" className="text-sm text-accent-blue hover:underline">
-            &larr; Back to all articles
-          </Link>
-        </div>
-      </article>
+      </div>
     </>
   );
 }

@@ -89,3 +89,43 @@
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
 }
+
+/* Print styles for buyer guides */
+@media print {
+  header nav,
+  aside[aria-label="Article sidebar"],
+  nav[aria-label="Breadcrumb"],
+  .print\:hidden {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000 !important;
+  }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 10pt;
+    color: #555;
+  }
+  a[href^="/"]::after {
+    content: " (https://condowizard.ca" attr(href) ")";
+    font-size: 10pt;
+    color: #555;
+  }
+  details {
+    page-break-inside: avoid;
+  }
+  details > *:not(summary) {
+    display: block !important;
+  }
+  details[open] summary {
+    page-break-after: avoid;
+  }
+  article {
+    max-width: 100% !important;
+  }
+  figure,
+  section {
+    page-break-inside: avoid;
+  }
+}

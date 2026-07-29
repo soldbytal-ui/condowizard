@@ -6,10 +6,19 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import UniversalSearch from '@/components/home/UniversalSearch';
 
-const PRIMARY_NAV: Array<{ href: string; label: string; match?: (p: string) => boolean }> = [
-  { href: '/search?tab=sale', label: 'Buy', match: (p) => p === '/search' },
-  { href: '/search?tab=rent', label: 'Rent' },
-  { href: '/sold', label: 'Sold', match: (p) => p.startsWith('/sold') },
+type NavChild = { href: string; label: string; desc?: string; match?: (p: string) => boolean };
+type NavItem = { href?: string; label: string; match?: (p: string) => boolean; children?: NavChild[] };
+
+const PRIMARY_NAV: NavItem[] = [
+  {
+    label: 'MLS',
+    match: (p) => p === '/search' || p.startsWith('/sold'),
+    children: [
+      { href: '/search?tab=sale', label: 'Buy', desc: 'Homes for sale', match: (p) => p === '/search' },
+      { href: '/search?tab=rent', label: 'Rent', desc: 'Rental listings' },
+      { href: '/sold', label: 'Sold', desc: 'Sold history', match: (p) => p.startsWith('/sold') },
+    ],
+  },
   { href: '/new-condos', label: 'New Condos', match: (p) => p.startsWith('/new-condos') || p.startsWith('/pre-construction') || p.startsWith('/properties') },
   { href: '/new-homes', label: 'New Homes', match: (p) => p.startsWith('/new-homes') },
   { href: '#neighbourhoods', label: 'Neighbourhoods' },
@@ -48,12 +57,14 @@ const NEIGHBOURHOODS = [
 
 export default function Navbar() {
   const hoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname() || '/';
   const isHome = pathname === '/';
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoodOpen, setHoodOpen] = useState(false);
+  const [mlsOpen, setMlsOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   // Whether the hero's own search is currently in the viewport.
   // Initialised to the pessimistic case (true on homepage) so the header
@@ -71,6 +82,7 @@ export default function Navbar() {
   useEffect(() => {
     setMobileOpen(false);
     setHoodOpen(false);
+    setMlsOpen(false);
     setMobileSearchOpen(false);
     // Assume homepage has a hero search present at top; interior pages don't.
     // The observer effect below will confirm and take over.
@@ -150,7 +162,56 @@ export default function Navbar() {
 
         <div className="hidden lg:flex items-center gap-0.5 shrink-0 ml-auto">
           {PRIMARY_NAV.map((item) => {
-            const isNeighbourhoodsBtn = item.href.startsWith('#');
+            // MLS-style dropdown (parent with children).
+            if (item.children) {
+              const parentActive = item.match ? item.match(pathname) : false;
+              return (
+                <div
+                  key={item.label}
+                  className="relative"
+                  onMouseEnter={() => { if (mlsTimeoutRef.current) clearTimeout(mlsTimeoutRef.current); setMlsOpen(true); }}
+                  onMouseLeave={() => { mlsTimeoutRef.current = setTimeout(() => setMlsOpen(false), 150); }}
+                >
+                  <button
+                    className={`text-[12.5px] font-medium px-2 py-2 rounded-md transition-colors flex items-center gap-1 ${
+                      parentActive ? 'text-accent-blue' : 'text-text-primary/85 hover:text-text-primary'
+                    }`}
+                    aria-expanded={mlsOpen}
+                    aria-haspopup="menu"
+                  >
+                    {item.label}
+                    <svg className={`w-3 h-3 transition-transform ${mlsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {mlsOpen && (
+                    <div className="absolute top-full left-0 pt-2" role="menu">
+                      <div className="bg-white rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-border p-2 min-w-[220px]">
+                        {item.children.map((c) => {
+                          const active = c.match ? c.match(pathname) : pathname === c.href.split('?')[0];
+                          return (
+                            <Link
+                              key={c.label}
+                              href={c.href}
+                              role="menuitem"
+                              className={`block px-3 py-2 rounded-md transition-colors ${
+                                active ? 'bg-surface2' : 'hover:bg-surface2'
+                              }`}
+                            >
+                              <span className={`block text-[13px] font-medium ${active ? 'text-accent-blue' : 'text-text-primary'}`}>{c.label}</span>
+                              {c.desc && <span className="block text-[11px] text-text-muted mt-0.5">{c.desc}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Neighbourhoods-style hash dropdown.
+            const isNeighbourhoodsBtn = item.href?.startsWith('#');
             if (isNeighbourhoodsBtn) {
               return (
                 <div
@@ -194,6 +255,7 @@ export default function Navbar() {
               );
             }
 
+            if (!item.href) return null;
             const active = item.match ? item.match(pathname) : pathname === item.href.split('?')[0];
             return (
               <Link
@@ -252,16 +314,38 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t border-border shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           <div className="container-main py-4 space-y-1">
-            {PRIMARY_NAV.filter((p) => !p.href.startsWith('#')).map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="block py-2.5 text-text-primary font-medium border-b border-border/60"
-                onClick={() => setMobileOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {PRIMARY_NAV.filter((p) => !p.href?.startsWith('#')).map((item) => {
+              if (item.children) {
+                return (
+                  <div key={item.label} className="border-b border-border/60 py-2">
+                    <p className="text-[11px] text-text-muted uppercase tracking-wider mb-1.5">{item.label}</p>
+                    <div className="grid grid-cols-3 gap-x-2">
+                      {item.children.map((c) => (
+                        <Link
+                          key={c.label}
+                          href={c.href}
+                          className="block py-1.5 text-sm text-text-primary/85 hover:text-accent-blue"
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {c.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              if (!item.href) return null;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="block py-2.5 text-text-primary font-medium border-b border-border/60"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             <div className="pt-3">
               <p className="text-[11px] text-text-muted uppercase tracking-wider mb-1.5">Neighbourhoods</p>
               <div className="grid grid-cols-2 gap-x-3 gap-y-1">

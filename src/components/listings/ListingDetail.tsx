@@ -8,6 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { throttledPost } from '@/lib/throttled-fetch';
 import VOWLocked from '@/components/auth/VOWLocked';
 import { slugifyFullAddress } from '@/lib/building-address';
+import LocationSection from './LocationSection';
+import SaveSearchBanner from './SaveSearchBanner';
+import SidebarSupport from './SidebarSupport';
+import RecoCard from './RecoCard';
 
 const ListingMiniMap = dynamic(() => import('./ListingMiniMap'), { ssr: false });
 
@@ -437,7 +441,8 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
 
           {/* RIGHT: Sticky agent card + contact form (top-aligned with gallery) */}
           <div className="lg:w-[40%] mt-6 lg:mt-0">
-            <div className="lg:sticky lg:top-20 p-5 bg-white border border-border rounded-xl shadow-sm">
+            <div className="lg:sticky lg:top-20">
+            <div className="p-5 bg-white border border-border rounded-xl shadow-sm">
               {/* Agent info */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
@@ -486,8 +491,21 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                 Rare Real Estate Inc., Brokerage · 1701 Avenue Rd, Toronto, ON M5M 3Y3
               </p>
             </div>
+
+            {/* Support cards — inside the same sticky wrapper so they scroll
+                as one unit with the agent card and never overlap. */}
+            <SidebarSupport mlsNumber={listing.mlsNumber || ''} address={listing.address} />
+            </div>
           </div>
         </div>
+
+        {/* Save-search banner — sits between the split and the tabs. */}
+        <SaveSearchBanner
+          neighborhood={listing.neighborhood || ''}
+          propertyType={pd.propertyType || null}
+          beds={listing.beds || null}
+          city={listing.city || 'Toronto'}
+        />
 
         {/* TABS — full width below the split */}
         <div className="mt-8 border-t border-border pt-2">
@@ -544,7 +562,15 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                       </div>
                     </div>
                   )}
-                  {listing.lat && listing.lng && <div><h3 className="font-semibold text-lg mb-2">Location</h3><div className="h-64 rounded-xl overflow-hidden"><ListingMiniMap lat={listing.lat} lng={listing.lng} zoom={15} /></div></div>}
+                  {listing.lat && listing.lng && (
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">Location</h3>
+                      <p className="text-sm text-text-muted">
+                        Full map, nearby destinations and amenity search live in the{' '}
+                        <a href="#location" className="text-accent-blue font-medium hover:underline">Location section below</a>.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -676,7 +702,7 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
                     <p className="text-sm text-text-muted">View all listings and market stats for this neighbourhood.</p>
                     <Link href={`/search?neighborhood=${encodeURIComponent(listing.neighborhood || '')}`} className="inline-block mt-2 text-accent-blue text-sm font-medium hover:underline">View Neighbourhood Listings &rarr;</Link>
                   </div>
-                  {listing.lat && listing.lng && <div className="h-48 rounded-xl overflow-hidden"><ListingMiniMap lat={listing.lat} lng={listing.lng} zoom={13} /></div>}
+                  {listing.lat && listing.lng && <div className="h-48 rounded-xl overflow-hidden"><ListingMiniMap lat={listing.lat} lng={listing.lng} zoom={13} variant="light" /></div>}
                 </div>
               )}
 
@@ -814,12 +840,20 @@ export default function ListingDetail({ listing, propertyDetails: pd, rooms, his
           </div>
         </div>
 
-        {/* RECO */}
-        <div className="mt-12 p-4 bg-white rounded-xl border border-border text-xs text-text-muted">
-          <p className="font-medium text-text-primary mb-1">RECO Disclosure</p>
-          <p>Tal Shelef, Sales Representative at Rare Real Estate Inc., Brokerage. 1701 Avenue Rd, Toronto, ON M5M 3Y3. 647-890-4082 | Contact@condowizard.ca</p>
-          <p className="mt-1">All information is provided by TRREB and is deemed reliable but not guaranteed.</p>
-        </div>
+        {/* Persistent Location section — sits below the tabs so the large
+            map, nearby destinations and amenity cards are always in view
+            regardless of active tab. */}
+        <LocationSection
+          lat={listing.lat}
+          lng={listing.lng}
+          address={listing.address}
+          neighborhood={listing.neighborhood || ''}
+          city={listing.city || 'Toronto'}
+          postalCode={pd.postalCode}
+        />
+
+        {/* RECO disclosure — dedicated card */}
+        <RecoCard mlsNumber={listing.mlsNumber || ''} />
       </div>
 
       {/* LIGHTBOX */}
