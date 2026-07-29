@@ -352,16 +352,8 @@ Available site sections:
   if (!response.ok) {
     const errText = await response.text();
     console.error('Anthropic API error:', response.status, errText.slice(0, 500));
-    // TEMP DIAGNOSTIC — leak upstream error to caller so we can see what
-    // Anthropic is actually rejecting. Revert after diagnosis.
     return new Response(
-      JSON.stringify({
-        error: 'Sorry, I encountered an error. Please try again.',
-        _debug_status: response.status,
-        _debug_upstream: errText.slice(0, 800),
-        _debug_key_len: (ANTHROPIC_API_KEY || '').length,
-        _debug_key_prefix: (ANTHROPIC_API_KEY || '').slice(0, 8),
-      }),
+      JSON.stringify({ error: 'Sorry, I encountered an error. Please try again.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

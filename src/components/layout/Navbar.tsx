@@ -19,8 +19,14 @@ const PRIMARY_NAV: NavItem[] = [
       { href: '/sold', label: 'Sold', desc: 'Sold history', match: (p) => p.startsWith('/sold') },
     ],
   },
-  { href: '/new-condos', label: 'New Condos', match: (p) => p.startsWith('/new-condos') || p.startsWith('/pre-construction') || p.startsWith('/properties') },
-  { href: '/new-homes', label: 'New Homes', match: (p) => p.startsWith('/new-homes') },
+  {
+    label: 'Pre-Construction',
+    match: (p) => p.startsWith('/new-condos') || p.startsWith('/new-homes') || p.startsWith('/pre-construction') || p.startsWith('/properties'),
+    children: [
+      { href: '/new-condos', label: 'New Condos', desc: 'Pre-construction condos across the GTA', match: (p) => p.startsWith('/new-condos') || p.startsWith('/pre-construction') || p.startsWith('/properties') },
+      { href: '/new-homes', label: 'New Homes', desc: 'Freehold pre-construction communities', match: (p) => p.startsWith('/new-homes') },
+    ],
+  },
   { href: '#neighbourhoods', label: 'Neighbourhoods' },
   { href: '/market', label: 'Market', match: (p) => p.startsWith('/market') },
   { href: '/blog', label: 'Guides', match: (p) => p.startsWith('/blog') },
