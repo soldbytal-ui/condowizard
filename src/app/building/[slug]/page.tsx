@@ -8,6 +8,7 @@ import { parseAddressFromSlug, formatAddress } from '@/lib/building-address';
 import { AIRBNB_BUILDINGS, getBuildingBySlug } from '@/data/airbnb-buildings';
 import { slugify } from '@/lib/utils';
 import ListingCard from '@/components/search/ListingCard';
+import VOWLocked from '@/components/auth/VOWLocked';
 
 interface Props {
   params: { slug: string };
@@ -23,7 +24,7 @@ async function queryRepliers(body: Record<string, unknown>): Promise<RepliersLis
   try {
     const res = await repliersRequest<ListingsResponse>({
       path: '/listings',
-      body: { boardId: 91, resultsPerPage: 50, ...body },
+      body: { resultsPerPage: 50, ...body },
       revalidate: 600,
     });
     return res.listings || [];
@@ -84,10 +85,20 @@ async function getBuildingData(slug: string) {
   const addr = parseAddressFromSlug(slug);
   if (!addr) return null;
 
+  // Sold data is indexed differently in Repliers — boardId=91 filter returns
+  // 0 results on sold records even when active records at the same address
+  // match. Drop boardId for the sold path and add a 12-month window.
+  const minSoldDate = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
   const [forSale, forRent, sold] = await Promise.all([
-    fetchBuildingListings(addr, { status: 'A', type: 'sale' }),
-    fetchBuildingListings(addr, { status: 'A', type: 'lease' }),
-    fetchBuildingListings(addr, { status: 'U', lastStatus: 'Sld', resultsPerPage: 20, sortBy: 'soldDateDesc' }),
+    fetchBuildingListings(addr, { status: 'A', type: 'sale', boardId: 91 }),
+    fetchBuildingListings(addr, { status: 'A', type: 'lease', boardId: 91 }),
+    fetchBuildingListings(addr, {
+      status: 'U',
+      lastStatus: 'Sld',
+      minSoldDate,
+      resultsPerPage: 20,
+      sortBy: 'soldDateDesc',
+    }),
   ]);
 
   return { addr, forSale, forRent, sold };
@@ -417,11 +428,13 @@ export default async function BuildingPage({ params, searchParams }: Props) {
             )}
             {tab === 'sold' && (
               unifiedSold.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {unifiedSold.map((l) => <ListingCard key={l.id} listing={l} isSoldView />)}
-                </div>
+                <VOWLocked message={`Sign up free to view ${unifiedSold.length} sold price${unifiedSold.length === 1 ? '' : 's'} in this building`}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {unifiedSold.map((l) => <ListingCard key={l.id} listing={l} isSoldView />)}
+                  </div>
+                </VOWLocked>
               ) : (
-                <p className="text-text-muted py-12 text-center">No recent sold data for this building.</p>
+                <p className="text-text-muted py-12 text-center">No recent sold data for this building in the last 12 months.</p>
               )
             )}
             {tab === 'info' && (
